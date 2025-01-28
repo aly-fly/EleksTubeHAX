@@ -2,6 +2,7 @@
 #define WIFI_WPS_H
 
 #include "GLOBAL_DEFINES.h"
+#include <string.h>
 
 enum WifiState_t
 {

@@ -4,6 +4,7 @@
 #include "TFTs.h"
 #include "esp_wps.h"
 #include "WiFi_WPS.h"
+#include "sdkconfig.h"
 
 #include "IPGeolocation_AO.h"
 
@@ -19,6 +20,7 @@ double GeoLocTZoffset = 0;
 static esp_wps_config_t wps_config;
 void wpsInitConfig()
 {
+  memset(&wps_config, 0, sizeof(esp_wps_config_t));
   wps_config.wps_type = ESP_WPS_MODE;
   strcpy(wps_config.factory_info.manufacturer, ESP_MANUFACTURER);
   strcpy(wps_config.factory_info.model_number, ESP_MODEL_NUMBER);
@@ -61,6 +63,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     WifiState = wps_failed;
     Serial.println("WPS Failed, retrying");
     esp_wifi_wps_disable();
+    wpsInitConfig();
     esp_wifi_wps_enable(&wps_config);
     esp_wifi_wps_start(0);
     break;
@@ -70,6 +73,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     tfts.print("/"); // retry
     tfts.setTextColor(TFT_BLUE, TFT_BLACK);
     esp_wifi_wps_disable();
+    wpsInitConfig();
     esp_wifi_wps_enable(&wps_config);
     esp_wifi_wps_start(0);
     WifiState = wps_active;
@@ -173,8 +177,7 @@ void WifiReconnect()
 void WiFiStartWps()
 {
   // erase settings
-  snprintf(stored_config.config.wifi.ssid, sizeof(stored_config.config.wifi.ssid), "%s", WiFi.SSID().c_str());
-  stored_config.config.wifi.password[0] = '\0'; // empty string as password
+  memset(&stored_config.config.wifi, 0, sizeof(stored_config.config.wifi)); //zero out the entire WiFi config
   stored_config.config.wifi.WPS_connected = 0x11; // invalid = different than 0x55
   Serial.println(""); Serial.print("Saving config! Triggered from WPS start...");
   stored_config.save();
@@ -208,9 +211,10 @@ void WiFiStartWps()
   }
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
   snprintf(stored_config.config.wifi.ssid, sizeof(stored_config.config.wifi.ssid), "%s", WiFi.SSID().c_str()); // Copy the SSID into the stored configuration safely
-  stored_config.config.wifi.password[0] = '\0'; // Since the password cannot be retrieved from WPS, set it to an empty string
+  memset(&stored_config.config.wifi.password, 0, sizeof(stored_config.config.wifi.password));   // Since the password cannot be retrieved from WPS, set it to an empty string
   stored_config.config.wifi.WPS_connected = StoredConfig::valid; // Mark the configuration as valid
-  Serial.println(); Serial.print("Saving config! Triggered from WPS success...");
+  Serial.println();
+  Serial.print("Saving config! Triggered from WPS success...");
   stored_config.save();
   Serial.println(" WPS finished.");
 }
