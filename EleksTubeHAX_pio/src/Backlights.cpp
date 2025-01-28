@@ -251,7 +251,11 @@ void Backlights::rainbowPattern()
   }
   if (dimming)
   {
-    setBrightness(0xFF >> max_intensity - (uint8_t)BACKLIGHT_DIMMED_INTENSITY - 1);
+    #if BACKLIGHT_DIMMED_INTENSITY > 0
+      setBrightness(0xFF >> max_intensity - (uint8_t)BACKLIGHT_DIMMED_INTENSITY - 1);
+    #else  //turn off backlight if intensity is 0
+      setBrightness(0);
+    #endif
   }
   else
   {
