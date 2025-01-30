@@ -25,10 +25,11 @@
 #define SAVED_CONFIG_NAMESPACE "configs"
 
 // ************ WiFi advanced config *********************
-#define ESP_WPS_MODE WPS_TYPE_PBC // push-button
+#define ESP_WPS_MODE WPS_TYPE_PBC // use WPS push-button methode
 #define ESP_MANUFACTURER "ESPRESSIF"
 #define ESP_MODEL_NUMBER "ESP32"
 #define ESP_MODEL_NAME "IPS clock"
+#define CONFIG_ESP32_WIFI_NVS_ENABLED 1 // Force NVS usage for WiFi driver
 
 // ************ MQTT config *********************
 #define MQTT_RECONNECT_WAIT_SEC 30      // how long to wait between retries to connect to broker

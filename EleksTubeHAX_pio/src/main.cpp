@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include "GLOBAL_DEFINES.h"
+#include "nvs_flash.h"
 #include "Buttons.h"
 #include "Backlights.h"
 #include "TFTs.h"
@@ -74,6 +75,16 @@ void setup()
   Serial.println("");
   Serial.println(FIRMWARE_VERSION);
   Serial.println("In setup().");
+  
+  Serial.print("Init NVS flash partition usage...");
+  esp_err_t ret = nvs_flash_init(); // Initialize NVS
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    Serial.println("");Serial.println("No free pages in or newer version of NVS partition found. Erasing NVS flash partition...");
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+  Serial.println("Done");
 
   stored_config.begin();
   stored_config.load();
