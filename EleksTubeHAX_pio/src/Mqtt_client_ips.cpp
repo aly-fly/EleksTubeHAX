@@ -10,7 +10,7 @@
  * Documentation: https://www.docu.smartnest.cz/
  */
 
-#include "Mqtt_client_ips.h"
+#include "MQTT_client_ips.h"
 #ifdef MQTT_ENABLED
 #include "WiFi.h"         // for ESP32
 #include <PubSubClient.h> // Download and install this library first from: https://www.arduinolibraries.info/libraries/pub-sub-client
@@ -25,7 +25,7 @@
 WiFiClientSecure espClient;
 #else
 WiFiClient espClient;
-#endif
+#endif // MQTT_USE_TLS
 PubSubClient MQTTclient(espClient);
 
 #define concat2(first, second) first second
@@ -43,19 +43,19 @@ PubSubClient MQTTclient(espClient);
 
 // private:
 int splitCommand(char *topic, char *tokens[], int tokensNumber);
-void callback(char *topic, byte *payload, unsigned int length);
+void MQTTcallback(char *topic, byte *payload, unsigned int length);
 
-void MqttProcessCommand();
-void MqttReportBattery();
-void MqttReportStatus();
-void MqttReportPowerState();
-void MqttReportWiFiSignal();
-void MqttReportTemperature();
-void MqttReportNotification(String message);
-void MqttReportGraphic(bool force);
-void MqttReportBackOnChange();
-void MqttReportBackEverything(bool force);
-void MqttPeriodicReportBack();
+void MQTTProcessCommand();
+void MQTTReportBattery();
+void MQTTReportStatus();
+void MQTTReportPowerState();
+void MQTTReportWiFiSignal();
+void MQTTReportTemperature();
+void MQTTReportNotification(String message);
+void MQTTReportGraphic(bool force);
+void MQTTReportBackOnChange();
+void MQTTReportBackEverything(bool force);
+void MQTTPeriodicReportBack();
 
 char topic[100];
 char msg[5];
@@ -63,71 +63,71 @@ uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
 uint8_t LastNotificationChecksum = 0;
 uint32_t LastTimeTriedToConnect = 0;
 
-bool MqttConnected = true; // skip error message if disabled
+bool MQTTConnected = true; // skip error message if disabled
 // commands from server    // = "directive/status"
-bool MqttCommandPower = true;
-bool MqttCommandMainPower = true;
-bool MqttCommandBackPower = true;
-bool MqttCommandPowerReceived = false;
-bool MqttCommandMainPowerReceived = false;
-bool MqttCommandBackPowerReceived = false;
+bool MQTTCommandPower = true;
+bool MQTTCommandMainPower = true;
+bool MQTTCommandBackPower = true;
+bool MQTTCommandPowerReceived = false;
+bool MQTTCommandMainPowerReceived = false;
+bool MQTTCommandBackPowerReceived = false;
 
-bool MqttCommandUseTwelveHours = false;
-bool MqttCommandUseTwelveHoursReceived = false;
-bool MqttCommandBlankZeroHours = false;
-bool MqttCommandBlankZeroHoursReceived = false;
+bool MQTTCommandUseTwelveHours = false;
+bool MQTTCommandUseTwelveHoursReceived = false;
+bool MQTTCommandBlankZeroHours = false;
+bool MQTTCommandBlankZeroHoursReceived = false;
 
-int MqttCommandState = 1;
-bool MqttCommandStateReceived = false;
+int MQTTCommandState = 1;
+bool MQTTCommandStateReceived = false;
 
-uint8_t MqttCommandBrightness = -1;
-uint8_t MqttCommandMainBrightness = -1;
-uint8_t MqttCommandBackBrightness = -1;
-bool MqttCommandBrightnessReceived = false;
-bool MqttCommandMainBrightnessReceived = false;
-bool MqttCommandBackBrightnessReceived = false;
+uint8_t MQTTCommandBrightness = -1;
+uint8_t MQTTCommandMainBrightness = -1;
+uint8_t MQTTCommandBackBrightness = -1;
+bool MQTTCommandBrightnessReceived = false;
+bool MQTTCommandMainBrightnessReceived = false;
+bool MQTTCommandBackBrightnessReceived = false;
 
-char MqttCommandPattern[24] = "";
-bool MqttCommandPatternReceived = false;
-char MqttCommandBackPattern[24] = "";
-bool MqttCommandBackPatternReceived = false;
+char MQTTCommandPattern[24] = "";
+bool MQTTCommandPatternReceived = false;
+char MQTTCommandBackPattern[24] = "";
+bool MQTTCommandBackPatternReceived = false;
 
-uint16_t MqttCommandBackColorPhase = -1;
-bool MqttCommandBackColorPhaseReceived = false;
+uint16_t MQTTCommandBackColorPhase = -1;
+bool MQTTCommandBackColorPhaseReceived = false;
 
-uint8_t MqttCommandGraphic = -1;
-bool MqttCommandGraphicReceived = false;
-uint8_t MqttCommandMainGraphic = -1;
-bool MqttCommandMainGraphicReceived = false;
+uint8_t MQTTCommandGraphic = -1;
+bool MQTTCommandGraphicReceived = false;
+uint8_t MQTTCommandMainGraphic = -1;
+bool MQTTCommandMainGraphicReceived = false;
 
-uint8_t MqttCommandPulseBpm = -1;
-bool MqttCommandPulseBpmReceived = false;
+uint8_t MQTTCommandPulseBpm = -1;
+bool MQTTCommandPulseBpmReceived = false;
 
-uint8_t MqttCommandBreathBpm = -1;
-bool MqttCommandBreathBpmReceived = false;
+uint8_t MQTTCommandBreathBpm = -1;
+bool MQTTCommandBreathBpmReceived = false;
 
-float MqttCommandRainbowSec = -1;
-bool MqttCommandRainbowSecReceived = false;
+float MQTTCommandRainbowSec = -1;
+bool MQTTCommandRainbowSecReceived = false;
 
 // status to server
-bool MqttStatusPower = true;
-bool MqttStatusMainPower = true;
-bool MqttStatusBackPower = true;
-bool MqttStatusUseTwelveHours = true;
-bool MqttStatusBlankZeroHours = true;
-int MqttStatusState = 0;
-int MqttStatusBattery = 7;
-uint8_t MqttStatusBrightness = 0;
-uint8_t MqttStatusMainBrightness = 0;
-uint8_t MqttStatusBackBrightness = 0;
-char MqttStatusPattern[24] = "";
-char MqttStatusBackPattern[24] = "";
-uint16_t MqttStatusBackColorPhase = 0;
-uint8_t MqttStatusGraphic = 0;
-uint8_t MqttStatusMainGraphic = 0;
-uint8_t MqttStatusPulseBpm = 0;
-uint8_t MqttStatusBreathBpm = 0;
-float MqttStatusRainbowSec = 0;
+bool MQTTStatusPower = true;
+bool MQTTStatusMainPower = true;
+bool MQTTStatusBackPower = true;
+bool MQTTStatusUseTwelveHours = true;
+bool MQTTStatusBlankZeroHours = true;
+int MQTTStatusState = 0;
+int MQTTStatusBattery = 7;
+uint8_t MQTTStatusBrightness = 0;
+uint8_t MQTTStatusMainBrightness = 0;
+uint8_t MQTTStatusBackBrightness = 0;
+char MQTTStatusPattern[24] = "";
+char MQTTStatusBackPattern[24] = "";
+uint16_t MQTTStatusBackColorPhase = 0;
+uint8_t MQTTStatusGraphic = 0;
+uint8_t MQTTStatusMainGraphic = 0;
+uint8_t MQTTStatusPulseBpm = 0;
+uint8_t MQTTStatusBreathBpm = 0;
+float MQTTStatusRainbowSec = 0;
 
 int LastSentSignalLevel = 999;
 int LastSentPowerState = -1;
@@ -175,27 +175,27 @@ void sendToBroker(const char *topic, const char *message)
   }
 }
 
-void MqttReportState(bool force)
+void MQTTReportState(bool force)
 {
 #ifdef MQTT_HOME_ASSISTANT
   if (MQTTclient.connected())
   {
 
-    if (force || MqttStatusMainPower != LastSentMainPowerState || MqttStatusMainBrightness != LastSentMainBrightness || MqttStatusMainGraphic != LastSentMainGraphic)
+    if (force || MQTTStatusMainPower != LastSentMainPowerState || MQTTStatusMainBrightness != LastSentMainBrightness || MQTTStatusMainGraphic != LastSentMainGraphic)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON;
-      state["brightness"] = MqttStatusMainBrightness;
-      state["effect"] = tfts.clockFaceToName(MqttStatusMainGraphic);
+      state["state"] = MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON;
+      state["brightness"] = MQTTStatusMainBrightness;
+      state["effect"] = tfts.clockFaceToName(MQTTStatusMainGraphic);
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/main");
       MQTTclient.publish(topic, buffer, true);
-      LastSentMainPowerState = MqttStatusMainPower;
-      LastSentMainBrightness = MqttStatusMainBrightness;
-      LastSentMainGraphic = MqttStatusMainGraphic;
+      LastSentMainPowerState = MQTTStatusMainPower;
+      LastSentMainBrightness = MQTTStatusMainBrightness;
+      LastSentMainGraphic = MQTTStatusMainGraphic;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -203,29 +203,29 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusBackPower != LastSentBackPowerState || MqttStatusBackBrightness != LastSentBackBrightness || strcmp(MqttStatusBackPattern, LastSentBackPattern) != 0 || MqttStatusBackColorPhase != LastSentBackColorPhase || MqttStatusPulseBpm != LastSentPulseBpm || MqttStatusBreathBpm != LastSentBreathBpm || MqttStatusRainbowSec != LastSentRainbowSec)
+    if (force || MQTTStatusBackPower != LastSentBackPowerState || MQTTStatusBackBrightness != LastSentBackBrightness || strcmp(MQTTStatusBackPattern, LastSentBackPattern) != 0 || MQTTStatusBackColorPhase != LastSentBackColorPhase || MQTTStatusPulseBpm != LastSentPulseBpm || MQTTStatusBreathBpm != LastSentBreathBpm || MQTTStatusRainbowSec != LastSentRainbowSec)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusBackPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON;
-      state["brightness"] = MqttStatusBackBrightness;
-      state["effect"] = MqttStatusBackPattern;
+      state["state"] = MQTTStatusBackPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON;
+      state["brightness"] = MQTTStatusBackBrightness;
+      state["effect"] = MQTTStatusBackPattern;
       state["color_mode"] = "hs";
-      state["color"]["h"] = backlights.phaseToHue(MqttStatusBackColorPhase);
+      state["color"]["h"] = backlights.phaseToHue(MQTTStatusBackColorPhase);
       state["color"]["s"] = 100.f;
-      state["pulse_bpm"] = MqttStatusPulseBpm;
-      state["beath_bpm"] = MqttStatusBreathBpm;
-      state["rainbow_sec"] = round1(MqttStatusRainbowSec);
+      state["pulse_bpm"] = MQTTStatusPulseBpm;
+      state["beath_bpm"] = MQTTStatusBreathBpm;
+      state["rainbow_sec"] = round1(MQTTStatusRainbowSec);
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/back");
       MQTTclient.publish(topic, buffer, true);
-      LastSentBackPowerState = MqttStatusBackPower;
-      LastSentBackBrightness = MqttStatusBackBrightness;
-      strncpy(LastSentBackPattern, MqttStatusBackPattern, sizeof(LastSentBackPattern) - 1);
+      LastSentBackPowerState = MQTTStatusBackPower;
+      LastSentBackBrightness = MQTTStatusBackBrightness;
+      strncpy(LastSentBackPattern, MQTTStatusBackPattern, sizeof(LastSentBackPattern) - 1);
       LastSentBackPattern[sizeof(LastSentBackPattern) - 1] = '\0';
-      LastSentBackColorPhase = MqttStatusBackColorPhase;
+      LastSentBackColorPhase = MQTTStatusBackColorPhase;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -233,17 +233,17 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusUseTwelveHours != LastSentUseTwelveHours)
+    if (force || MQTTStatusUseTwelveHours != LastSentUseTwelveHours)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusUseTwelveHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
+      state["state"] = MQTTStatusUseTwelveHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/use_twelve_hours");
       MQTTclient.publish(topic, buffer, true);
-      LastSentUseTwelveHours = MqttStatusUseTwelveHours;
+      LastSentUseTwelveHours = MQTTStatusUseTwelveHours;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -251,17 +251,17 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusBlankZeroHours != LastSentBlankZeroHours)
+    if (force || MQTTStatusBlankZeroHours != LastSentBlankZeroHours)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusBlankZeroHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
+      state["state"] = MQTTStatusBlankZeroHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/blank_zero_hours");
       MQTTclient.publish(topic, buffer, true);
-      LastSentBlankZeroHours = MqttStatusBlankZeroHours;
+      LastSentBlankZeroHours = MQTTStatusBlankZeroHours;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -269,17 +269,17 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusPulseBpm != LastSentPulseBpm)
+    if (force || MQTTStatusPulseBpm != LastSentPulseBpm)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusPulseBpm;
+      state["state"] = MQTTStatusPulseBpm;
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/pulse_bpm");
       MQTTclient.publish(topic, buffer, true);
-      LastSentPulseBpm = MqttStatusPulseBpm;
+      LastSentPulseBpm = MQTTStatusPulseBpm;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -287,17 +287,17 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusBreathBpm != LastSentBreathBpm)
+    if (force || MQTTStatusBreathBpm != LastSentBreathBpm)
     {
 
       JsonDocument state;
-      state["state"] = MqttStatusBreathBpm;
+      state["state"] = MQTTStatusBreathBpm;
 
       char buffer[256];
       size_t n = serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/breath_bpm");
       MQTTclient.publish(topic, buffer, true);
-      LastSentBreathBpm = MqttStatusBreathBpm;
+      LastSentBreathBpm = MQTTStatusBreathBpm;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -305,17 +305,17 @@ void MqttReportState(bool force)
       Serial.println(buffer);
     }
 
-    if (force || MqttStatusRainbowSec != LastSentRainbowSec)
+    if (force || MQTTStatusRainbowSec != LastSentRainbowSec)
     {
 
       JsonDocument state;
-      state["state"] = round1(MqttStatusRainbowSec);
+      state["state"] = round1(MQTTStatusRainbowSec);
 
       char buffer[256];
       serializeJson(state, buffer);
       const char *topic = concat2(MQTT_CLIENT, "/rainbow_duration");
       MQTTclient.publish(topic, buffer, true);
-      LastSentRainbowSec = MqttStatusRainbowSec;
+      LastSentRainbowSec = MQTTStatusRainbowSec;
 
       Serial.print("TX MQTT: ");
       Serial.print(topic);
@@ -374,15 +374,14 @@ bool loadCARootCert()
 }
 #endif
 
-void MqttStart()
+void MQTTStart()
 {
-#ifdef MQTT_ENABLED
-  MqttConnected = false;
+  MQTTConnected = false;
   if (((millis() - LastTimeTriedToConnect) > (MQTT_RECONNECT_WAIT_SEC * 100)) || (LastTimeTriedToConnect == 0))
   {
     LastTimeTriedToConnect = millis();
     MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
-    MQTTclient.setCallback(callback);
+    MQTTclient.setMQTTCallback(MQTTcallback);
     MQTTclient.setBufferSize(2048);
 #ifdef MQTT_USE_TLS
     bool result = loadCARootCert();
@@ -394,21 +393,23 @@ void MqttStart()
 
     Serial.println("");
     Serial.println("Connecting to MQTT...");
-    if (MQTTclient.connect(MQTT_CLIENT, MQTT_USERNAME, MQTT_PASSWORD))
+    // Attempt to connect. Set the last will and testament message, if the connection get lost
+    if (MQTTclient.connect(MQTT_CLIENT, MQTT_USERNAME, MQTT_PASSWORD, concat2(MQTT_CLIENT, "/status"), 1, true, "offline"))
     {
       Serial.println("MQTT connected");
-      MqttConnected = true;
+      MQTTConnected = true;
+      sendToBroker("status", "online"); // Publish birth message
     }
     else
     {
-      if (MQTTclient.state() == 5)
+      if (MQTTclient.state() == 5)  //special error code for MQTT connection not allowed on smartnest.cz
       {
         Serial.println("Error: Connection not allowed by broker, possible reasons:");
         Serial.println("- Device is already online. Wait some seconds until it appears offline");
         Serial.println("- Wrong Username or password. Check credentials");
         Serial.println("- Client Id does not belong to this username, verify ClientId");
       }
-      else
+      else // other error codes while connecting
       {
         Serial.println("Error: Not possible to connect to Broker!");
         Serial.print("Error code:");
@@ -431,6 +432,7 @@ void MqttStart()
 
 #ifdef MQTT_HOME_ASSISTANT
     char subscribeTopic[100];
+
     snprintf(subscribeTopic, sizeof(subscribeTopic), "%s/main/set", MQTT_CLIENT);
     MQTTclient.subscribe(subscribeTopic);
 
@@ -451,19 +453,18 @@ void MqttStart()
 
     snprintf(subscribeTopic, sizeof(subscribeTopic), "%s/rainbow_duration/set", MQTT_CLIENT);
     MQTTclient.subscribe(subscribeTopic);
-#endif
+#endif // MQTT_HOME_ASSISTANT
   }
-#endif
 }
 
 int splitCommand(char *topic, char *tokens[], int tokensNumber)
 {
-  int mqttClientLength = strlen(MQTT_CLIENT);
+  int MQTTClientLength = strlen(MQTT_CLIENT);
   int topicLength = strlen(topic);
-  int finalLength = topicLength - mqttClientLength + 2;
+  int finalLength = topicLength - MQTTClientLength + 2;
   char *command = (char *)malloc(finalLength);
 
-  strncpy(command, topic + (mqttClientLength + 1), finalLength - 2);
+  strncpy(command, topic + (MQTTClientLength + 1), finalLength - 2);
 
   const char s[2] = "/";
   int pos = 0;
@@ -479,16 +480,16 @@ int splitCommand(char *topic, char *tokens[], int tokensNumber)
   return pos;
 }
 
-void checkMqtt()
+void checkIfMQTTIsConnected()
 {
-  MqttConnected = MQTTclient.connected();
-  if (!MqttConnected)
+  MQTTConnected = MQTTclient.connected();
+  if (!MQTTConnected)
   {
-    MqttStart();
+    MQTTStart();
   }
 }
 
-void callback(char *topic, byte *payload, unsigned int length)
+void MQTTcallback(char *topic, byte *payload, unsigned int length)
 { // A new message has been received
 #ifdef DEBUG_OUTPUT
   Serial.print("Received MQTT topic: ");
@@ -520,13 +521,13 @@ void callback(char *topic, byte *payload, unsigned int length)
   { // Turn On or OFF
     if (strcmp(message, "ON") == 0)
     {
-      MqttCommandPower = true;
-      MqttCommandPowerReceived = true;
+      MQTTCommandPower = true;
+      MQTTCommandPowerReceived = true;
     }
     else if (strcmp(message, "OFF") == 0)
     {
-      MqttCommandPower = false;
-      MqttCommandPowerReceived = true;
+      MQTTCommandPower = false;
+      MQTTCommandPowerReceived = true;
     } //      SmartNest:                         // SmartThings
   }
   else if (strcmp(command[0], "directive") == 0 && (strcmp(command[1], "setpoint") == 0) || (strcmp(command[1], "percentage") == 0))
@@ -534,8 +535,8 @@ void callback(char *topic, byte *payload, unsigned int length)
     double valueD = atof(message);
     if (!isnan(valueD))
     {
-      MqttCommandState = (int)valueD;
-      MqttCommandStateReceived = true;
+      MQTTCommandState = (int)valueD;
+      MQTTCommandStateReceived = true;
     }
   }
 #endif
@@ -548,18 +549,18 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<const char *>())
     {
-      MqttCommandMainPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
-      MqttCommandMainPowerReceived = true;
+      MQTTCommandMainPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandMainPowerReceived = true;
     }
     if (doc["brightness"].is<int>())
     {
-      MqttCommandMainBrightness = doc["brightness"];
-      MqttCommandMainBrightnessReceived = true;
+      MQTTCommandMainBrightness = doc["brightness"];
+      MQTTCommandMainBrightnessReceived = true;
     }
     if (doc["effect"].is<const char *>())
     {
-      MqttCommandMainGraphic = tfts.nameToClockFace(doc["effect"]);
-      MqttCommandMainGraphicReceived = true;
+      MQTTCommandMainGraphic = tfts.nameToClockFace(doc["effect"]);
+      MQTTCommandMainGraphicReceived = true;
     }
 
     doc.clear();
@@ -571,24 +572,24 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<const char *>())
     {
-      MqttCommandBackPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
-      MqttCommandBackPowerReceived = true;
+      MQTTCommandBackPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandBackPowerReceived = true;
     }
     if (doc["brightness"].is<int>())
     {
-      MqttCommandBackBrightness = doc["brightness"];
-      MqttCommandBackBrightnessReceived = true;
+      MQTTCommandBackBrightness = doc["brightness"];
+      MQTTCommandBackBrightnessReceived = true;
     }
     if (doc["effect"].is<const char *>())
     {
-      strncpy(MqttCommandBackPattern, doc["effect"], sizeof(MqttCommandBackPattern) - 1);
-      MqttCommandBackPattern[sizeof(MqttCommandBackPattern) - 1] = '\0';
-      MqttCommandBackPatternReceived = true;
+      strncpy(MQTTCommandBackPattern, doc["effect"], sizeof(MQTTCommandBackPattern) - 1);
+      MQTTCommandBackPattern[sizeof(MQTTCommandBackPattern) - 1] = '\0';
+      MQTTCommandBackPatternReceived = true;
     }
     if (doc["color"].is<JsonObject>())
     {
-      MqttCommandBackColorPhase = backlights.hueToPhase(doc["color"]["h"]);
-      MqttCommandBackColorPhaseReceived = true;
+      MQTTCommandBackColorPhase = backlights.hueToPhase(doc["color"]["h"]);
+      MQTTCommandBackColorPhaseReceived = true;
     }
     doc.clear();
   }
@@ -599,8 +600,8 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<const char *>())
     {
-      MqttCommandUseTwelveHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
-      MqttCommandUseTwelveHoursReceived = true;
+      MQTTCommandUseTwelveHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandUseTwelveHoursReceived = true;
     }
     doc.clear();
   }
@@ -611,8 +612,8 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<const char *>())
     {
-      MqttCommandBlankZeroHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
-      MqttCommandBlankZeroHoursReceived = true;
+      MQTTCommandBlankZeroHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandBlankZeroHoursReceived = true;
     }
     doc.clear();
   }
@@ -623,8 +624,8 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<uint8_t>())
     {
-      MqttCommandPulseBpm = doc["state"];
-      MqttCommandPulseBpmReceived = true;
+      MQTTCommandPulseBpm = doc["state"];
+      MQTTCommandPulseBpmReceived = true;
     }
     doc.clear();
   }
@@ -635,8 +636,8 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<uint8_t>())
     {
-      MqttCommandBreathBpm = doc["state"];
-      MqttCommandBreathBpmReceived = true;
+      MQTTCommandBreathBpm = doc["state"];
+      MQTTCommandBreathBpmReceived = true;
     }
     doc.clear();
   }
@@ -647,49 +648,49 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     if (doc["state"].is<float>())
     {
-      MqttCommandRainbowSec = doc["state"];
-      MqttCommandRainbowSecReceived = true;
+      MQTTCommandRainbowSec = doc["state"];
+      MQTTCommandRainbowSecReceived = true;
     }
     doc.clear();
   }
 #endif
 }
 
-void MqttLoopFrequently()
+void MQTTLoopFrequently()
 {
 #ifdef MQTT_ENABLED
   MQTTclient.loop();
-  checkMqtt();
+  checkIfMQTTIsConnected();
 #endif
 }
 
-void MqttLoopInFreeTime()
+void MQTTLoopInFreeTime()
 {
 #ifdef MQTT_ENABLED
-  MqttReportBackOnChange();
-  MqttPeriodicReportBack();
+  MQTTReportBackOnChange();
+  MQTTPeriodicReportBack();
 #endif
 }
 
-void MqttReportBattery()
+void MQTTReportBattery()
 {
   char message[5];
-  snprintf(message, sizeof(message), "%d", MqttStatusBattery);
+  snprintf(message, sizeof(message), "%d", MQTTStatusBattery);
   sendToBroker("report/battery", message);
 }
 
-void MqttReportStatus()
+void MQTTReportStatus()
 {
-  if (LastSentStatus != MqttStatusState)
+  if (LastSentStatus != MQTTStatusState)
   {
     char message[5];
-    snprintf(message, sizeof(message), "%d", MqttStatusState);
+    snprintf(message, sizeof(message), "%d", MQTTStatusState);
     sendToBroker("report/setpoint", message);
-    LastSentStatus = MqttStatusState;
+    LastSentStatus = MQTTStatusState;
   }
 }
 
-void MqttReportTemperature()
+void MQTTReportTemperature()
 {
 #ifdef ONE_WIRE_BUS_PIN
   if (fTemperature > -30)
@@ -699,17 +700,17 @@ void MqttReportTemperature()
 #endif
 }
 
-void MqttReportPowerState()
+void MQTTReportPowerState()
 {
-  if (MqttStatusPower != LastSentPowerState)
+  if (MQTTStatusPower != LastSentPowerState)
   {
-    sendToBroker("report/powerState", MqttStatusPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON);
+    sendToBroker("report/powerState", MQTTStatusPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON);
 
-    LastSentPowerState = MqttStatusPower;
+    LastSentPowerState = MQTTStatusPower;
   }
 }
 
-void MqttReportWiFiSignal()
+void MQTTReportWiFiSignal()
 {
   char signal[5];
   int SignalLevel = WiFi.RSSI();
@@ -722,7 +723,7 @@ void MqttReportWiFiSignal()
   }
 }
 
-void MqttReportNotification(String message)
+void MQTTReportNotification(String message)
 {
   int i;
   byte NotificationChecksum = 0;
@@ -741,32 +742,32 @@ void MqttReportNotification(String message)
   }
 }
 
-void MqttReportGraphic(bool force)
+void MQTTReportGraphic(bool force)
 {
-  if (force || MqttStatusGraphic != LastSentGraphic)
+  if (force || MQTTStatusGraphic != LastSentGraphic)
   {
     char graphic[3]; // Increased size to accommodate null terminator
-    snprintf(graphic, sizeof(graphic), "%i", MqttStatusGraphic);
+    snprintf(graphic, sizeof(graphic), "%i", MQTTStatusGraphic);
     sendToBroker("graphic", graphic); // Reports the signal strength
 
-    LastSentGraphic = MqttStatusGraphic;
+    LastSentGraphic = MQTTStatusGraphic;
   }
 }
 
-void MqttReportBackEverything(bool force)
+void MQTTReportBackEverything(bool force)
 {
   if (MQTTclient.connected())
   {
 #ifndef MQTT_HOME_ASSISTANT
-    MqttReportPowerState();
-    MqttReportStatus();
-    // MqttReportBattery();
-    MqttReportWiFiSignal();
-    MqttReportTemperature();
+    MQTTReportPowerState();
+    MQTTReportStatus();
+    // MQTTReportBattery();
+    MQTTReportWiFiSignal();
+    MQTTReportTemperature();
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
-    MqttReportState(force);
+    MQTTReportState(force);
 #endif
 
     lastTimeSent = millis();
@@ -775,7 +776,7 @@ void MqttReportBackEverything(bool force)
 
 bool discoveryReported = false;
 
-void MqttReportDiscovery()
+void MQTTReportDiscovery()
 {
 #ifdef MQTT_HOME_ASSISTANT_DISCOVERY
   char json_buffer[1024];
@@ -1009,39 +1010,39 @@ void MqttReportDiscovery()
 #endif
 }
 
-void MqttReportBackOnChange()
+void MQTTReportBackOnChange()
 {
   if (MQTTclient.connected())
   {
 #ifndef MQTT_HOME_ASSISTANT
-    MqttReportPowerState();
-    MqttReportStatus();
+    MQTTReportPowerState();
+    MQTTReportStatus();
 #endif
 #ifdef MQTT_HOME_ASSISTANT_DISCOVERY
     if (!discoveryReported)
     {
-      MqttReportDiscovery();
+      MQTTReportDiscovery();
       discoveryReported = true;
     }
 #endif
 #ifdef MQTT_HOME_ASSISTANT
-    MqttReportState(false);
+    MQTTReportState(false);
 #endif
   }
 }
 
-void MqttPeriodicReportBack()
+void MQTTPeriodicReportBack()
 {
   if (((millis() - lastTimeSent) > (MQTT_REPORT_STATUS_EVERY_SEC * 1000)) && MQTTclient.connected())
   {
 #ifdef MQTT_HOME_ASSISTANT_DISCOVERY
     if (!discoveryReported)
     {
-      MqttReportDiscovery();
+      MQTTReportDiscovery();
       discoveryReported = true;
     }
 #endif
-    MqttReportBackEverything(true);
+    MQTTReportBackEverything(true);
   }
 }
 #endif
