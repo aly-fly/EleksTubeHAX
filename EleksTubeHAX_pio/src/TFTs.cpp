@@ -174,7 +174,7 @@ void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
 
 #ifdef MQTT_ENABLED
     if (digit == SECONDS_TENS)
-      if (!MqttConnected)
+      if (!MQTTConnected)
       {
         showNoMqttStatus();
       }

@@ -1,74 +1,74 @@
-#ifndef mqtt_client_H_
-#define mqtt_client_H_
+#ifndef MQTT_client_H_
+#define MQTT_client_H_
 
 #include "GLOBAL_DEFINES.h"
 #include <FS.h>
 
 #ifdef MQTT_ENABLED
-extern bool MqttConnected;
+extern bool MQTTConnected;
 
 // commands from server
-extern bool MqttCommandPower;
-extern bool MqttCommandMainPower;
-extern bool MqttCommandBackPower;
-extern bool MqttCommandPowerReceived;
-extern bool MqttCommandMainPowerReceived;
-extern bool MqttCommandBackPowerReceived;
-extern int MqttCommandState;
-extern bool MqttCommandStateReceived;
-extern uint8_t MqttCommandBrightness;
-extern uint8_t MqttCommandMainBrightness;
-extern uint8_t MqttCommandBackBrightness;
-extern bool MqttCommandBrightnessReceived;
-extern bool MqttCommandMainBrightnessReceived;
-extern bool MqttCommandBackBrightnessReceived;
-extern char MqttCommandPattern[];
-extern char MqttCommandBackPattern[];
-extern bool MqttCommandPatternReceived;
-extern bool MqttCommandBackPatternReceived;
-extern uint16_t MqttCommandBackColorPhase;
-extern bool MqttCommandBackColorPhaseReceived;
-extern uint8_t MqttCommandGraphic;
-extern uint8_t MqttCommandMainGraphic;
-extern bool MqttCommandGraphicReceived;
-extern bool MqttCommandMainGraphicReceived;
-extern bool MqttCommandUseTwelveHours;
-extern bool MqttCommandUseTwelveHoursReceived;
-extern bool MqttCommandBlankZeroHours;
-extern bool MqttCommandBlankZeroHoursReceived;
-extern uint8_t MqttCommandPulseBpm;
-extern bool MqttCommandPulseBpmReceived;
-extern uint8_t MqttCommandBreathBpm;
-extern bool MqttCommandBreathBpmReceived;
-extern float MqttCommandRainbowSec;
-extern bool MqttCommandRainbowSecReceived;
+extern bool MQTTCommandPower;
+extern bool MQTTCommandMainPower;
+extern bool MQTTCommandBackPower;
+extern bool MQTTCommandPowerReceived;
+extern bool MQTTCommandMainPowerReceived;
+extern bool MQTTCommandBackPowerReceived;
+extern int MQTTCommandState;
+extern bool MQTTCommandStateReceived;
+extern uint8_t MQTTCommandBrightness;
+extern uint8_t MQTTCommandMainBrightness;
+extern uint8_t MQTTCommandBackBrightness;
+extern bool MQTTCommandBrightnessReceived;
+extern bool MQTTCommandMainBrightnessReceived;
+extern bool MQTTCommandBackBrightnessReceived;
+extern char MQTTCommandPattern[];
+extern char MQTTCommandBackPattern[];
+extern bool MQTTCommandPatternReceived;
+extern bool MQTTCommandBackPatternReceived;
+extern uint16_t MQTTCommandBackColorPhase;
+extern bool MQTTCommandBackColorPhaseReceived;
+extern uint8_t MQTTCommandGraphic;
+extern uint8_t MQTTCommandMainGraphic;
+extern bool MQTTCommandGraphicReceived;
+extern bool MQTTCommandMainGraphicReceived;
+extern bool MQTTCommandUseTwelveHours;
+extern bool MQTTCommandUseTwelveHoursReceived;
+extern bool MQTTCommandBlankZeroHours;
+extern bool MQTTCommandBlankZeroHoursReceived;
+extern uint8_t MQTTCommandPulseBpm;
+extern bool MQTTCommandPulseBpmReceived;
+extern uint8_t MQTTCommandBreathBpm;
+extern bool MQTTCommandBreathBpmReceived;
+extern float MQTTCommandRainbowSec;
+extern bool MQTTCommandRainbowSecReceived;
 
 // status to server
-extern bool MqttStatusPower;
-extern bool MqttStatusMainPower;
-extern bool MqttStatusBackPower;
-extern int MqttStatusState;
-extern int MqttStatusBattery;
-extern uint8_t MqttStatusBrightness;
-extern uint8_t MqttStatusMainBrightness;
-extern uint8_t MqttStatusBackBrightness;
-extern char MqttStatusPattern[];
-extern char MqttStatusBackPattern[];
-extern uint16_t MqttStatusBackColorPhase;
-extern uint8_t MqttStatusGraphic;
-extern uint8_t MqttStatusMainGraphic;
-extern bool MqttStatusUseTwelveHours;
-extern bool MqttStatusBlankZeroHours;
-extern uint8_t MqttStatusPulseBpm;
-extern uint8_t MqttStatusBreathBpm;
-extern float MqttStatusRainbowSec;
+extern bool MQTTStatusPower;
+extern bool MQTTStatusMainPower;
+extern bool MQTTStatusBackPower;
+extern int MQTTStatusState;
+extern int MQTTStatusBattery;
+extern uint8_t MQTTStatusBrightness;
+extern uint8_t MQTTStatusMainBrightness;
+extern uint8_t MQTTStatusBackBrightness;
+extern char MQTTStatusPattern[];
+extern char MQTTStatusBackPattern[];
+extern uint16_t MQTTStatusBackColorPhase;
+extern uint8_t MQTTStatusGraphic;
+extern uint8_t MQTTStatusMainGraphic;
+extern bool MQTTStatusUseTwelveHours;
+extern bool MQTTStatusBlankZeroHours;
+extern uint8_t MQTTStatusPulseBpm;
+extern uint8_t MQTTStatusBreathBpm;
+extern float MQTTStatusRainbowSec;
 
 // functions
-void MqttStart();
-void MqttLoopFrequently();
-void MqttLoopInFreeTime();
-void MqttReportBackEverything(bool force);
+void MQTTStart();
+void MQTTLoopFrequently();
+void MQTTLoopInFreeTime();
+void MQTTReportBackEverything(bool force);
 
 #endif // MQTT_ENABLED
 
-#endif /* mqtt_client_H_ */
+#endif /* MQTT_client_H_ */

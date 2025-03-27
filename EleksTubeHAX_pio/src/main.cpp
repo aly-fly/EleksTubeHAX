@@ -17,7 +17,7 @@
 #include "StoredConfig.h"
 #include "WiFi_WPS.h"
 #ifdef MQTT_ENABLED
-#include "Mqtt_client_ips.h"
+#include "MQTT_client_ips.h"
 #endif
 #include "TempSensor_inc.h"
 #ifdef HARDWARE_NovelLife_SE_CLOCK // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -51,7 +51,7 @@ uint8_t hour_old = 255;
 bool DstNeedsUpdate = false;
 uint8_t yesterday = 0;
 
-uint32_t lastMqttCommandExecuted = (uint32_t)-1;
+uint32_t lastMQTTCommandExecuted = (uint32_t)-1;
 
 // Helper function, defined below.
 void updateClockDisplay(TFTs::show_t show = TFTs::yes);
@@ -143,7 +143,7 @@ void setup()
   tfts.setTextColor(TFT_YELLOW, TFT_BLACK);
   tfts.print("MQTT start...");
   Serial.println("MQTT start...");
-  MqttStart();
+  MQTTStart();
   tfts.println("Done!");
   Serial.println("MQTT start Done!");
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -213,31 +213,31 @@ void loop()
   WifiReconnect(); // if not connected attempt to reconnect
 
 #ifdef MQTT_ENABLED
-  MqttLoopFrequently();
+  MQTTLoopFrequently();
 
-  bool MqttCommandReceived =
-      MqttCommandPowerReceived ||
-      MqttCommandMainPowerReceived ||
-      MqttCommandBackPowerReceived ||
-      MqttCommandStateReceived ||
-      MqttCommandBrightnessReceived ||
-      MqttCommandMainBrightnessReceived ||
-      MqttCommandBackBrightnessReceived ||
-      MqttCommandPatternReceived ||
-      MqttCommandBackPatternReceived ||
-      MqttCommandBackColorPhaseReceived ||
-      MqttCommandGraphicReceived ||
-      MqttCommandMainGraphicReceived ||
-      MqttCommandUseTwelveHoursReceived ||
-      MqttCommandBlankZeroHoursReceived ||
-      MqttCommandPulseBpmReceived ||
-      MqttCommandBreathBpmReceived ||
-      MqttCommandRainbowSecReceived;
+  bool MQTTCommandReceived =
+      MQTTCommandPowerReceived ||
+      MQTTCommandMainPowerReceived ||
+      MQTTCommandBackPowerReceived ||
+      MQTTCommandStateReceived ||
+      MQTTCommandBrightnessReceived ||
+      MQTTCommandMainBrightnessReceived ||
+      MQTTCommandBackBrightnessReceived ||
+      MQTTCommandPatternReceived ||
+      MQTTCommandBackPatternReceived ||
+      MQTTCommandBackColorPhaseReceived ||
+      MQTTCommandGraphicReceived ||
+      MQTTCommandMainGraphicReceived ||
+      MQTTCommandUseTwelveHoursReceived ||
+      MQTTCommandBlankZeroHoursReceived ||
+      MQTTCommandPulseBpmReceived ||
+      MQTTCommandBreathBpmReceived ||
+      MQTTCommandRainbowSecReceived;
 
-  if (MqttCommandPowerReceived)
+  if (MQTTCommandPowerReceived)
   {
-    MqttCommandPowerReceived = false;
-    if (MqttCommandPower)
+    MQTTCommandPowerReceived = false;
+    if (MQTTCommandPower)
     {
       if (!tfts.isEnabled()) // perform reinit, enable, redraw only if displays are actually off. HA sends ON command together with clock face change which causes flickering.
       {
@@ -259,10 +259,10 @@ void loop()
     }
   }
 
-  if (MqttCommandMainPowerReceived)
+  if (MQTTCommandMainPowerReceived)
   {
-    MqttCommandMainPowerReceived = false;
-    if (MqttCommandMainPower)
+    MQTTCommandMainPowerReceived = false;
+    if (MQTTCommandMainPower)
     {
       if (!tfts.isEnabled()) // perform reinit, enable, redraw only if displays are actually off. HA sends ON command together with clock face change which causes flickering.
       {
@@ -282,10 +282,10 @@ void loop()
     }
   }
 
-  if (MqttCommandBackPowerReceived)
+  if (MQTTCommandBackPowerReceived)
   {
-    MqttCommandBackPowerReceived = false;
-    if (MqttCommandBackPower)
+    MQTTCommandBackPowerReceived = false;
+    if (MQTTCommandBackPower)
     {
       backlights.PowerOn();
     }
@@ -295,21 +295,21 @@ void loop()
     }
   }
 
-  if (MqttCommandStateReceived)
+  if (MQTTCommandStateReceived)
   {
-    MqttCommandStateReceived = false;
+    MQTTCommandStateReceived = false;
     randomSeed(millis());
     uint8_t idx;
-    if (MqttCommandState >= 90)
+    if (MQTTCommandState >= 90)
     {
       idx = random(1, tfts.NumberOfClockFaces + 1);
     }
     else
     {
-      idx = (MqttCommandState / 5) - 1;
+      idx = (MQTTCommandState / 5) - 1;
     } // 10..40 -> graphic 1..6
     Serial.print("Graphic change request from MQTT; command: ");
-    Serial.print(MqttCommandState);
+    Serial.print(MQTTCommandState);
     Serial.print(", index: ");
     Serial.println(idx);
     uclock.setClockGraphicsIdx(idx);
@@ -317,31 +317,31 @@ void loop()
     updateClockDisplay(TFTs::force); // redraw everything
   }
 
-  if (MqttCommandMainBrightnessReceived)
+  if (MQTTCommandMainBrightnessReceived)
   {
-    MqttCommandMainBrightnessReceived = false;
-    tfts.dimming = MqttCommandMainBrightness;
+    MQTTCommandMainBrightnessReceived = false;
+    tfts.dimming = MQTTCommandMainBrightness;
     tfts.ProcessUpdatedDimming();
     updateClockDisplay(TFTs::force);
   }
 
-  if (MqttCommandBackBrightnessReceived)
+  if (MQTTCommandBackBrightnessReceived)
   {
-    MqttCommandBackBrightnessReceived = false;
-    backlights.setIntensity(uint8_t(MqttCommandBackBrightness));
+    MQTTCommandBackBrightnessReceived = false;
+    backlights.setIntensity(uint8_t(MQTTCommandBackBrightness));
   }
 
-  if (MqttCommandPatternReceived)
+  if (MQTTCommandPatternReceived)
   {
-    MqttCommandPatternReceived = false;
+    MQTTCommandPatternReceived = false;
 
     for (int8_t i = 0; i < Backlights::num_patterns; i++)
     {
       Serial.print("New pattern ");
-      Serial.print(MqttCommandPattern);
+      Serial.print(MQTTCommandPattern);
       Serial.print(", check pattern ");
       Serial.println(Backlights::patterns_str[i]);
-      if (strcmp(MqttCommandPattern, (Backlights::patterns_str[i]).c_str()) == 0)
+      if (strcmp(MQTTCommandPattern, (Backlights::patterns_str[i]).c_str()) == 0)
       {
         backlights.setPattern(Backlights::patterns(i));
         break;
@@ -349,16 +349,16 @@ void loop()
     }
   }
 
-  if (MqttCommandBackPatternReceived)
+  if (MQTTCommandBackPatternReceived)
   {
-    MqttCommandBackPatternReceived = false;
+    MQTTCommandBackPatternReceived = false;
     for (int8_t i = 0; i < Backlights::num_patterns; i++)
     {
       Serial.print("new pattern ");
-      Serial.print(MqttCommandBackPattern);
+      Serial.print(MQTTCommandBackPattern);
       Serial.print(", check pattern ");
       Serial.println(Backlights::patterns_str[i]);
-      if (strcmp(MqttCommandBackPattern, (Backlights::patterns_str[i]).c_str()) == 0)
+      if (strcmp(MQTTCommandBackPattern, (Backlights::patterns_str[i]).c_str()) == 0)
       {
         backlights.setPattern(Backlights::patterns(i));
         break;
@@ -366,91 +366,91 @@ void loop()
     }
   }
 
-  if (MqttCommandBackColorPhaseReceived)
+  if (MQTTCommandBackColorPhaseReceived)
   {
-    MqttCommandBackColorPhaseReceived = false;
+    MQTTCommandBackColorPhaseReceived = false;
 
-    backlights.setColorPhase(MqttCommandBackColorPhase);
+    backlights.setColorPhase(MQTTCommandBackColorPhase);
   }
 
-  if (MqttCommandGraphicReceived)
+  if (MQTTCommandGraphicReceived)
   {
-    MqttCommandGraphicReceived = false;
+    MQTTCommandGraphicReceived = false;
 
-    uclock.setClockGraphicsIdx(MqttCommandGraphic);
+    uclock.setClockGraphicsIdx(MQTTCommandGraphic);
     tfts.current_graphic = uclock.getActiveGraphicIdx();
     updateClockDisplay(TFTs::force); // redraw everything
   }
 
-  if (MqttCommandMainGraphicReceived)
+  if (MQTTCommandMainGraphicReceived)
   {
-    MqttCommandMainGraphicReceived = false;
-    uclock.setClockGraphicsIdx(MqttCommandMainGraphic);
+    MQTTCommandMainGraphicReceived = false;
+    uclock.setClockGraphicsIdx(MQTTCommandMainGraphic);
     tfts.current_graphic = uclock.getActiveGraphicIdx();
     updateClockDisplay(TFTs::force); // redraw everything
   }
 
-  if (MqttCommandUseTwelveHoursReceived)
+  if (MQTTCommandUseTwelveHoursReceived)
   {
-    MqttCommandUseTwelveHoursReceived = false;
-    uclock.setTwelveHour(MqttCommandUseTwelveHours);
+    MQTTCommandUseTwelveHoursReceived = false;
+    uclock.setTwelveHour(MQTTCommandUseTwelveHours);
   }
 
-  if (MqttCommandBlankZeroHoursReceived)
+  if (MQTTCommandBlankZeroHoursReceived)
   {
-    MqttCommandBlankZeroHoursReceived = false;
-    uclock.setBlankHoursZero(MqttCommandBlankZeroHours);
+    MQTTCommandBlankZeroHoursReceived = false;
+    uclock.setBlankHoursZero(MQTTCommandBlankZeroHours);
   }
 
-  if (MqttCommandPulseBpmReceived)
+  if (MQTTCommandPulseBpmReceived)
   {
-    MqttCommandPulseBpmReceived = false;
-    backlights.setPulseRate(MqttCommandPulseBpm);
+    MQTTCommandPulseBpmReceived = false;
+    backlights.setPulseRate(MQTTCommandPulseBpm);
   }
 
-  if (MqttCommandBreathBpmReceived)
+  if (MQTTCommandBreathBpmReceived)
   {
-    MqttCommandBreathBpmReceived = false;
-    backlights.setBreathRate(MqttCommandBreathBpm);
+    MQTTCommandBreathBpmReceived = false;
+    backlights.setBreathRate(MQTTCommandBreathBpm);
   }
 
-  if (MqttCommandRainbowSecReceived)
+  if (MQTTCommandRainbowSecReceived)
   {
-    MqttCommandRainbowSecReceived = false;
-    backlights.setRainbowDuration(MqttCommandRainbowSec);
+    MQTTCommandRainbowSecReceived = false;
+    backlights.setRainbowDuration(MQTTCommandRainbowSec);
   }
 
-  MqttStatusPower = tfts.isEnabled();
-  MqttStatusMainPower = tfts.isEnabled();
-  MqttStatusBackPower = backlights.getPower();
-  MqttStatusState = (uclock.getActiveGraphicIdx() + 1) * 5; // 10
-  MqttStatusBrightness = backlights.getIntensity();
-  MqttStatusMainBrightness = tfts.dimming;
-  MqttStatusBackBrightness = backlights.getIntensity();
-  strcpy(MqttStatusPattern, backlights.getPatternStr().c_str());
-  strcpy(MqttStatusBackPattern, backlights.getPatternStr().c_str());
-  backlights.getPatternStr().toCharArray(MqttStatusBackPattern, backlights.getPatternStr().length() + 1);
-  MqttStatusBackColorPhase = backlights.getColorPhase();
-  MqttStatusGraphic = uclock.getActiveGraphicIdx();
-  MqttStatusMainGraphic = uclock.getActiveGraphicIdx();
-  MqttStatusUseTwelveHours = uclock.getTwelveHour();
-  MqttStatusBlankZeroHours = uclock.getBlankHoursZero();
-  MqttStatusPulseBpm = backlights.getPulseRate();
-  MqttStatusBreathBpm = backlights.getBreathRate();
-  MqttStatusRainbowSec = backlights.getRainbowDuration();
+  MQTTStatusPower = tfts.isEnabled();
+  MQTTStatusMainPower = tfts.isEnabled();
+  MQTTStatusBackPower = backlights.getPower();
+  MQTTStatusState = (uclock.getActiveGraphicIdx() + 1) * 5; // 10
+  MQTTStatusBrightness = backlights.getIntensity();
+  MQTTStatusMainBrightness = tfts.dimming;
+  MQTTStatusBackBrightness = backlights.getIntensity();
+  strcpy(MQTTStatusPattern, backlights.getPatternStr().c_str());
+  strcpy(MQTTStatusBackPattern, backlights.getPatternStr().c_str());
+  backlights.getPatternStr().toCharArray(MQTTStatusBackPattern, backlights.getPatternStr().length() + 1);
+  MQTTStatusBackColorPhase = backlights.getColorPhase();
+  MQTTStatusGraphic = uclock.getActiveGraphicIdx();
+  MQTTStatusMainGraphic = uclock.getActiveGraphicIdx();
+  MQTTStatusUseTwelveHours = uclock.getTwelveHour();
+  MQTTStatusBlankZeroHours = uclock.getBlankHoursZero();
+  MQTTStatusPulseBpm = backlights.getPulseRate();
+  MQTTStatusBreathBpm = backlights.getBreathRate();
+  MQTTStatusRainbowSec = backlights.getRainbowDuration();
 
-  if (MqttCommandReceived)
+  if (MQTTCommandReceived)
   {
-    lastMqttCommandExecuted = millis();
+    lastMQTTCommandExecuted = millis();
 
-    MqttReportBackEverything(true);
+    MQTTReportBackEverything(true);
   }
 
-  if (lastMqttCommandExecuted != -1)
+  if (lastMQTTCommandExecuted != -1)
   {
-    if (((millis() - lastMqttCommandExecuted) > (MQTT_SAVE_PREFERENCES_AFTER_SEC * 1000)) && menu.getState() == Menu::idle)
+    if (((millis() - lastMQTTCommandExecuted) > (MQTT_SAVE_PREFERENCES_AFTER_SEC * 1000)) && menu.getState() == Menu::idle)
     {
-      lastMqttCommandExecuted = -1;
+      lastMQTTCommandExecuted = -1;
 
       Serial.print("Saving config...");
       stored_config.save();
@@ -742,7 +742,7 @@ void loop()
     if (time_in_loop < 20)
     {
 #ifdef MQTT_ENABLED
-      MqttLoopInFreeTime();
+      MQTTLoopInFreeTime();
 #endif
       PeriodicReadTemperature();
       if (bTemperatureUpdated)
