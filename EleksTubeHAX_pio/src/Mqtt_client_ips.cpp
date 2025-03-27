@@ -381,7 +381,7 @@ void MQTTStart()
   {
     LastTimeTriedToConnect = millis();
     MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
-    MQTTclient.setMQTTCallback(MQTTcallback);
+    MQTTclient.setCallback(MQTTcallback);
     MQTTclient.setBufferSize(2048);
 #ifdef MQTT_USE_TLS
     bool result = loadCARootCert();
