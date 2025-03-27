@@ -1,6 +1,6 @@
 #include "TFTs.h"
 #include "WiFi_WPS.h"
-#include "Mqtt_client_ips.h"
+#include "MQTT_client_ips.h"
 #include "TempSensor.h"
 
 void TFTs::begin()
