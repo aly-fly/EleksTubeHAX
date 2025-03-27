@@ -43,7 +43,7 @@ PubSubClient MQTTclient(espClient);
 
 // private:
 int splitCommand(char *topic, char *tokens[], int tokensNumber);
-void MQTTcallback(char *topic, byte *payload, unsigned int length);
+void MQTTCallback(char *topic, byte *payload, unsigned int length);
 
 void MQTTProcessCommand();
 void MQTTReportBattery();
@@ -56,6 +56,7 @@ void MQTTReportGraphic(bool force);
 void MQTTReportBackOnChange();
 void MQTTReportBackEverything(bool force);
 void MQTTPeriodicReportBack();
+void MQTTReportDiscovery();
 
 char topic[100];
 char msg[5];
@@ -64,26 +65,29 @@ uint8_t LastNotificationChecksum = 0;
 uint32_t LastTimeTriedToConnect = 0;
 
 bool MQTTConnected = true; // skip error message if disabled
-// commands from server    // = "directive/status"
+
+// commands from server for pure MQTT
 bool MQTTCommandPower = true;
+bool MQTTCommandPowerReceived = false;
+int MQTTCommandState = 1;
+bool MQTTCommandStateReceived = false;
+
+// commands from server for HA
 bool MQTTCommandMainPower = true;
 bool MQTTCommandBackPower = true;
-bool MQTTCommandPowerReceived = false;
 bool MQTTCommandMainPowerReceived = false;
 bool MQTTCommandBackPowerReceived = false;
-
 bool MQTTCommandUseTwelveHours = false;
 bool MQTTCommandUseTwelveHoursReceived = false;
 bool MQTTCommandBlankZeroHours = false;
 bool MQTTCommandBlankZeroHoursReceived = false;
 
-int MQTTCommandState = 1;
-bool MQTTCommandStateReceived = false;
-
 uint8_t MQTTCommandBrightness = -1;
 uint8_t MQTTCommandMainBrightness = -1;
 uint8_t MQTTCommandBackBrightness = -1;
 bool MQTTCommandBrightnessReceived = false;
+
+
 bool MQTTCommandMainBrightnessReceived = false;
 bool MQTTCommandBackBrightnessReceived = false;
 
@@ -109,12 +113,18 @@ bool MQTTCommandBreathBpmReceived = false;
 float MQTTCommandRainbowSec = -1;
 bool MQTTCommandRainbowSecReceived = false;
 
-// status to server
-bool MQTTStatusPower = true;
+bool haOnline = false;
+bool discoveryReported = false;
+
+// status to server from Home Assistant
 bool MQTTStatusMainPower = true;
 bool MQTTStatusBackPower = true;
 bool MQTTStatusUseTwelveHours = true;
 bool MQTTStatusBlankZeroHours = true;
+
+// status to server
+bool MQTTStatusPower = true;
+
 int MQTTStatusState = 0;
 int MQTTStatusBattery = 7;
 uint8_t MQTTStatusBrightness = 0;
@@ -155,6 +165,14 @@ double round1(double value)
 
 void sendToBroker(const char *topic, const char *message)
 {
+#ifdef MQTT_HOME_ASSISTANT
+  if (!haOnline) {
+    Serial.print("Skipping sendToBroker because HA is offline for topic: ");
+    Serial.println(topic);
+    return;
+  }
+#endif // MQTT_HOME_ASSISTANT
+
   if (MQTTclient.connected())
   {
     char topicArr[100];
@@ -381,7 +399,7 @@ void MQTTStart()
   {
     LastTimeTriedToConnect = millis();
     MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
-    MQTTclient.setCallback(MQTTcallback);
+    MQTTclient.setCallback(MQTTCallback);
     MQTTclient.setBufferSize(2048);
 #ifdef MQTT_USE_TLS
     bool result = loadCARootCert();
@@ -431,6 +449,9 @@ void MQTTStart()
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
+#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
+    MQTTclient.subscribe("homeassistant/status"); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
+#endif
     char subscribeTopic[100];
 
     snprintf(subscribeTopic, sizeof(subscribeTopic), "%s/main/set", MQTT_CLIENT);
@@ -489,7 +510,7 @@ void checkIfMQTTIsConnected()
   }
 }
 
-void MQTTcallback(char *topic, byte *payload, unsigned int length)
+void MQTTCallback(char *topic, byte *payload, unsigned int length)
 { // A new message has been received
 #ifdef DEBUG_OUTPUT
   Serial.print("Received MQTT topic: ");
@@ -539,9 +560,30 @@ void MQTTcallback(char *topic, byte *payload, unsigned int length)
       MQTTCommandStateReceived = true;
     }
   }
-#endif
+#endif // NOT def MQTT_HOME_ASSISTANT
 
 #ifdef MQTT_HOME_ASSISTANT
+  // Check if this is the Home Assistant birth message
+  if (strcmp(command[0], "homeassistant/status") == 0) {
+    if (strcmp(command[1], "online") == 0) {
+      haOnline = true;
+#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
+      uint16_t randomDelay = random(100, 400);
+      Serial.print("HA online received - delaying discovery for ");
+      Serial.print(randomDelay);
+      Serial.println(" ms");
+      delay(randomDelay);
+      MQTTReportDiscovery(); // Send the discovery messages (again) after HA is online
+      discoveryReported = true;
+#endif
+      return;
+    }
+    else if (strcmp(command[1], "offline") == 0) {
+      Serial.println("HA offline received - disabling further MQTT messages");
+      haOnline = false;
+      return;
+    }
+}
   if (strcmp(command[0], "main") == 0 && strcmp(command[1], "set") == 0)
   {
     JsonDocument doc;
@@ -653,7 +695,7 @@ void MQTTcallback(char *topic, byte *payload, unsigned int length)
     }
     doc.clear();
   }
-#endif
+#endif // MQTT_HOME_ASSISTANT
 }
 
 void MQTTLoopFrequently()
@@ -773,8 +815,6 @@ void MQTTReportBackEverything(bool force)
     lastTimeSent = millis();
   }
 }
-
-bool discoveryReported = false;
 
 void MQTTReportDiscovery()
 {
