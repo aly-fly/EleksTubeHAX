@@ -42,8 +42,8 @@ PubSubClient MQTTclient(espClient);
 #define MQTT_ITENSITY_MAX 7
 
 // private:
-int splitCommand(char *topic, char *tokens[], int tokensNumber);
 void MQTTCallback(char *topic, byte *payload, unsigned int length);
+void checkIfMQTTIsConnected();
 
 void MQTTProcessCommand();
 void MQTTReportBattery();
@@ -86,7 +86,6 @@ uint8_t MQTTCommandBrightness = -1;
 uint8_t MQTTCommandMainBrightness = -1;
 uint8_t MQTTCommandBackBrightness = -1;
 bool MQTTCommandBrightnessReceived = false;
-
 
 bool MQTTCommandMainBrightnessReceived = false;
 bool MQTTCommandBackBrightnessReceived = false;
@@ -166,9 +165,12 @@ double round1(double value)
 void sendToBroker(const char *topic, const char *message)
 {
 #ifdef MQTT_HOME_ASSISTANT
-  if (!haOnline) {
-    Serial.print("Skipping sendToBroker because HA is offline for topic: ");
+  if (!haOnline)
+  {
+#ifdef DEBUG_OUTPUT
+    Serial.print("DEBUG: Skipping sendToBroker because HA is offline for topic: ");
     Serial.println(topic);
+#endif
     return;
   }
 #endif // MQTT_HOME_ASSISTANT
@@ -179,14 +181,9 @@ void sendToBroker(const char *topic, const char *message)
     snprintf(topicArr, sizeof(topicArr), "%s/%s", MQTT_CLIENT, topic);
     MQTTclient.publish(topicArr, message, true);
 #ifdef DEBUG_OUTPUT // long output
-    Serial.print("Sending to MQTT: ");
+    Serial.print("DEBUG: Sending to MQTT: ");
     Serial.print(topicArr);
     Serial.print("/");
-    Serial.println(message);
-#else
-    Serial.print("TX MQTT: ");
-    Serial.print(topicArr);
-    Serial.print(" ");
     Serial.println(message);
 #endif
     delay(120);
@@ -215,10 +212,12 @@ void MQTTReportState(bool force)
       LastSentMainBrightness = MQTTStatusMainBrightness;
       LastSentMainGraphic = MQTTStatusMainGraphic;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusBackPower != LastSentBackPowerState || MQTTStatusBackBrightness != LastSentBackBrightness || strcmp(MQTTStatusBackPattern, LastSentBackPattern) != 0 || MQTTStatusBackColorPhase != LastSentBackColorPhase || MQTTStatusPulseBpm != LastSentPulseBpm || MQTTStatusBreathBpm != LastSentBreathBpm || MQTTStatusRainbowSec != LastSentRainbowSec)
@@ -245,10 +244,12 @@ void MQTTReportState(bool force)
       LastSentBackPattern[sizeof(LastSentBackPattern) - 1] = '\0';
       LastSentBackColorPhase = MQTTStatusBackColorPhase;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusUseTwelveHours != LastSentUseTwelveHours)
@@ -263,10 +264,12 @@ void MQTTReportState(bool force)
       MQTTclient.publish(topic, buffer, true);
       LastSentUseTwelveHours = MQTTStatusUseTwelveHours;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusBlankZeroHours != LastSentBlankZeroHours)
@@ -281,10 +284,12 @@ void MQTTReportState(bool force)
       MQTTclient.publish(topic, buffer, true);
       LastSentBlankZeroHours = MQTTStatusBlankZeroHours;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusPulseBpm != LastSentPulseBpm)
@@ -299,10 +304,12 @@ void MQTTReportState(bool force)
       MQTTclient.publish(topic, buffer, true);
       LastSentPulseBpm = MQTTStatusPulseBpm;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusBreathBpm != LastSentBreathBpm)
@@ -317,10 +324,12 @@ void MQTTReportState(bool force)
       MQTTclient.publish(topic, buffer, true);
       LastSentBreathBpm = MQTTStatusBreathBpm;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
 
     if (force || MQTTStatusRainbowSec != LastSentRainbowSec)
@@ -335,10 +344,12 @@ void MQTTReportState(bool force)
       MQTTclient.publish(topic, buffer, true);
       LastSentRainbowSec = MQTTStatusRainbowSec;
 
-      Serial.print("TX MQTT: ");
+#ifdef DEBUG_OUTPUT
+      Serial.print("DEBUG: TX MQTT: ");
       Serial.print(topic);
       Serial.print(" ");
       Serial.println(buffer);
+#endif
     }
   }
 #endif
@@ -420,7 +431,7 @@ void MQTTStart()
     }
     else
     {
-      if (MQTTclient.state() == 5)  //special error code for MQTT connection not allowed on smartnest.cz
+      if (MQTTclient.state() == 5) // special error code for MQTT connection not allowed on smartnest.cz
       {
         Serial.println("Error: Connection not allowed by broker, possible reasons:");
         Serial.println("- Device is already online. Wait some seconds until it appears offline");
@@ -478,29 +489,6 @@ void MQTTStart()
   }
 }
 
-int splitCommand(char *topic, char *tokens[], int tokensNumber)
-{
-  int MQTTClientLength = strlen(MQTT_CLIENT);
-  int topicLength = strlen(topic);
-  int finalLength = topicLength - MQTTClientLength + 2;
-  char *command = (char *)malloc(finalLength);
-
-  strncpy(command, topic + (MQTTClientLength + 1), finalLength - 2);
-
-  const char s[2] = "/";
-  int pos = 0;
-  tokens[0] = strtok(command, s);
-  while (pos < tokensNumber - 1 && tokens[pos] != NULL)
-  {
-    pos++;
-    tokens[pos] = strtok(NULL, s);
-  }
-
-  free(command);
-
-  return pos;
-}
-
 void checkIfMQTTIsConnected()
 {
   MQTTConnected = MQTTclient.connected();
@@ -511,87 +499,101 @@ void checkIfMQTTIsConnected()
 }
 
 void MQTTCallback(char *topic, byte *payload, unsigned int length)
-{ // A new message has been received
+{
 #ifdef DEBUG_OUTPUT
-  Serial.print("Received MQTT topic: ");
-  Serial.print(topic); // long output
+  Serial.println("DEBUG: Entering MQTTCallback...");
+  Serial.print("DEBUG: Received topic: ");
+  Serial.println(topic);
+  Serial.print("DEBUG: Payload length: ");
+  Serial.println(length);
 #endif
-  int commandNumber = 10;
-  char *command[commandNumber];
-  commandNumber = splitCommand(topic, command, commandNumber);
 
-  char message[length + 1];
-  strncpy(message, (char *)payload, length);
-  message[length] = '\0';
-
-  if (commandNumber < 2)
+  // Convert payload into a String for easy comparison
+  String message = "";
+  for (unsigned int i = 0; i < length; i++)
   {
-    Serial.println("Detected number of commands in MQTT message is lower then 2! -> Ignoring message because it is not valid!");
-    return;
+    message += (char)payload[i];
   }
-
-  Serial.println();
-  Serial.print("RX MQTT: ");
+#ifdef DEBUG_OUTPUT
+  Serial.println("DEBUG: Converted payload to string:");
+  Serial.println(message);
+  Serial.println("DEBUG: Processing MQTT message...");
+  Serial.print("DEBUG: RX MQTT: ");
   Serial.print(topic);
   Serial.print(" ");
   Serial.println(message);
+#endif 
+  
 
 #ifndef MQTT_HOME_ASSISTANT
   //------------------Decide what to do depending on the topic and message---------------------------------
-  if (strcmp(command[0], "directive") == 0 && strcmp(command[1], "powerState") == 0)
+  if (String(topic).endsWith("/directive/powerState"))
   { // Turn On or OFF
-    if (strcmp(message, "ON") == 0)
+    if (message == "ON")
     {
       MQTTCommandPower = true;
       MQTTCommandPowerReceived = true;
     }
-    else if (strcmp(message, "OFF") == 0)
+    else if (message == "OFF")
     {
       MQTTCommandPower = false;
       MQTTCommandPowerReceived = true;
-    } //      SmartNest:                         // SmartThings
+    }
   }
-  else if (strcmp(command[0], "directive") == 0 && (strcmp(command[1], "setpoint") == 0) || (strcmp(command[1], "percentage") == 0))
+  else if (String(topic).endsWith("/directive/setpoint") || String(topic).endsWith("/directive/percentage"))
   {
-    double valueD = atof(message);
+    double valueD = message.toDouble();
     if (!isnan(valueD))
     {
       MQTTCommandState = (int)valueD;
       MQTTCommandStateReceived = true;
     }
   }
-#endif // NOT def MQTT_HOME_ASSISTANT
+#endif
 
 #ifdef MQTT_HOME_ASSISTANT
-  // Check if this is the Home Assistant birth message
-  if (strcmp(command[0], "homeassistant/status") == 0) {
-    if (strcmp(command[1], "online") == 0) {
+  if (String(topic) == "homeassistant/status")
+  {
+    if (message == "online")
+    {
+      Serial.println("Detected Home Assistant online status.");
       haOnline = true;
 #ifdef MQTT_HOME_ASSISTANT_DISCOVERY
       uint16_t randomDelay = random(100, 400);
-      Serial.print("HA online received - delaying discovery for ");
+      Serial.print("Delaying discovery for ");
       Serial.print(randomDelay);
-      Serial.println(" ms");
+      Serial.println(" ms.");
       delay(randomDelay);
-      MQTTReportDiscovery(); // Send the discovery messages (again) after HA is online
+      MQTTReportDiscovery();
       discoveryReported = true;
 #endif
-      return;
     }
-    else if (strcmp(command[1], "offline") == 0) {
-      Serial.println("HA offline received - disabling further MQTT messages");
+    else if (message == "offline")
+    {
+      Serial.println("Detected Home Assistant offline status.");
       haOnline = false;
-      return;
     }
-}
-  if (strcmp(command[0], "main") == 0 && strcmp(command[1], "set") == 0)
+    else
+    {
+      Serial.print("Unhandled homeassistant/status payload: ");
+      Serial.println(message);
+    }
+    return;
+  }
+
+  if (String(topic) == String(MQTT_CLIENT) + "/main/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON deserialization error in main/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<const char *>())
     {
-      MQTTCommandMainPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandMainPower = String(doc["state"].as<const char *>()) == MQTT_STATE_ON;
       MQTTCommandMainPowerReceived = true;
     }
     if (doc["brightness"].is<int>())
@@ -604,17 +606,20 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       MQTTCommandMainGraphic = tfts.nameToClockFace(doc["effect"]);
       MQTTCommandMainGraphicReceived = true;
     }
-
-    doc.clear();
   }
-  if (strcmp(command[0], "back") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/back/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON deserialization error in back/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<const char *>())
     {
-      MQTTCommandBackPower = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandBackPower = String(doc["state"].as<const char *>()) == MQTT_STATE_ON;
       MQTTCommandBackPowerReceived = true;
     }
     if (doc["brightness"].is<int>())
@@ -633,69 +638,92 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       MQTTCommandBackColorPhase = backlights.hueToPhase(doc["color"]["h"]);
       MQTTCommandBackColorPhaseReceived = true;
     }
-    doc.clear();
   }
-  if (strcmp(command[0], "use_twelve_hours") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/use_twelve_hours/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON error in use_twelve_hours/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<const char *>())
     {
-      MQTTCommandUseTwelveHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandUseTwelveHours = String(doc["state"].as<const char *>()) == MQTT_STATE_ON;
       MQTTCommandUseTwelveHoursReceived = true;
     }
-    doc.clear();
   }
-  if (strcmp(command[0], "blank_zero_hours") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/blank_zero_hours/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON error in blank_zero_hours/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<const char *>())
     {
-      MQTTCommandBlankZeroHours = strcmp(doc["state"], MQTT_STATE_ON) == 0;
+      MQTTCommandBlankZeroHours = String(doc["state"].as<const char *>()) == MQTT_STATE_ON;
       MQTTCommandBlankZeroHoursReceived = true;
     }
-    doc.clear();
   }
-  if (strcmp(command[0], "pulse_bpm") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/pulse_bpm/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON error in pulse_bpm/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<uint8_t>())
     {
       MQTTCommandPulseBpm = doc["state"];
       MQTTCommandPulseBpmReceived = true;
     }
-    doc.clear();
   }
-  if (strcmp(command[0], "breath_bpm") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/breath_bpm/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON error in breath_bpm/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<uint8_t>())
     {
       MQTTCommandBreathBpm = doc["state"];
       MQTTCommandBreathBpmReceived = true;
     }
-    doc.clear();
   }
-  if (strcmp(command[0], "rainbow_duration") == 0 && strcmp(command[1], "set") == 0)
+  else if (String(topic) == String(MQTT_CLIENT) + "/rainbow_duration/set")
   {
     JsonDocument doc;
-    deserializeJson(doc, payload, length);
-
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.print("DEBUG: JSON error in rainbow_duration/set: ");
+      Serial.println(err.c_str());
+      return;
+    }
     if (doc["state"].is<float>())
     {
       MQTTCommandRainbowSec = doc["state"];
       MQTTCommandRainbowSecReceived = true;
     }
-    doc.clear();
   }
 #endif // MQTT_HOME_ASSISTANT
+
+#ifdef DEBUG_OUTPUT
+  Serial.println("DEBUG: Exiting MQTTCallback...");
+#endif
 }
 
 void MQTTLoopFrequently()
