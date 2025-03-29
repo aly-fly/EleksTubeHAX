@@ -48,6 +48,9 @@
 // You will either need a local MQTT broker to use MQTT with Home Assistant (e.g. Mosquitto) or use an internet-based broker with Home Assistant support.
 // If not done already, you can set up a local one easily via an Add-On in HA. See: https://www.home-assistant.io/integrations/mqtt/
 // Enter the credential data into the MQTT broker settings section below accordingly.
+// It is your choice if you want the MQTT discovery messages sent to Home Assistant being retained or not. By default, they are not retained.
+// See https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability for more information.
+// Retained messages can create ghost entities that keep coming back (if you change MQTT_CLIENT i.e.)! You need to delete them manually from the broker queue!
 
 // #define MQTT_HOME_ASSISTANT // Uncomment if you want Home Assistant (HA) support (MQTT_ENABLED must be also enabled)
 // all following MQTT_HOME_ASSISTANT_* settings require MQTT_HOME_ASSISTANT to be enabled
@@ -56,6 +59,7 @@
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_DEVICE_MODEL "Elekstube IPS"            // Name of the model shown in HA
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_SW_VERSION "1.0 Home Assistant Edition" // Firmware version shown in HA
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_HW_VERSION "2.3.04"                     // Hardware version shown in HA
+// #define MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES false                   // Set to true if you want to retain the discovery messages in HA (default: false)
 
 // --- MQTT broker settings ---
 // NOTE: If Home Assistant is not enabled, the MQTT support is very limited in the moment!
@@ -65,12 +69,14 @@
 // For pure MQTT support you can either use any internet-based MQTT broker (i.e. smartnest.cz or HiveMQ) or a local one (i.e. Mosquitto).
 // If you choose an internet based one, you will need to create an account, (maybe setting up the device there) and filling in the data below then.
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
+// It is your choice if you want the state/status messages sent to the broker being retained or not. By default, they are not retained.
 
 #define MQTT_BROKER "smartnest.cz"                   // Broker host
 #define MQTT_PORT 1883                               // Broker port
 #define MQTT_USERNAME "__enter_your_username_here__" // Username from Smartnest
 #define MQTT_PASSWORD "__enter_your_api_key_here__"  // Password from Smartnest or API key (under MY Account)
 #define MQTT_CLIENT "__enter_your_device_id_here__"  // Device Id from Smartnest
+#define MQTT_RETAIN_STATE_MESSAGES false             // Set to true if you want to retain the state/status messages in the MQTT broker (default: false)
 // #define MQTT_USE_TLS                                 // Use TLS for MQTT connection. Setting a root CA certificate is needed!
 // Don't forget to copy the correct certificate file into the 'data' folder and rename it to mqtt-ca-root.pem!
 // Example CA cert (Let's Encrypt CA cert) can be found in the 'data - other graphics' subfolder in the root of this repo
