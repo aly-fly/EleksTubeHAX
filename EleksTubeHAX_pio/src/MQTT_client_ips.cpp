@@ -451,7 +451,7 @@ void MQTTStart()
     sendToBroker("report/firmware", FIRMWARE_VERSION);                    // Reports the firmware version
     sendToBroker("report/ip", (char *)WiFi.localIP().toString().c_str()); // Reports the ip
     sendToBroker("report/network", (char *)WiFi.SSID().c_str());          // Reports the network name
-    MqttReportWiFiSignal();
+    MQTTReportWiFiSignal();
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
@@ -566,7 +566,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       MQTTCommandStateReceived = true;
     }
   }
-#endif
+#endif // NIT defined MQTT_HOME_ASSISTANT
 
 #ifdef MQTT_HOME_ASSISTANT
   char expectedTopic[100];
@@ -792,22 +792,18 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
 #ifdef DEBUG_OUTPUT
   Serial.println("DEBUG: Exiting MQTTCallback...");
 #endif
-}
+} // end of MQTTCallback
 
 void MQTTLoopFrequently()
 {
-#ifdef MQTT_ENABLED
   MQTTclient.loop();
   checkIfMQTTIsConnected();
-#endif
 }
 
 void MQTTLoopInFreeTime()
 {
-#ifdef MQTT_ENABLED
   MQTTReportBackOnChange();
   MQTTPeriodicReportBack();
-#endif
 }
 
 void MQTTReportBattery()
@@ -1214,7 +1210,6 @@ void MQTTPeriodicReportBack()
     MQTTReportBackEverything(true);
   }
 }
-#endif
 
 void MQTTReportAvailability(const char *status)
 {
@@ -1228,3 +1223,5 @@ void MQTTReportAvailability(const char *status)
   Serial.println(status);
 #endif
 }
+
+#endif // MQTT_ENABLED
