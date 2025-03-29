@@ -33,7 +33,7 @@ void TFTs::begin()
 
 void TFTs::reinit()
 {
-  if (!enabled) // perform re-init only if displays are actually off. HA sends ON command together with clock face change which causes flickering.
+  if (!TFTsEnabled) // perform re-init only if displays are actually off. HA sends ON command together with clock face change which causes flickering.
   {
 #ifndef TFT_SKIP_REINIT
     // Start with all displays selected.
@@ -105,7 +105,7 @@ void TFTs::showNoMqttStatus()
 void TFTs::enableAllDisplays()
 {
   // Turn "power" on to displays.
-  enabled = true;
+  TFTsEnabled = true;
 #ifndef DIM_WITH_ENABLE_PIN_PWM
   digitalWrite(TFT_ENABLE_PIN, ACTIVATEDISPLAYS);
 #else
@@ -117,7 +117,7 @@ void TFTs::enableAllDisplays()
 void TFTs::disableAllDisplays()
 {
   // Turn "power" off to displays.
-  enabled = false;
+  TFTsEnabled = false;
 #ifndef DIM_WITH_ENABLE_PIN_PWM
   digitalWrite(TFT_ENABLE_PIN, DEACTIVATEDISPLAYS);
 #else
@@ -128,7 +128,7 @@ void TFTs::disableAllDisplays()
 
 void TFTs::toggleAllDisplays()
 {
-  if (enabled)
+  if (TFTsEnabled)
   {
     disableAllDisplays();
   }
@@ -159,32 +159,35 @@ void TFTs::showTemperature()
 
 void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
 {
-  uint8_t old_value = digits[digit];
-  digits[digit] = value;
+  if (TFTsEnabled)
+  { // only do this, if the displays are enabled
+    uint8_t old_value = digits[digit];
+    digits[digit] = value;
 
-  if (show != no && (old_value != value || show == force))
-  {
-    showDigit(digit);
-
-    if (digit == SECONDS_ONES)
-      if (WifiState != connected)
-      {
-        showNoWifiStatus();
-      }
-
-#ifdef MQTT_ENABLED
-    if (digit == SECONDS_TENS)
-      if (!MQTTConnected)
-      {
-        showNoMqttStatus();
-      }
-#endif
-
-    if (digit == HOURS_ONES)
+    if (show != no && (old_value != value || show == force))
     {
-      showTemperature();
+      showDigit(digit);
+
+      if (digit == SECONDS_ONES)
+        if (WifiState != connected)
+        {
+          showNoWifiStatus();
+        }
+
+  #ifdef MQTT_ENABLED
+      if (digit == SECONDS_TENS)
+        if (!MQTTConnected)
+        {
+          showNoMqttStatus();
+        }
+  #endif
+
+      if (digit == HOURS_ONES)
+      {
+        showTemperature();
+      }
     }
-  }
+  }  
 }
 
 /*
@@ -193,7 +196,7 @@ void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
 
 void TFTs::showDigit(uint8_t digit)
 {
-  if (enabled)
+  if (TFTsEnabled)
   { // only do this, if the displays are enabled
     chip_select.setDigit(digit);
 
@@ -239,7 +242,7 @@ void TFTs::ProcessUpdatedDimming()
 #ifdef DIM_WITH_ENABLE_PIN_PWM
   // hardware dimming is done via PWM on the pin defined by TFT_ENABLE_PIN
   // ONLY for IPSTUBE clocks in the moment! Other clocks may be damaged!
-  if (enabled)
+  if (TFTsEnabled)
   {
     ledcWrite(TFT_PWM_CHANNEL, CALCDIMVALUE(dimming));
   }
