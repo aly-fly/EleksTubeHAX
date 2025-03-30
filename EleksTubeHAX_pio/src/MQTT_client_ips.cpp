@@ -69,7 +69,7 @@ uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
 uint8_t LastNotificationChecksum = 0;
 uint32_t LastTimeTriedToConnect = 0;
 
-bool MQTTConnected = false; // initial state of MQTT connection
+bool MQTTConnected = false;     // initial state of MQTT connection
 bool discoveryReported = false; // initial state of discovery messages sent to HA
 
 // commands from server for pure MQTT mode
@@ -180,11 +180,11 @@ bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 #ifdef DEBUG_OUTPUT
   if (ok)
   {
-    Serial.print("DEBUG: TX MQTT: ");
+    Serial.print("DEBUG: TX MQTT: Topic: ");
     Serial.print(Topic);
-    Serial.print(" - ");
-    Serial.println(Message);
-    Serial.print("DEBUG: TX MQTT Retain: ");
+    Serial.print(" - Message: ");
+    Serial.print(Message);
+    Serial.print(" - Retain: ");
     Serial.println(Retain ? "true" : "false");
   }
   else
@@ -200,7 +200,7 @@ bool MQTTPublish(const char *Topic, JsonDocument *Json, const bool Retain)
 {
   size_t buffSize = measureJson(*Json) + 3; // Discovery Light = about 720 bytes
 #ifdef DEBUG_OUTPUT
-  Serial.printf("DEBUG: TX MQTT message JSON size = %d\n", buffSize);
+  Serial.printf("DEBUG: TX MQTT message JSON size: %d\n", buffSize);
 #endif
   char *buffer = (char *)malloc(buffSize);
   if (buffer == NULL)
@@ -465,7 +465,7 @@ void MQTTStart()
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicPulse, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicRainbow, "/set"));
 #ifdef DEBUG_OUTPUT
-    Serial.print("DEBUG: subscribed to topics: ");
+    Serial.println("DEBUG: subscribed to topics: ");
     Serial.print(concat4(MQTT_CLIENT, "/", TopicFront, "/set"));
     Serial.println(", ");
     Serial.print(concat4(MQTT_CLIENT, "/", TopicBack, "/set"));
@@ -505,6 +505,7 @@ void checkIfMQTTIsConnected()
 void MQTTCallback(char *topic, byte *payload, unsigned int length)
 {
 #ifdef DEBUG_OUTPUT
+  Serial.println("");
   Serial.println("DEBUG: Entering MQTTCallback...");
   Serial.print("DEBUG: Received topic: ");
   Serial.println(topic);
@@ -529,7 +530,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
 
 #ifdef DEBUG_OUTPUT
-  Serial.println("DEBUG: Converted payload to char array:");
+  Serial.print("DEBUG: Converted payload to char array: ");
   Serial.println(message);
   Serial.println("DEBUG: Processing MQTT message...");
   Serial.print("DEBUG: RX MQTT: ");
@@ -565,9 +566,9 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
 #endif // NOT defined MQTT_HOME_ASSISTANT
 
-#ifdef MQTT_HOME_ASSISTANT  
+#ifdef MQTT_HOME_ASSISTANT
   if (strcmp(topic, TopicHAstatus) == 0) // Process "homeassistant/status" messages -> react if Home Assistant is online or offline
-  
+
   {
     if (strcmp(message, "online") == 0)
     {
@@ -595,9 +596,9 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
     }
   }
   else // process all other MQTT messages
-  {    
+  {
     if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicFront, "/set")) == 0) // Process "<MQTT_CLIENT>/main/set"
-    { // Process JSON for main set command      
+    {                                                                      // Process JSON for main set command
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
       if (err)
@@ -893,7 +894,8 @@ void MQTTReportBackOnChange()
     if (!discoveryReported) // Check if discovery messages are already sent
     {
 #ifdef DEBUG_OUTPUT
-      Serial.println(""); Serial.println("DEBUG: Disovery messages not sent yet!");
+      Serial.println("");
+      Serial.println("DEBUG: Disovery messages not sent yet!");
       Serial.println("DEBUG: Sending discovery messages...");
 #endif
       discoveryReported = MQTTReportDiscovery();
@@ -912,14 +914,16 @@ void MQTTPeriodicReportBack()
   if (((millis() - lastTimeSent) > (MQTT_REPORT_STATUS_EVERY_SEC * 1000)) && MQTTclient.connected())
   {
 #ifdef DEBUG_OUTPUT
-    Serial.println(""); Serial.println("DEBUG: Try sending periodic MQTT report...");
+    Serial.println("");
+    Serial.println("DEBUG: Try sending periodic MQTT report...");
 #endif
     MQTTConnected = MQTTclient.connected(); // Check regularly if still connected to the MQTT broker
 #ifdef MQTT_HOME_ASSISTANT
     if (!discoveryReported) // Check if discovery messages are already sent
     {
 #ifdef DEBUG_OUTPUT
-      Serial.println(""); Serial.println("DEBUG: Disovery messages not sent yet!");
+      Serial.println("");
+      Serial.println("DEBUG: Disovery messages not sent yet!");
       Serial.println("DEBUG: Sending discovery messages...");
 #endif
       discoveryReported = MQTTReportDiscovery();
@@ -958,6 +962,7 @@ bool MQTTReportDiscovery()
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicFront, "/set");
   discovery["brightness"] = true;
   discovery["brightness_scale"] = 255;
+  discovery["color_mode"] = false;
   discovery["effect"] = true;
   for (size_t i = 1; i <= tfts.NumberOfClockFaces; i++)
   {
@@ -989,12 +994,13 @@ bool MQTTReportDiscovery()
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicBack, "/set");
   discovery["brightness"] = true;
   discovery["brightness_scale"] = 7;
+  discovery["color_mode"] = true;
+  discovery["supported_color_modes"][0] = "hs";
   discovery["effect"] = true;
   for (size_t i = 0; i < backlights.num_patterns; i++)
   {
     discovery["effect_list"][i] = backlights.patterns_str[i];
   }
-  discovery["supported_color_modes"][0] = "hs";
 
   delay(150);
   if (!MQTTPublish(concat5("homeassistant/light/", MQTT_CLIENT, "_", TopicBack, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
