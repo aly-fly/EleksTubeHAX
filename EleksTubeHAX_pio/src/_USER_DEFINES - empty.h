@@ -48,13 +48,13 @@
 // You will either need a local MQTT broker to use MQTT with Home Assistant (e.g. Mosquitto) or use an internet-based broker with Home Assistant support.
 // If not done already, you can set up a local one easily via an Add-On in HA. See: https://www.home-assistant.io/integrations/mqtt/
 // Enter the credential data into the MQTT broker settings section below accordingly.
+// The device will send auto-discovery messages to Home Assistant via MQTT, so you can use the device in Home Assistant without any custom configuration needed.
 // It is your choice if you want the MQTT discovery messages sent to Home Assistant being retained or not. By default, they are not retained.
 // See https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability for more information.
 // Retained messages can create ghost entities that keep coming back (if you change MQTT_CLIENT i.e.)! You need to delete them manually from the broker queue!
 
 // #define MQTT_HOME_ASSISTANT // Uncomment if you want Home Assistant (HA) support (MQTT_ENABLED must be also enabled)
 // all following MQTT_HOME_ASSISTANT_* settings require MQTT_HOME_ASSISTANT to be enabled
-// #define MQTT_HOME_ASSISTANT_DISCOVERY                                         // Uncomment if you want HA auto-discovery
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_DEVICE_MANUFACTURER "EleksMaker"        // Name of the manufacturer shown in HA
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_DEVICE_MODEL "Elekstube IPS"            // Name of the model shown in HA
 // #define MQTT_HOME_ASSISTANT_DISCOVERY_SW_VERSION "1.0 Home Assistant Edition" // Firmware version shown in HA

@@ -458,9 +458,7 @@ void MQTTStart()
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
-#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
     MQTTclient.subscribe(TopicHAstatus); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
-#endif
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicFront, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicBack, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", Topic12hr, "/set"));
@@ -570,14 +568,12 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
     if (strcmp(message, "online") == 0)
     {
       Serial.println("Detected Home Assistant online status.");
-#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
       uint16_t randomDelay = random(100, 400);
       Serial.print("Delaying discovery for ");
       Serial.print(randomDelay);
       Serial.println(" ms.");
       delay(randomDelay);
       discoveryReported = MQTTReportDiscovery();
-#endif
     }
     else if (strcmp(message, "offline") == 0)
     {
@@ -884,7 +880,6 @@ void MQTTReportBackEverything(bool forceUpdateEverything)
 
 bool MQTTReportDiscovery()
 {
-#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
   JsonDocument discovery;
 
   // Main Light
@@ -1111,7 +1106,6 @@ bool MQTTReportDiscovery()
   discovery.clear();
   delay(120);
   MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE); // Publish online status
-#endif
   return true;
 }
 
@@ -1123,12 +1117,10 @@ void MQTTReportBackOnChange()
     MQTTReportPowerState();
     MQTTReportStatus();
 #endif
-#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
     if (!discoveryReported)
     {
       discoveryReported = MQTTReportDiscovery();
     }
-#endif
 #ifdef MQTT_HOME_ASSISTANT
     MQTTReportState(false);
 #endif
