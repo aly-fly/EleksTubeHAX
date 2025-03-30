@@ -26,43 +26,34 @@ WiFiClientSecure espClient;
 #else
 WiFiClient espClient;
 #endif // MQTT_USE_TLS
+
+// initialize the MQTT client
 PubSubClient MQTTclient(espClient);
 
-#define concat2(first, second) first second
-#define concat3(first, second, third) first second third
-#define concat4(first, second, third, fourth) first second third fourth
-#define concat5(first, second, third, fourth, fifth) first second third fourth fifth
-
-#define MQTT_STATE_ON "ON"
-#define MQTT_STATE_OFF "OFF"
-
-#define MQTT_BRIGHTNESS_MIN 0
-#define MQTT_BRIGHTNESS_MAX 255
-
-#define MQTT_ITENSITY_MIN 0
-#define MQTT_ITENSITY_MAX 7
-
-// private:
+// functions for general MQTT handling
 void MQTTCallback(char *topic, byte *payload, unsigned int length);
 void checkIfMQTTIsConnected();
-
 bool MQTTPublish(const char *Topic, const char *Message, const bool Retain);
 bool MQTTPublish(const char *Topic, JsonDocument *Json, const bool Retain);
-
 void MQTTReportState(bool forceUpdateEverything);
-void MQTTProcessCommand();
-void MQTTReportBattery();
-void MQTTReportStatus();
-void MQTTReportPowerState();
-void MQTTReportWiFiSignal();
-void MQTTReportTemperature();
-void MQTTReportNotification(String message);
-void MQTTReportGraphic(bool forceUpdateEverything);
 void MQTTReportBackOnChange();
 void MQTTReportBackEverything(bool forceUpdateEverything);
 void MQTTPeriodicReportBack();
+
+// pure MQTT mode functions
+void MQTTReportPowerState();
+void MQTTReportWiFiSignal();
+void MQTTReportStatus();
+
+// Home Assistant mode functions
 bool MQTTReportDiscovery();
 void MQTTReportAvailability(const char *status);
+
+// obsoltete or outdated functions
+// void MQTTReportGraphic(bool forceUpdateEverything);
+// void MQTTReportBattery();
+// void MQTTReportTemperature();
+// void MQTTReportNotification(String message);
 
 // helper functions
 double round1(double value);
@@ -71,24 +62,24 @@ bool endsWith(const char *str, const char *suffix);
 bool loadCARootCert();
 #endif // MQTT_USE_TLS
 
-char topic[100];
-char msg[5];
+// variables
+// char topic[100];
+// char msg[5];
 uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
 uint8_t LastNotificationChecksum = 0;
 uint32_t LastTimeTriedToConnect = 0;
 
-bool MQTTConnected = true; // skip error message if disabled
-bool discoveryReported = false;
+bool MQTTConnected = false; // initial state of MQTT connection
+bool discoveryReported = false; // initial state of discovery messages sent to HA
 
-// ========== APPLICATION VARIABLES ==========
-
-// commands from server for pure MQTT
+// commands from server for pure MQTT mode
 bool MQTTCommandPower = true;
 bool MQTTCommandPowerReceived = false;
 int MQTTCommandState = 1;
 bool MQTTCommandStateReceived = false;
 
-// commands from server for HA
+#ifdef MQTT_HOME_ASSISTANT
+// topics for HA
 #define TopicFront "main"
 #define TopicBack "back"
 #define Topic12hr "use_twelve_hours"
@@ -98,8 +89,8 @@ bool MQTTCommandStateReceived = false;
 #define TopicRainbow "rainbow_duration"
 
 bool MQTTCommandMainPower = true;
-bool MQTTCommandBackPower = true;
 bool MQTTCommandMainPowerReceived = false;
+bool MQTTCommandBackPower = true;
 bool MQTTCommandBackPowerReceived = false;
 bool MQTTCommandUseTwelveHours = false;
 bool MQTTCommandUseTwelveHoursReceived = false;
@@ -107,11 +98,10 @@ bool MQTTCommandBlankZeroHours = false;
 bool MQTTCommandBlankZeroHoursReceived = false;
 
 uint8_t MQTTCommandBrightness = -1;
-uint8_t MQTTCommandMainBrightness = -1;
-uint8_t MQTTCommandBackBrightness = -1;
 bool MQTTCommandBrightnessReceived = false;
-
+uint8_t MQTTCommandMainBrightness = -1;
 bool MQTTCommandMainBrightnessReceived = false;
+uint8_t MQTTCommandBackBrightness = -1;
 bool MQTTCommandBackBrightnessReceived = false;
 
 char MQTTCommandPattern[24] = "";
@@ -136,17 +126,19 @@ bool MQTTCommandBreathBpmReceived = false;
 float MQTTCommandRainbowSec = -1;
 bool MQTTCommandRainbowSecReceived = false;
 
-// status to server from Home Assistant
+// status to server for Home Assistant
 bool MQTTStatusMainPower = true;
 bool MQTTStatusBackPower = true;
 bool MQTTStatusUseTwelveHours = true;
 bool MQTTStatusBlankZeroHours = true;
 
+#endif // MQTT_HOME_ASSISTANT
+
 // status to server
 bool MQTTStatusPower = true;
 
 int MQTTStatusState = 0;
-int MQTTStatusBattery = 7;
+// int MQTTStatusBattery = 7;
 uint8_t MQTTStatusBrightness = 0;
 uint8_t MQTTStatusMainBrightness = 0;
 uint8_t MQTTStatusBackBrightness = 0;
@@ -178,11 +170,6 @@ uint8_t LastSentPulseBpm = -1;
 uint8_t LastSentBreathBpm = -1;
 float LastSentRainbowSec = -1;
 
-double round1(double value)
-{
-  return (int)(value * 10 + 0.5) / 10.0;
-}
-
 bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 {
   if (!MQTTclient.connected())
@@ -193,14 +180,16 @@ bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 #ifdef DEBUG_OUTPUT
   if (ok)
   {
-    Serial.print("TX MQTT: ");
+    Serial.print("DEBUG: TX MQTT: ");
     Serial.print(Topic);
     Serial.print(" - ");
     Serial.println(Message);
+    Serial.print("DEBUG: TX MQTT Retain: ");
+    Serial.println(Retain ? "true" : "false");
   }
   else
   {
-    Serial.print("TX MQTT ERROR: ");
+    Serial.print("DEBUG: TX MQTT Error for topic: ");
     Serial.println(Topic);
   }
 #endif
@@ -211,12 +200,12 @@ bool MQTTPublish(const char *Topic, JsonDocument *Json, const bool Retain)
 {
   size_t buffSize = measureJson(*Json) + 3; // Discovery Light = about 720 bytes
 #ifdef DEBUG_OUTPUT
-  Serial.printf("JSON size = %d\n", buffSize);
+  Serial.printf("DEBUG: TX MQTT message JSON size = %d\n", buffSize);
 #endif
   char *buffer = (char *)malloc(buffSize);
   if (buffer == NULL)
   {
-    Serial.printf("Error allocating %d bytes to serialize JSON.\n", buffSize);
+    Serial.printf("ERROR: Error allocating %d bytes to serialize JSON.\n", buffSize);
     return false;
   }
   size_t dataSize = serializeJson(*Json, buffer, buffSize);
@@ -229,7 +218,7 @@ bool MQTTPublish(const char *Topic, JsonDocument *Json, const bool Retain)
   }
   else
   {
-    Serial.println("Error serializing JSON data.");
+    Serial.println("ERROR: Error serializing JSON data.");
     Json->clear();
     free(buffer);
     return false;
@@ -445,11 +434,20 @@ void MQTTStart()
       return; // do not continue if not connected
     }
 
+#ifdef DEBUG_OUTPUT
+    Serial.println("DEBUG: subscribing to MQTT topics...");
+#endif
 #ifndef MQTT_HOME_ASSISTANT
     char subscribeTopic[100];
     snprintf(subscribeTopic, sizeof(subscribeTopic), "%s/#", MQTT_CLIENT);
     MQTTclient.subscribe(subscribeTopic); // Subscribes to all messages send to the device
+#ifdef DEBUG_OUTPUT
+    Serial.print("DEBUG: Subscribed to topic: ");
+    Serial.println(subscribeTopic);
 
+    Serial.println("DEBUG: Send initial status messages!");
+#endif
+    // send initial status messages
     MQTTPublish("report/online", "true", MQTT_RETAIN_STATE_MESSAGES);                                // Reports that the device is online
     MQTTPublish("report/firmware", FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
     MQTTPublish("report/ip", (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
@@ -466,6 +464,24 @@ void MQTTStart()
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicBreath, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicPulse, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicRainbow, "/set"));
+#ifdef DEBUG_OUTPUT
+    Serial.print("DEBUG: subscribed to topics: ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicFront, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicBack, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", Topic12hr, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicBlank0, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicBreath, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicPulse, "/set"));
+    Serial.println(", ");
+    Serial.print(concat4(MQTT_CLIENT, "/", TopicRainbow, "/set"));
+    Serial.println(", ");
+    Serial.println(TopicHAstatus);
+#endif // DEBUG_OUTPUT
 #endif // MQTT_HOME_ASSISTANT
   }
 }
@@ -479,24 +495,12 @@ void checkIfMQTTIsConnected()
   }
 }
 
-void MQTTStop(void)
-{
-  MQTTPublish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), MQTT_ALIVE_MSG_OFFLINE, MQTT_RETAIN_ALIVE_MESSAGES);
-  delay(100);
-  MQTTclient.disconnect();
-}
-
-// Helper function to check if 'str' ends with 'suffix'
-bool endsWith(const char *str, const char *suffix)
-{
-  if (!str || !suffix)
-    return false;
-  size_t strLen = strlen(str);
-  size_t suffixLen = strlen(suffix);
-  if (suffixLen > strLen)
-    return false;
-  return (strcmp(str + (strLen - suffixLen), suffix) == 0);
-}
+// void MQTTStop(void)
+// {
+//   MQTTPublish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), MQTT_ALIVE_MSG_OFFLINE, MQTT_RETAIN_ALIVE_MESSAGES);
+//   delay(100);
+//   MQTTclient.disconnect();
+// }
 
 void MQTTCallback(char *topic, byte *payload, unsigned int length)
 {
@@ -561,36 +565,39 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
 #endif // NOT defined MQTT_HOME_ASSISTANT
 
-#ifdef MQTT_HOME_ASSISTANT
-  // Process "homeassistant/status"
-  if (strcmp(topic, TopicHAstatus) == 0)
+#ifdef MQTT_HOME_ASSISTANT  
+  if (strcmp(topic, TopicHAstatus) == 0) // Process "homeassistant/status" messages -> react if Home Assistant is online or offline
+  
   {
     if (strcmp(message, "online") == 0)
     {
-      Serial.println("Detected Home Assistant online status.");
+      Serial.println("Detected Home Assistant online status! Sending discovery messages!");
       uint16_t randomDelay = random(100, 400);
       Serial.print("Delaying discovery for ");
       Serial.print(randomDelay);
       Serial.println(" ms.");
       delay(randomDelay);
       discoveryReported = MQTTReportDiscovery();
+      if (!discoveryReported)
+      {
+        Serial.println("ERROR: Failure while (re-)sending discovery messages!");
+      }
     }
     else if (strcmp(message, "offline") == 0)
     {
-      Serial.println("Detected Home Assistant offline status.");
+      Serial.println("Detected Home Assistant offline status!");
+      discoveryReported = false;
     }
     else
     {
-      Serial.print("Unhandled homeassistant/status payload: ");
+      Serial.print("WARNING: Unhandled \"homeassistant/status\" payload: ");
       Serial.println(message);
     }
   }
-  else
-  {
-    // Process "<MQTT_CLIENT>/main/set"
-    if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicFront, "/set")) == 0)
-    {
-      // Process JSON for main set command
+  else // process all other MQTT messages
+  {    
+    if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicFront, "/set")) == 0) // Process "<MQTT_CLIENT>/main/set"
+    { // Process JSON for main set command      
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
       if (err)
@@ -616,8 +623,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       }
     }
     else
-    {
-      // Process "<MQTT_CLIENT>/back/set"
+    { // Process "<MQTT_CLIENT>/back/set"
       if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicBack, "/set")) == 0)
       {
         JsonDocument doc;
@@ -651,8 +657,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
         }
       }
       else
-      {
-        // Process "<MQTT_CLIENT>/use_twelve_hours/set"
+      { // Process "<MQTT_CLIENT>/use_twelve_hours/set"
         if (strcmp(topic, concat4(MQTT_CLIENT, "/", Topic12hr, "/set")) == 0)
         {
           JsonDocument doc;
@@ -670,8 +675,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
           }
         }
         else
-        {
-          // Process "<MQTT_CLIENT>/blank_zero_hours/set"
+        { // Process "<MQTT_CLIENT>/blank_zero_hours/set"
           if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicBlank0, "/set")) == 0)
           {
             JsonDocument doc;
@@ -689,8 +693,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
             }
           }
           else
-          {
-            // Process "<MQTT_CLIENT>/pulse_bpm/set"
+          { // Process "<MQTT_CLIENT>/pulse_bpm/set"
             if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicPulse, "/set")) == 0)
             {
               JsonDocument doc;
@@ -708,8 +711,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
               }
             }
             else
-            {
-              // Process "<MQTT_CLIENT>/breath_bpm/set"
+            { // Process "<MQTT_CLIENT>/breath_bpm/set"
               if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicBreath, "/set")) == 0)
               {
                 JsonDocument doc;
@@ -727,8 +729,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
                 }
               }
               else
-              {
-                // Process "<MQTT_CLIENT>/rainbow_duration/set"
+              { // Process "<MQTT_CLIENT>/rainbow_duration/set"
                 if (strcmp(topic, concat4(MQTT_CLIENT, "/", TopicRainbow, "/set")) == 0)
                 {
                   JsonDocument doc;
@@ -747,7 +748,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
                 }
                 else
                 {
-                  Serial.print("Warning: Unhandled MQTT topic: ");
+                  Serial.print("WARNING: Unhandled MQTT topic: ");
                   Serial.println(topic);
                 }
               }
@@ -776,12 +777,12 @@ void MQTTLoopInFreeTime()
   MQTTPeriodicReportBack();
 }
 
-void MQTTReportBattery()
-{
-  char message[5];
-  snprintf(message, sizeof(message), "%d", MQTTStatusBattery);
-  MQTTPublish("report/battery", message, MQTT_RETAIN_STATE_MESSAGES);
-}
+// void MQTTReportBattery()
+// {
+//   char message[5];
+//   snprintf(message, sizeof(message), "%d", MQTTStatusBattery);
+//   MQTTPublish("report/battery", message, MQTT_RETAIN_STATE_MESSAGES);
+// }
 
 void MQTTReportStatus()
 {
@@ -794,15 +795,15 @@ void MQTTReportStatus()
   }
 }
 
-void MQTTReportTemperature()
-{
-#ifdef ONE_WIRE_BUS_PIN
-  if (fTemperature > -30)
-  { // transmit data to MQTT only if data is valid
-    MQTTPublish("report/temperature", sTemperatureTxt);
-  }
-#endif
-}
+// void MQTTReportTemperature()
+// {
+// #ifdef ONE_WIRE_BUS_PIN
+//   if (fTemperature > -30)
+//   { // transmit data to MQTT only if data is valid
+//     MQTTPublish("report/temperature", sTemperatureTxt);
+//   }
+// #endif
+// }
 
 void MQTTReportPowerState()
 {
@@ -827,36 +828,36 @@ void MQTTReportWiFiSignal()
   }
 }
 
-void MQTTReportNotification(String message)
-{
-  int i;
-  byte NotificationChecksum = 0;
-  for (i = 0; i < message.length(); i++)
-  {
-    NotificationChecksum += byte(message[i]);
-  }
-  // send only different notification, do not re-send same notifications!
-  if (NotificationChecksum != LastNotificationChecksum)
-  {
-    // string to char array
-    char msg2[message.length() + 1];
-    strncpy(msg2, message.c_str(), sizeof(msg2) - 1);
-    MQTTPublish("report/notification", msg2, MQTT_RETAIN_STATE_MESSAGES);
-    LastNotificationChecksum = NotificationChecksum;
-  }
-}
+// void MQTTReportNotification(String message)
+// {
+//   int i;
+//   byte NotificationChecksum = 0;
+//   for (i = 0; i < message.length(); i++)
+//   {
+//     NotificationChecksum += byte(message[i]);
+//   }
+//   // send only different notification, do not re-send same notifications!
+//   if (NotificationChecksum != LastNotificationChecksum)
+//   {
+//     // string to char array
+//     char msg2[message.length() + 1];
+//     strncpy(msg2, message.c_str(), sizeof(msg2) - 1);
+//     MQTTPublish("report/notification", msg2, MQTT_RETAIN_STATE_MESSAGES);
+//     LastNotificationChecksum = NotificationChecksum;
+//   }
+// }
 
-void MQTTReportGraphic(bool forceUpdateEverything)
-{
-  if (forceUpdateEverything || MQTTStatusGraphic != LastSentGraphic)
-  {
-    char graphic[3]; // Increased size to accommodate null terminator
-    snprintf(graphic, sizeof(graphic), "%i", MQTTStatusGraphic);
-    MQTTPublish("graphic", graphic, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+// void MQTTReportGraphic(bool forceUpdateEverything)
+// {
+//   if (forceUpdateEverything || MQTTStatusGraphic != LastSentGraphic)
+//   {
+//     char graphic[3]; // Increased size to accommodate null terminator
+//     snprintf(graphic, sizeof(graphic), "%i", MQTTStatusGraphic);
+//     MQTTPublish("graphic", graphic, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
 
-    LastSentGraphic = MQTTStatusGraphic;
-  }
-}
+//     LastSentGraphic = MQTTStatusGraphic;
+//   }
+// }
 
 void MQTTReportBackEverything(bool forceUpdateEverything)
 {
@@ -867,7 +868,7 @@ void MQTTReportBackEverything(bool forceUpdateEverything)
     MQTTReportStatus();
     // MQTTReportBattery();
     MQTTReportWiFiSignal();
-    MQTTReportTemperature();
+    // MQTTReportTemperature();
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
@@ -875,6 +876,60 @@ void MQTTReportBackEverything(bool forceUpdateEverything)
 #endif
 
     lastTimeSent = millis();
+  }
+}
+
+void MQTTReportBackOnChange()
+{
+  if (MQTTclient.connected())
+  {
+#ifndef MQTT_HOME_ASSISTANT
+    // pure MQTT reporting
+    MQTTReportPowerState();
+    MQTTReportStatus();
+#endif
+#ifdef MQTT_HOME_ASSISTANT
+    // Home Assistant reporting
+    if (!discoveryReported) // Check if discovery messages are already sent
+    {
+#ifdef DEBUG_OUTPUT
+      Serial.println(""); Serial.println("DEBUG: Disovery messages not sent yet!");
+      Serial.println("DEBUG: Sending discovery messages...");
+#endif
+      discoveryReported = MQTTReportDiscovery();
+      if (!discoveryReported)
+      {
+        Serial.println("ERROR: Failure while sending discovery messages!");
+      }
+    }
+    MQTTReportState(false); // Report only the device states which changed
+#endif
+  }
+}
+
+void MQTTPeriodicReportBack()
+{ // Report/Send all device states with a limiter to not report too often
+  if (((millis() - lastTimeSent) > (MQTT_REPORT_STATUS_EVERY_SEC * 1000)) && MQTTclient.connected())
+  {
+#ifdef DEBUG_OUTPUT
+    Serial.println(""); Serial.println("DEBUG: Try sending periodic MQTT report...");
+#endif
+    MQTTConnected = MQTTclient.connected(); // Check regularly if still connected to the MQTT broker
+#ifdef MQTT_HOME_ASSISTANT
+    if (!discoveryReported) // Check if discovery messages are already sent
+    {
+#ifdef DEBUG_OUTPUT
+      Serial.println(""); Serial.println("DEBUG: Disovery messages not sent yet!");
+      Serial.println("DEBUG: Sending discovery messages...");
+#endif
+      discoveryReported = MQTTReportDiscovery();
+      if (!discoveryReported)
+      {
+        Serial.println("ERROR: Failure while sending discovery messages!");
+      }
+    }
+#endif
+    MQTTReportBackEverything(true); // Report all device states
   }
 }
 
@@ -909,10 +964,9 @@ bool MQTTReportDiscovery()
     discovery["effect_list"][i - 1] = tfts.clockFaceToName(i);
   }
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/light/", MQTT_CLIENT, "_", TopicFront, "/light/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/light/", MQTT_CLIENT, "_", TopicFront, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Back Light
   discovery.clear();
@@ -942,10 +996,9 @@ bool MQTTReportDiscovery()
   }
   discovery["supported_color_modes"][0] = "hs";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/light/", MQTT_CLIENT, "_", TopicBack, "/light/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/light/", MQTT_CLIENT, "_", TopicBack, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Use Twelwe Hours
   discovery.clear();
@@ -972,10 +1025,9 @@ bool MQTTReportDiscovery()
   discovery["payload_on"] = "{\"state\":\"ON\"}";
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/switch/", MQTT_CLIENT, "_", Topic12hr, "/switch/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/switch/", MQTT_CLIENT, "_", Topic12hr, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Blank Zero Hours
   discovery.clear();
@@ -1002,10 +1054,9 @@ bool MQTTReportDiscovery()
   discovery["payload_on"] = "{\"state\":\"ON\"}";
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/switch/", MQTT_CLIENT, "_", TopicBlank0, "/switch/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/switch/", MQTT_CLIENT, "_", TopicBlank0, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Pulses per minute
   discovery.clear();
@@ -1034,10 +1085,9 @@ bool MQTTReportDiscovery()
   discovery["mode"] = "slider";
   discovery["value_template"] = "{{ value_json.state }}";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicPulse, "/number/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicPulse, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Breathes per minute
   discovery.clear();
@@ -1066,10 +1116,9 @@ bool MQTTReportDiscovery()
   discovery["mode"] = "slider";
   discovery["value_template"] = "{{ value_json.state }}";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicBreath, "/number/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicBreath, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   // Rainbow duration
   discovery.clear();
@@ -1098,59 +1147,42 @@ bool MQTTReportDiscovery()
   discovery["mode"] = "slider";
   discovery["value_template"] = "{{ value_json.state }}";
 
-  delay(120);
-  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicRainbow, "/number/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
-    ;
-  return false;
+  delay(150);
+  if (!MQTTPublish(concat5("homeassistant/number/", MQTT_CLIENT, "_", TopicRainbow, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+    return false;
 
   discovery.clear();
   delay(120);
   MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE); // Publish online status
+
   return true;
-}
-
-void MQTTReportBackOnChange()
-{
-  if (MQTTclient.connected())
-  {
-#ifndef MQTT_HOME_ASSISTANT
-    MQTTReportPowerState();
-    MQTTReportStatus();
-#endif
-    if (!discoveryReported)
-    {
-      discoveryReported = MQTTReportDiscovery();
-    }
-#ifdef MQTT_HOME_ASSISTANT
-    MQTTReportState(false);
-#endif
-  }
-}
-
-void MQTTPeriodicReportBack()
-{
-  if (((millis() - lastTimeSent) > (MQTT_REPORT_STATUS_EVERY_SEC * 1000)) && MQTTclient.connected())
-  {
-    MQTTConnected = MQTTclient.connected();
-#ifdef MQTT_HOME_ASSISTANT_DISCOVERY
-    if (!discoveryReported)
-    {
-      discoveryReported = MQTTReportDiscovery();
-    }
-#endif
-    MQTTReportBackEverything(true);
-  }
 }
 
 void MQTTReportAvailability(const char *status)
 {
-  MQTTclient.publish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), status, MQTT_RETAIN_ALIVE_MESSAGES); // Publish with retained flag (true)
+  MQTTclient.publish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
 #ifdef DEBUG_OUTPUT
   Serial.print("DEBUG: Sent availability: ");
   Serial.print(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC));
   Serial.print(" ");
   Serial.println(status);
 #endif
+}
+
+double round1(double value) // Helper function to round a double to one decimal place
+{
+  return (int)(value * 10 + 0.5) / 10.0;
+}
+
+bool endsWith(const char *str, const char *suffix) // Helper function to check if 'str' ends with 'suffix'
+{
+  if (!str || !suffix)
+    return false;
+  size_t strLen = strlen(str);
+  size_t suffixLen = strlen(suffix);
+  if (suffixLen > strLen)
+    return false;
+  return (strcmp(str + (strLen - suffixLen), suffix) == 0);
 }
 
 #endif // MQTT_ENABLED

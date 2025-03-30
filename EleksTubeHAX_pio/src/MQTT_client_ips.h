@@ -2,7 +2,7 @@
 #define MQTT_client_H_
 
 #include "GLOBAL_DEFINES.h"
-#include <FS.h>
+//#include <FS.h>
 
 #ifdef MQTT_ENABLED
 
@@ -10,7 +10,17 @@
 #define MQTT_ALIVE_MSG_ONLINE "online" // default in HA. If changed, configure "payload_available" and "payload_not_available"
 #define MQTT_ALIVE_MSG_OFFLINE "offline"
 #define MQTT_RETAIN_ALIVE_MESSAGES true
+
 #define TopicHAstatus "homeassistant/status"
+
+#define MQTT_STATE_ON "ON"
+#define MQTT_STATE_OFF "OFF"
+
+// #define MQTT_BRIGHTNESS_MIN 0
+// #define MQTT_BRIGHTNESS_MAX 255
+
+// #define MQTT_ITENSITY_MIN 0
+// #define MQTT_ITENSITY_MAX 7
 
 extern bool MQTTConnected;
 
@@ -55,7 +65,7 @@ extern bool MQTTStatusPower;
 extern bool MQTTStatusMainPower;
 extern bool MQTTStatusBackPower;
 extern int MQTTStatusState;
-extern int MQTTStatusBattery;
+// extern int MQTTStatusBattery;
 extern uint8_t MQTTStatusBrightness;
 extern uint8_t MQTTStatusMainBrightness;
 extern uint8_t MQTTStatusBackBrightness;
@@ -72,10 +82,12 @@ extern float MQTTStatusRainbowSec;
 
 // functions
 void MQTTStart();
-void MQTTStop();
 void MQTTLoopFrequently();
 void MQTTLoopInFreeTime();
 void MQTTReportBackEverything(bool force);
+
+// unused functions
+// void MQTTStop();
 
 #endif // MQTT_ENABLED
 
