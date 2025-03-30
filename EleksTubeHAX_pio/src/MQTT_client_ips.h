@@ -5,6 +5,13 @@
 #include <FS.h>
 
 #ifdef MQTT_ENABLED
+
+#define MQTT_ALIVE_TOPIC             "status"    // availability_topic :: https://www.home-assistant.io/integrations/mqtt/#availability_topic
+#define MQTT_ALIVE_MSG_ONLINE        "online"    // default in HA. If changed, configure "payload_available" and "payload_not_available"
+#define MQTT_ALIVE_MSG_OFFLINE       "offline"
+#define MQTT_RETAIN_ALIVE_MESSAGES   true
+#define TopicHAstatus "homeassistant/status"
+
 extern bool MQTTConnected;
 
 // commands from server
@@ -65,6 +72,7 @@ extern float MQTTStatusRainbowSec;
 
 // functions
 void MQTTStart();
+void MQTTStop();
 void MQTTLoopFrequently();
 void MQTTLoopInFreeTime();
 void MQTTReportBackEverything(bool force);
