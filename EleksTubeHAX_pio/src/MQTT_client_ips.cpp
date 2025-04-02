@@ -3,17 +3,33 @@
  * Project: Alternative firmware for EleksTube IPS clock
  * Original location: https://github.com/aly-fly/EleksTubeHAX
  * Hardware: ESP32
- * File description: Connects to the MQTT Broker "smartnest.cz". Uses a device "Thermostat".
+ * File description: Supports two operational modes:
+ *   1. Simple MQTT messages to an external MQTT server, for example SmartNest
+ *   2. Json + Discovery messages for integration into HomeAssistant
+ * Optionally supports TLS security.
+ *
+ * Mode 1:
+ * Connects to the MQTT Broker "smartnest.cz". Uses a device "Thermostat".
  * Sends status and receives commands from WebApp, Android app or connected devices (SmartThings, Google assistant, Alexa, etc.)
  * Configuration: open file "GLOBAL_DEFINES.h"
  * Reference: https://github.com/aososam/Smartnest/tree/master/Devices/thermostat
  * Documentation: https://www.docu.smartnest.cz/
+ *
+ * Mode 2:
+ * Connects to the MQTT broker that is connected to HomeAssistant.
+ * Clock automatically sends Discovery messages which automatically add and configure a new device in the HA.
  */
 
 #include "MQTT_client_ips.h"
-#ifdef MQTT_ENABLED
-#include "WiFi.h"         // for ESP32
-#include <PubSubClient.h> // Download and install this library first from: https://www.arduinolibraries.info/libraries/pub-sub-client
+
+#if defined (MQTT_PLAIN_ENABLED) && defined (MQTT_HOME_ASSISTANT)
+#error "Both MQTT modes can't be enabled at the same time!"
+#endif
+
+
+#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#include "WiFi.h"
+#include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "TempSensor.h"
 #include "TFTs.h"
@@ -40,20 +56,14 @@ void MQTTReportBackOnChange();
 void MQTTReportBackEverything(bool forceUpdateEverything);
 void MQTTPeriodicReportBack();
 
-// pure MQTT mode functions
-void MQTTReportPowerState();
+// plain MQTT mode functions
+void MQTTReportPowerState(bool forceUpdate);
 void MQTTReportWiFiSignal();
-void MQTTReportStatus();
+void MQTTReportStatus(bool forceUpdate);
 
 // Home Assistant mode functions
 bool MQTTReportDiscovery();
-void MQTTReportAvailability(const char *status);
-
-// obsoltete or outdated functions
-// void MQTTReportGraphic(bool forceUpdateEverything);
-// void MQTTReportBattery();
-// void MQTTReportTemperature();
-// void MQTTReportNotification(String message);
+bool MQTTReportAvailability(const char *status);
 
 // helper functions
 double round1(double value);
@@ -63,18 +73,14 @@ bool loadCARootCert();
 #endif // MQTT_USE_TLS
 
 // variables
-// char topic[100];
-// char msg[5];
 uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
-uint8_t LastNotificationChecksum = 0;
 uint32_t LastTimeTriedToConnect = 0;
 
-bool MQTTConnected = false;     // initial state of MQTT connection
+bool MQTTConnected = false;     // Show connection status on the clock's LCD
 bool discoveryReported = false; // initial state of discovery messages sent to HA
+bool availabilityReported = false;
 
-// commands from server for pure MQTT mode
-bool MQTTCommandPower = true;
-bool MQTTCommandPowerReceived = false;
+// commands from server for plain MQTT mode
 int MQTTCommandState = 1;
 bool MQTTCommandStateReceived = false;
 
@@ -87,6 +93,7 @@ bool MQTTCommandStateReceived = false;
 #define TopicPulse "pulse_bpm"
 #define TopicBreath "breath_bpm"
 #define TopicRainbow "rainbow_duration"
+#endif
 
 bool MQTTCommandMainPower = true;
 bool MQTTCommandMainPowerReceived = false;
@@ -132,13 +139,9 @@ bool MQTTStatusBackPower = true;
 bool MQTTStatusUseTwelveHours = true;
 bool MQTTStatusBlankZeroHours = true;
 
-#endif // MQTT_HOME_ASSISTANT
-
 // status to server
-bool MQTTStatusPower = true;
-
 int MQTTStatusState = 0;
-// int MQTTStatusBattery = 7;
+
 uint8_t MQTTStatusBrightness = 0;
 uint8_t MQTTStatusMainBrightness = 0;
 uint8_t MQTTStatusBackBrightness = 0;
@@ -151,11 +154,8 @@ uint8_t MQTTStatusPulseBpm = 0;
 uint8_t MQTTStatusBreathBpm = 0;
 float MQTTStatusRainbowSec = 0;
 
-int LastSentSignalLevel = 999;
-int LastSentPowerState = -1;
 int LastSentMainPowerState = -1;
 int LastSentBackPowerState = -1;
-int LastSentStatus = -1;
 int LastSentBrightness = -1;
 int LastSentMainBrightness = -1;
 int LastSentBackBrightness = -1;
@@ -170,6 +170,62 @@ uint8_t LastSentPulseBpm = -1;
 uint8_t LastSentBreathBpm = -1;
 float LastSentRainbowSec = -1;
 
+// plain MQTT
+int LastSentSignalLevel = 999;
+int LastSentStatus = -1;
+
+
+void printMQTTconnectionStatus(void)
+{
+  switch (MQTTclient.state())
+  {
+  case MQTT_CONNECTION_TIMEOUT:
+    Serial.println("Error: MQTT_CONNECTION_TIMEOUT");
+    break;
+
+  case MQTT_CONNECTION_LOST:
+    Serial.println("Error: MQTT_CONNECTION_LOST");
+    break;
+
+  case MQTT_CONNECT_FAILED:
+    Serial.println("Error: MQTT_CONNECT_FAILED");
+    break;
+
+  case MQTT_DISCONNECTED:
+    Serial.println("Error: MQTT_DISCONNECTED");
+    break;
+
+  case MQTT_CONNECT_BAD_PROTOCOL:
+    Serial.println("Error: MQTT_CONNECT_BAD_PROTOCOL");
+    break;
+
+  case MQTT_CONNECT_BAD_CLIENT_ID:
+    Serial.println("Error: MQTT_CONNECT_BAD_CLIENT_ID");
+    break;
+
+  case MQTT_CONNECT_UNAVAILABLE:
+    Serial.println("Error: MQTT_CONNECT_UNAVAILABLE");
+    break;
+
+  case MQTT_CONNECT_BAD_CREDENTIALS:
+    Serial.println("Error: MQTT_CONNECT_BAD_CREDENTIALS");
+    break;
+
+  case MQTT_CONNECT_UNAUTHORIZED:
+    Serial.println("Error: MQTT_CONNECT_UNAUTHORIZED");
+    break;
+
+  case MQTT_CONNECTED:
+    Serial.println("MQTT_CONNECTED");
+    break;
+
+  default:
+    Serial.printf("Unknown MQTT error: %d\r\n", MQTTclient.state());
+    break;
+  }
+}
+
+
 bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 {
   if (!MQTTclient.connected())
@@ -177,7 +233,7 @@ bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 
   bool ok = MQTTclient.publish(Topic, Message, Retain);
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
   if (ok)
   {
     Serial.print("DEBUG: TX MQTT: Topic: ");
@@ -199,7 +255,7 @@ bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 bool MQTTPublish(const char *Topic, JsonDocument *Json, const bool Retain)
 {
   size_t buffSize = measureJson(*Json) + 3; // Discovery Light = about 720 bytes
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
   Serial.printf("DEBUG: TX MQTT message JSON size: %d\n", buffSize);
 #endif
   char *buffer = (char *)malloc(buffSize);
@@ -232,14 +288,13 @@ void MQTTReportState(bool forceUpdateEverything)
     return;
 
   // send availability message
-  /*
     if (forceUpdateEverything || !availabilityReported)
     {
-      if (!MQTTPublish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), MQTT_ALIVE_MSG_ONLINE, MQTT_RETAIN_ALIVE_MESSAGES))
+      if (!MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE))
         return;
       availabilityReported = true;
     }
-  */
+
   if (forceUpdateEverything || MQTTStatusMainPower != LastSentMainPowerState || MQTTStatusMainBrightness != LastSentMainBrightness || MQTTStatusMainGraphic != LastSentMainGraphic)
   {
     JsonDocument state;
@@ -384,11 +439,17 @@ bool loadCARootCert()
 }
 #endif
 
-void MQTTStart()
+bool MQTTStart(bool restart)
 {
   MQTTConnected = false;
   if (((millis() - LastTimeTriedToConnect) > (MQTT_RECONNECT_WAIT_SEC * 100)) || (LastTimeTriedToConnect == 0))
   {
+    if (restart)
+    {
+      printMQTTconnectionStatus();
+    }
+    else
+    {    
     LastTimeTriedToConnect = millis();
     MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
     MQTTclient.setCallback(MQTTCallback);
@@ -397,10 +458,10 @@ void MQTTStart()
     bool result = loadCARootCert();
     if (!result)
     {
-      return; // load certificate failed -> do not continue
+      return false; // load certificate failed -> do not continue
     }
 #endif
-
+  }
     Serial.println("");
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message, if the connection get lost
@@ -418,42 +479,28 @@ void MQTTStart()
     }
     else
     {
-      if (MQTTclient.state() == 5) // special error code for MQTT connection not allowed on smartnest.cz
-      {
-        Serial.println("Error: Connection not allowed by broker, possible reasons:");
-        Serial.println("- Device is already online. Wait some seconds until it appears offline");
-        Serial.println("- Wrong Username or password. Check credentials");
-        Serial.println("- Client Id does not belong to this username, verify ClientId");
-      }
-      else // other error codes while connecting
-      {
-        Serial.println("Error: Not possible to connect to Broker!");
-        Serial.print("Error code:");
-        Serial.println(MQTTclient.state());
-      }
-      return; // do not continue if not connected
-    }
+      printMQTTconnectionStatus();
+      return false; // do not continue if not connected
+    } // connect failed
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: subscribing to MQTT topics...");
 #endif
-#ifndef MQTT_HOME_ASSISTANT
-    char subscribeTopic[100];
-    snprintf(subscribeTopic, sizeof(subscribeTopic), "%s/#", MQTT_CLIENT);
-    MQTTclient.subscribe(subscribeTopic); // Subscribes to all messages send to the device
-#ifdef DEBUG_OUTPUT
-    Serial.print("DEBUG: Subscribed to topic: ");
-    Serial.println(subscribeTopic);
 
-    Serial.println("DEBUG: Send initial status messages!");
+#ifdef MQTT_PLAIN_ENABLED
+    bool ok = MQTTclient.subscribe(concat2(MQTT_CLIENT, "/directive/#")); // Subscribes only to messages send to the device
+    if (!ok) Serial.println ("Error subscribing to /directive messages!");
+#ifdef DEBUG_OUTPUT_MQTT
+    Serial.println("DEBUG: Subscribed to /directive/# messages sent to the device.");
+    Serial.println("DEBUG: Sending initial status messages...");
 #endif
     // send initial status messages
-    MQTTPublish("report/online", "true", MQTT_RETAIN_STATE_MESSAGES);                                // Reports that the device is online
-    MQTTPublish("report/firmware", FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
-    MQTTPublish("report/ip", (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
-    MQTTPublish("report/network", (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
+    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                // Reports that the device is online
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/firmware"), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/ip"), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/network"), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
     MQTTReportWiFiSignal();
-#endif
+#endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
     MQTTclient.subscribe(TopicHAstatus); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
@@ -464,7 +511,7 @@ void MQTTStart()
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicBreath, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicPulse, "/set"));
     MQTTclient.subscribe(concat4(MQTT_CLIENT, "/", TopicRainbow, "/set"));
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: subscribed to topics: ");
     Serial.print(concat4(MQTT_CLIENT, "/", TopicFront, "/set"));
     Serial.println(", ");
@@ -481,9 +528,10 @@ void MQTTStart()
     Serial.print(concat4(MQTT_CLIENT, "/", TopicRainbow, "/set"));
     Serial.println(", ");
     Serial.println(TopicHAstatus);
-#endif // DEBUG_OUTPUT
+#endif // DEBUG_OUTPUT_MQTT
 #endif // MQTT_HOME_ASSISTANT
   }
+  return true;
 }
 
 void checkIfMQTTIsConnected()
@@ -491,20 +539,21 @@ void checkIfMQTTIsConnected()
   MQTTConnected = MQTTclient.connected();
   if (!MQTTConnected)
   {
-    MQTTStart(); // Try to reconnect to MQTT broker
+    availabilityReported = false;
+    MQTTStart(true); // Try to reconnect to MQTT broker
   }
 }
 
 // void MQTTStop(void)
 // {
-//   MQTTPublish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), MQTT_ALIVE_MSG_OFFLINE, MQTT_RETAIN_ALIVE_MESSAGES);
+//   MQTTReportAvailability(MQTT_ALIVE_MSG_OFFLINE);
 //   delay(100);
 //   MQTTclient.disconnect();
 // }
 
 void MQTTCallback(char *topic, byte *payload, unsigned int length)
 {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
   Serial.println("");
   Serial.println("DEBUG: Entering MQTTCallback...");
   Serial.print("DEBUG: Received topic: ");
@@ -529,7 +578,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
     Serial.println("WARNING: MQTT Payload too long, truncated!");
   }
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
   Serial.print("DEBUG: Converted payload to char array: ");
   Serial.println(message);
   Serial.println("DEBUG: Processing MQTT message...");
@@ -539,20 +588,24 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   Serial.println(message);
 #endif
 
-#ifndef MQTT_HOME_ASSISTANT
+#ifdef MQTT_PLAIN_ENABLED
   // Check if topic ends with "/directive/powerState"
   if (endsWith(topic, "/directive/powerState"))
   {
     // Turn On or OFF based on payload
     if (strcmp(message, "ON") == 0)
     {
-      MQTTCommandPower = true;
-      MQTTCommandPowerReceived = true;
+      MQTTCommandMainPower = true;
+      MQTTCommandBackPower = true;
+      MQTTCommandMainPowerReceived = true;
+      MQTTCommandBackPowerReceived = true;
     }
     else if (strcmp(message, "OFF") == 0)
     {
-      MQTTCommandPower = false;
-      MQTTCommandPowerReceived = true;
+      MQTTCommandMainPower = false;
+      MQTTCommandBackPower = false;
+      MQTTCommandMainPowerReceived = true;
+      MQTTCommandBackPowerReceived = true;
     }
   }
   else if (endsWith(topic, "/directive/setpoint") || endsWith(topic, "/directive/percentage"))
@@ -564,7 +617,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       MQTTCommandStateReceived = true;
     }
   }
-#endif // NOT defined MQTT_HOME_ASSISTANT
+#endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
   if (strcmp(topic, TopicHAstatus) == 0) // Process "homeassistant/status" messages -> react if Home Assistant is online or offline
@@ -761,7 +814,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
 #endif // MQTT_HOME_ASSISTANT
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
   Serial.println("DEBUG: Exiting MQTTCallback...");
 #endif
 } // end of MQTTCallback
@@ -778,41 +831,25 @@ void MQTTLoopInFreeTime()
   MQTTPeriodicReportBack();
 }
 
-// void MQTTReportBattery()
-// {
-//   char message[5];
-//   snprintf(message, sizeof(message), "%d", MQTTStatusBattery);
-//   MQTTPublish("report/battery", message, MQTT_RETAIN_STATE_MESSAGES);
-// }
-
-void MQTTReportStatus()
+#ifdef MQTT_PLAIN_ENABLED
+void MQTTReportStatus(bool forceUpdate)
 {
-  if (LastSentStatus != MQTTStatusState)
+  if ((LastSentStatus != MQTTStatusState) || forceUpdate)
   {
     char message[5];
     snprintf(message, sizeof(message), "%d", MQTTStatusState);
-    MQTTPublish("report/setpoint", message, MQTT_RETAIN_STATE_MESSAGES);
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/setpoint"), message, MQTT_RETAIN_STATE_MESSAGES);
+    //MQTTPublish(concat2(MQTT_CLIENT, "/report/temperature"), message, MQTT_RETAIN_STATE_MESSAGES);
     LastSentStatus = MQTTStatusState;
   }
 }
 
-// void MQTTReportTemperature()
-// {
-// #ifdef ONE_WIRE_BUS_PIN
-//   if (fTemperature > -30)
-//   { // transmit data to MQTT only if data is valid
-//     MQTTPublish("report/temperature", sTemperatureTxt);
-//   }
-// #endif
-// }
-
-void MQTTReportPowerState()
+void MQTTReportPowerState(bool forceUpdate)
 {
-  if (MQTTStatusPower != LastSentPowerState)
+  if ((MQTTStatusMainPower != LastSentMainPowerState) || forceUpdate)
   {
-    MQTTPublish("report/powerState", MQTTStatusPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON, MQTT_RETAIN_STATE_MESSAGES);
-
-    LastSentPowerState = MQTTStatusPower;
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/powerState"), MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON, MQTT_RETAIN_STATE_MESSAGES);
+    LastSentMainPowerState = MQTTStatusMainPower;
   }
 }
 
@@ -824,52 +861,21 @@ void MQTTReportWiFiSignal()
   if (abs(SignalLevel - LastSentSignalLevel) > 2)
   {
     snprintf(signal, sizeof(signal), "%d", SignalLevel);
-    MQTTPublish("report/signal", signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+    MQTTPublish(concat2(MQTT_CLIENT, "/report/signal"), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
     LastSentSignalLevel = SignalLevel;
   }
 }
-
-// void MQTTReportNotification(String message)
-// {
-//   int i;
-//   byte NotificationChecksum = 0;
-//   for (i = 0; i < message.length(); i++)
-//   {
-//     NotificationChecksum += byte(message[i]);
-//   }
-//   // send only different notification, do not re-send same notifications!
-//   if (NotificationChecksum != LastNotificationChecksum)
-//   {
-//     // string to char array
-//     char msg2[message.length() + 1];
-//     strncpy(msg2, message.c_str(), sizeof(msg2) - 1);
-//     MQTTPublish("report/notification", msg2, MQTT_RETAIN_STATE_MESSAGES);
-//     LastNotificationChecksum = NotificationChecksum;
-//   }
-// }
-
-// void MQTTReportGraphic(bool forceUpdateEverything)
-// {
-//   if (forceUpdateEverything || MQTTStatusGraphic != LastSentGraphic)
-//   {
-//     char graphic[3]; // Increased size to accommodate null terminator
-//     snprintf(graphic, sizeof(graphic), "%i", MQTTStatusGraphic);
-//     MQTTPublish("graphic", graphic, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
-
-//     LastSentGraphic = MQTTStatusGraphic;
-//   }
-// }
+#endif // MQTT_PLAIN_ENABLED
 
 void MQTTReportBackEverything(bool forceUpdateEverything)
 {
   if (MQTTclient.connected())
   {
-#ifndef MQTT_HOME_ASSISTANT
-    MQTTReportPowerState();
-    MQTTReportStatus();
-    // MQTTReportBattery();
+#ifdef MQTT_PLAIN_ENABLED
+    if (!availabilityReported) MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);
+    MQTTReportPowerState(forceUpdateEverything);
+    MQTTReportStatus(forceUpdateEverything);
     MQTTReportWiFiSignal();
-    // MQTTReportTemperature();
 #endif
 
 #ifdef MQTT_HOME_ASSISTANT
@@ -884,16 +890,15 @@ void MQTTReportBackOnChange()
 {
   if (MQTTclient.connected())
   {
-#ifndef MQTT_HOME_ASSISTANT
-    // pure MQTT reporting
-    MQTTReportPowerState();
-    MQTTReportStatus();
+#ifdef MQTT_PLAIN_ENABLED
+    MQTTReportPowerState(false);
+    MQTTReportStatus(false);
 #endif
 #ifdef MQTT_HOME_ASSISTANT
     // Home Assistant reporting
     if (!discoveryReported) // Check if discovery messages are already sent
     {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
       Serial.println("");
       Serial.println("DEBUG: Disovery messages not sent yet!");
       Serial.println("DEBUG: Sending discovery messages...");
@@ -913,15 +918,15 @@ void MQTTPeriodicReportBack()
 { // Report/Send all device states with a limiter to not report too often
   if (((millis() - lastTimeSent) > (MQTT_REPORT_STATUS_EVERY_SEC * 1000)) && MQTTclient.connected())
   {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
     Serial.println("");
-    Serial.println("DEBUG: Try sending periodic MQTT report...");
+    Serial.println("DEBUG: Sending periodic MQTT report...");
 #endif
     MQTTConnected = MQTTclient.connected(); // Check regularly if still connected to the MQTT broker
 #ifdef MQTT_HOME_ASSISTANT
     if (!discoveryReported) // Check if discovery messages are already sent
     {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_MQTT
       Serial.println("");
       Serial.println("DEBUG: Disovery messages not sent yet!");
       Serial.println("DEBUG: Sending discovery messages...");
@@ -937,6 +942,7 @@ void MQTTPeriodicReportBack()
   }
 }
 
+#ifdef MQTT_HOME_ASSISTANT
 bool MQTTReportDiscovery()
 {
   JsonDocument discovery;
@@ -961,7 +967,7 @@ bool MQTTReportDiscovery()
   discovery["json_attributes_topic"] = concat3(MQTT_CLIENT, "/", TopicFront);
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicFront, "/set");
   discovery["brightness"] = true;
-  discovery["brightness_scale"] = 255;
+  discovery["brightness_scale"] = MQTT_BRIGHTNESS_MAIN_MAX;
   discovery["color_mode"] = false;
   discovery["effect"] = true;
   for (size_t i = 1; i <= tfts.NumberOfClockFaces; i++)
@@ -993,7 +999,7 @@ bool MQTTReportDiscovery()
   discovery["json_attributes_topic"] = concat3(MQTT_CLIENT, "/", TopicBack);
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicBack, "/set");
   discovery["brightness"] = true;
-  discovery["brightness_scale"] = 7;
+  discovery["brightness_scale"] = MQTT_BRIGHTNESS_BACK_MAX;
   discovery["color_mode"] = true;
   discovery["supported_color_modes"][0] = "hs";
   discovery["effect"] = true;
@@ -1163,16 +1169,18 @@ bool MQTTReportDiscovery()
 
   return true;
 }
+#endif // MQTT_HOME_ASSISTANT
 
-void MQTTReportAvailability(const char *status)
+bool MQTTReportAvailability(const char *status)
 {
-  MQTTclient.publish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
-#ifdef DEBUG_OUTPUT
+  availabilityReported = MQTTclient.publish(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
+#ifdef DEBUG_OUTPUT_MQTT
   Serial.print("DEBUG: Sent availability: ");
   Serial.print(concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC));
   Serial.print(" ");
   Serial.println(status);
 #endif
+  return availabilityReported;
 }
 
 double round1(double value) // Helper function to round a double to one decimal place
@@ -1191,4 +1199,4 @@ bool endsWith(const char *str, const char *suffix) // Helper function to check i
   return (strcmp(str + (strLen - suffixLen), suffix) == 0);
 }
 
-#endif // MQTT_ENABLED
+#endif // defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)

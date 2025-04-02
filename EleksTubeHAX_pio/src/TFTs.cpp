@@ -174,8 +174,8 @@ void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
           showNoWifiStatus();
         }
 
-  #ifdef MQTT_ENABLED
-      if (digit == SECONDS_TENS)
+  #if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+        if (digit == SECONDS_TENS)
         if (!MQTTConnected)
         {
           showNoMqttStatus();
@@ -225,7 +225,7 @@ void TFTs::LoadNextImage()
 {
   if (NextFileRequired != FileInBuffer)
   {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
     Serial.println("Preload next img");
 #endif
     LoadImageIntoBuffer(NextFileRequired);
@@ -305,7 +305,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   char filename[10];
   sprintf(filename, "/%d.bmp", file_index);
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print("Loading: ");
   Serial.println(filename);
 #endif
@@ -356,7 +356,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   int16_t x = (TFT_WIDTH - w) / 2;
   int16_t y = (TFT_HEIGHT - h) / 2;
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print(" image W, H, BPP: ");
   Serial.print(w);
   Serial.print(", ");
@@ -451,7 +451,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   FileInBuffer = file_index;
 
   bmpFS.close();
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print("img load time: ");
   Serial.println(millis() - StartTime);
 #endif
@@ -491,7 +491,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   char filename[10];
   sprintf(filename, "/%d.clk", file_index);
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print("Loading: ");
   Serial.println(filename);
 #endif
@@ -535,7 +535,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   int16_t x = (TFT_WIDTH - w) / 2;
   int16_t y = (TFT_HEIGHT - h) / 2;
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print(" image W, H: ");
   Serial.print(w);
   Serial.print(", ");
@@ -590,7 +590,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   FileInBuffer = file_index;
 
   bmpFS.close();
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print("img load time: ");
   Serial.println(millis() - StartTime);
 #endif
@@ -602,7 +602,7 @@ void TFTs::DrawImage(uint8_t file_index)
 {
 
   uint32_t StartTime = millis();
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.println("");
   Serial.print("Drawing image: ");
   Serial.println(file_index);
@@ -610,7 +610,7 @@ void TFTs::DrawImage(uint8_t file_index)
   // check if file is already loaded into buffer; skip loading if it is. Saves 50 to 150 msec of time.
   if (file_index != FileInBuffer)
   {
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
     Serial.println("Not preloaded; loading now...");
 #endif
     LoadImageIntoBuffer(file_index);
@@ -621,7 +621,7 @@ void TFTs::DrawImage(uint8_t file_index)
   pushImage(0, 0, TFT_WIDTH, TFT_HEIGHT, reinterpret_cast<uint16_t *>(UnpackedImageBuffer));
   setSwapBytes(oldSwapBytes);
 
-#ifdef DEBUG_OUTPUT
+#ifdef DEBUG_OUTPUT_IMAGES
   Serial.print("img transfer time: ");
   Serial.println(millis() - StartTime);
 #endif

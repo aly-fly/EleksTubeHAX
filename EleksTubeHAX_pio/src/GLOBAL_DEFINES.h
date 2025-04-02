@@ -21,7 +21,7 @@
 
 // ************* Version Infomation  *************
 #define DEVICE_NAME "IPS-clock"
-#define FIRMWARE_VERSION "SmittyHalibut & aly-fly IPS clock v1.0 HA Edition victorvuelma & gamba69"
+#define FIRMWARE_VERSION "https://github.com/aly-fly/EleksTubeHAX"
 #define SAVED_CONFIG_NAMESPACE "configs"
 
 // ************ WiFi advanced config *********************

@@ -16,7 +16,7 @@
 #include "Menu.h"
 #include "StoredConfig.h"
 #include "WiFi_WPS.h"
-#ifdef MQTT_ENABLED
+#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
 #include "MQTT_client_ips.h"
 #endif
 #include "TempSensor_inc.h"
@@ -115,7 +115,7 @@ void setup()
 
   // Setup WiFi connection. Must be done before setting up Clock.
   // This is done outside Clock so the network can be used for other things.
-  tfts.setTextColor(TFT_DARKGREEN, TFT_BLACK);
+  tfts.setTextColor(TFT_GREENYELLOW, TFT_BLACK);
   tfts.println("WiFi start...");
   Serial.println("WiFi start...");
   WifiBegin();
@@ -138,19 +138,19 @@ void setup()
   Serial.println("Done!");
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 
-#ifdef MQTT_ENABLED
+#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
   // Setup MQTT
   tfts.setTextColor(TFT_YELLOW, TFT_BLACK);
   tfts.print("MQTT start...");
   Serial.println("MQTT start...");
-  MQTTStart();
+  MQTTStart(false);
   tfts.println("Done!");
   Serial.println("MQTT start Done!");
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 #endif
 
 #ifdef GEOLOCATION_ENABLED
-  tfts.setTextColor(TFT_NAVY, TFT_BLACK);
+  tfts.setTextColor(TFT_CYAN, TFT_BLACK);
   tfts.println("GeoLoc query...");
   Serial.println("GeoLoc query...");
   if (GetGeoLocationTimeZoneOffset())
@@ -212,11 +212,10 @@ void loop()
   // Do all the maintenance work
   WifiReconnect(); // if not connected attempt to reconnect
 
-#ifdef MQTT_ENABLED
+#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
   MQTTLoopFrequently();
 
   bool MQTTCommandReceived =
-      MQTTCommandPowerReceived ||
       MQTTCommandMainPowerReceived ||
       MQTTCommandBackPowerReceived ||
       MQTTCommandStateReceived ||
@@ -233,31 +232,6 @@ void loop()
       MQTTCommandPulseBpmReceived ||
       MQTTCommandBreathBpmReceived ||
       MQTTCommandRainbowSecReceived;
-
-  if (MQTTCommandPowerReceived)
-  {
-    MQTTCommandPowerReceived = false;
-    if (MQTTCommandPower)
-    {
-      if (!tfts.isEnabled()) // perform reinit, enable, redraw only if displays are actually off. HA sends ON command together with clock face change which causes flickering.
-      {
-#ifdef HARDWARE_Elekstube_CLOCK // original EleksTube hardware and direct clones need a reinit to wake up the displays properly
-        tfts.reinit();
-#else
-        tfts.enableAllDisplays(); // for all other clocks, just enable the displays
-#endif
-        updateClockDisplay(TFTs::force); // redraw all the clock digits -> needed because the displays was blanked before turning off
-        backlights.PowerOn();
-      }
-    }
-    else
-    {
-      tfts.chip_select.setAll();
-      tfts.fillScreen(TFT_BLACK); // blank the screens before turning off -> needed for all clocks without a real "power switch curcuit" to "simulate" the off-switched displays
-      tfts.disableAllDisplays();
-      backlights.PowerOff();
-    }
-  }
 
   if (MQTTCommandMainPowerReceived)
   {
@@ -420,7 +394,6 @@ void loop()
     backlights.setRainbowDuration(MQTTCommandRainbowSec);
   }
 
-  MQTTStatusPower = tfts.isEnabled();
   MQTTStatusMainPower = tfts.isEnabled();
   MQTTStatusBackPower = backlights.getPower();
   MQTTStatusState = (uclock.getActiveGraphicIdx() + 1) * 5; // 10
@@ -741,7 +714,7 @@ void loop()
     time_in_loop = millis() - millis_at_top;
     if (time_in_loop < 20)
     {
-#ifdef MQTT_ENABLED
+#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
       MQTTLoopInFreeTime();
 #endif
       PeriodicReadTemperature();

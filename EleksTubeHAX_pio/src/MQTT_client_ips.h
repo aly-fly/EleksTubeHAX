@@ -4,39 +4,45 @@
 #include "GLOBAL_DEFINES.h"
 // #include <FS.h>
 
-#ifdef MQTT_ENABLED
+#ifdef MQTT_PLAIN_ENABLED
+#define MQTT_ALIVE_TOPIC "report/online"
+#define MQTT_ALIVE_MSG_ONLINE "true"
+#define MQTT_ALIVE_MSG_OFFLINE "false"
 
+#define MQTT_RETAIN_ALIVE_MESSAGES true
+#define MQTT_RETAIN_STATE_MESSAGES false
+#endif // MQTT_PLAIN_ENABLED
+
+
+#ifdef MQTT_HOME_ASSISTANT
 #define MQTT_ALIVE_TOPIC "status"      // availability_topic :: https://www.home-assistant.io/integrations/mqtt/#availability_topic
 #define MQTT_ALIVE_MSG_ONLINE "online" // default in HA. If changed, configure "payload_available" and "payload_not_available"
 #define MQTT_ALIVE_MSG_OFFLINE "offline"
 
-// The alive message is sent to the broker when the device connects to the MQTT broker and when it disconnects from the broker. 
+// The alive message is sent to the broker when the device connects to the MQTT broker and when it disconnects from the broker.
 // The messages should be retained by default, but you can change this with the setting below.
-#define MQTT_RETAIN_ALIVE_MESSAGES true  // Alive messages should be retained
+#define MQTT_RETAIN_ALIVE_MESSAGES true // Alive messages should be retained
 // The state/status messages sent to the broker should not be retained by default, because the values should be "fresh", but you can change this with the setting below.
 #define MQTT_RETAIN_STATE_MESSAGES false // Set to true if you want to retain the state/status messages in the MQTT broker (default: false)
 
 #define TopicHAstatus "homeassistant/status"
 // The discovery messages are sent to Home Assistant to automatically discover the device and its entities.
 // The messages should be retained by default, but you can change this with the setting below.
+// Retained messages can create ghost entities that keep coming back (for example if you change MQTT_CLIENT). You need to delete them manually from the broker queue!
 #define MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES true // discovery messages are retained by default in HA.
+
+#define MQTT_BRIGHTNESS_MAIN_MAX 255
+#define MQTT_BRIGHTNESS_BACK_MAX 7
+#endif // NOT MQTT_HOME_ASSISTANT
 
 #define MQTT_STATE_ON "ON"
 #define MQTT_STATE_OFF "OFF"
 
-// #define MQTT_BRIGHTNESS_MIN 0
-// #define MQTT_BRIGHTNESS_MAX 255
-
-// #define MQTT_ITENSITY_MIN 0
-// #define MQTT_ITENSITY_MAX 7
-
 extern bool MQTTConnected;
 
 // commands from server
-extern bool MQTTCommandPower;
 extern bool MQTTCommandMainPower;
 extern bool MQTTCommandBackPower;
-extern bool MQTTCommandPowerReceived;
 extern bool MQTTCommandMainPowerReceived;
 extern bool MQTTCommandBackPowerReceived;
 extern int MQTTCommandState;
@@ -69,11 +75,9 @@ extern float MQTTCommandRainbowSec;
 extern bool MQTTCommandRainbowSecReceived;
 
 // status to server
-extern bool MQTTStatusPower;
 extern bool MQTTStatusMainPower;
 extern bool MQTTStatusBackPower;
 extern int MQTTStatusState;
-// extern int MQTTStatusBattery;
 extern uint8_t MQTTStatusBrightness;
 extern uint8_t MQTTStatusMainBrightness;
 extern uint8_t MQTTStatusBackBrightness;
@@ -89,14 +93,12 @@ extern uint8_t MQTTStatusBreathBpm;
 extern float MQTTStatusRainbowSec;
 
 // functions
-void MQTTStart();
+bool MQTTStart(bool restart);
 void MQTTLoopFrequently();
 void MQTTLoopInFreeTime();
 void MQTTReportBackEverything(bool force);
 
 // unused functions
 // void MQTTStop();
-
-#endif // MQTT_ENABLED
 
 #endif /* MQTT_client_H_ */
