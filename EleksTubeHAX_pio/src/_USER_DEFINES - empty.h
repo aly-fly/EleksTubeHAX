@@ -9,7 +9,7 @@
 #define USER_DEFINES_H_
 
 //#define DEBUG_OUTPUT_IMAGES
-#define DEBUG_OUTPUT_MQTT
+//#define DEBUG_OUTPUT_MQTT
 //#define DEBUG_OUTPUT
 
 // ************* Type of the clock hardware  *************
