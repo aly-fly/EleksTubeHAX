@@ -31,7 +31,6 @@
 #include "WiFi.h"
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include "TempSensor.h"
 #include "TFTs.h"
 #include "Backlights.h"
 #include "Clock.h"

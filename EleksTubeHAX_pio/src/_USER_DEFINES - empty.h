@@ -94,7 +94,4 @@
 // Don't forget to copy the correct certificate file into the 'data' folder and rename it to mqtt-ca-root.pem!
 // Example CA cert (Let's Encrypt CA cert) can be found in the 'data - other graphics' subfolder in the root of this repo
 
-// ************* Optional temperature sensor *************
-// #define ONE_WIRE_BUS_PIN   4  // DS18B20 connected to GPIO4; comment this line if sensor is not connected
-
 #endif // USER_DEFINES_H_

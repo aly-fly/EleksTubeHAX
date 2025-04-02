@@ -19,7 +19,6 @@
 #if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
 #include "MQTT_client_ips.h"
 #endif
-#include "TempSensor_inc.h"
 #ifdef HARDWARE_NovelLife_SE_CLOCK // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 // #include "Gestures.h"
 // TODO put into class
@@ -717,13 +716,6 @@ void loop()
 #if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
       MQTTLoopInFreeTime();
 #endif
-      PeriodicReadTemperature();
-      if (bTemperatureUpdated)
-      {
-        tfts.setDigit(HOURS_ONES, uclock.getHoursOnes(), TFTs::force); // show latest clock digit and temperature readout together
-        bTemperatureUpdated = false;
-      }
-
       // run once a day (= 744 times per month which is below the limit of 5k for free account)
       if (DstNeedsUpdate)
       { // Daylight savings time changes at 3 in the morning
