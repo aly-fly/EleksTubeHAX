@@ -468,7 +468,7 @@ bool MQTTStart(bool restart)
     if (MQTTclient.connect(MQTT_CLIENT,                                 // MQTT client id
                            MQTT_USERNAME,                               // MQTT username
                            MQTT_PASSWORD,                               // MQTT password
-                           concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), //// last will topic
+                           concat3(MQTT_CLIENT, "/", MQTT_ALIVE_TOPIC), // last will topic
                            0,                                           // last will QoS
                            MQTT_RETAIN_ALIVE_MESSAGES,                  // retain message
                            MQTT_ALIVE_MSG_OFFLINE))                     // last will message
