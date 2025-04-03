@@ -2,7 +2,6 @@
 #define MQTT_client_H_
 
 #include "GLOBAL_DEFINES.h"
-// #include <FS.h>
 
 #ifdef MQTT_PLAIN_ENABLED
 #define MQTT_ALIVE_TOPIC "report/online"
@@ -12,7 +11,6 @@
 #define MQTT_RETAIN_ALIVE_MESSAGES true
 #define MQTT_RETAIN_STATE_MESSAGES false
 #endif // MQTT_PLAIN_ENABLED
-
 
 #ifdef MQTT_HOME_ASSISTANT
 #define MQTT_ALIVE_TOPIC "status"      // availability_topic :: https://www.home-assistant.io/integrations/mqtt/#availability_topic

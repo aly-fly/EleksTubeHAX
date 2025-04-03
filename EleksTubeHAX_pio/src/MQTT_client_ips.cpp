@@ -22,12 +22,11 @@
 
 #include "MQTT_client_ips.h"
 
-#if defined (MQTT_PLAIN_ENABLED) && defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) && defined(MQTT_HOME_ASSISTANT)
 #error "Both MQTT modes can't be enabled at the same time!"
 #endif
 
-
-#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
 #include "WiFi.h"
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -173,7 +172,6 @@ float LastSentRainbowSec = -1;
 int LastSentSignalLevel = 999;
 int LastSentStatus = -1;
 
-
 void printMQTTconnectionStatus(void)
 {
   switch (MQTTclient.state())
@@ -223,7 +221,6 @@ void printMQTTconnectionStatus(void)
     break;
   }
 }
-
 
 bool MQTTPublish(const char *Topic, const char *Message, const bool Retain)
 {
@@ -287,12 +284,12 @@ void MQTTReportState(bool forceUpdateEverything)
     return;
 
   // send availability message
-    if (forceUpdateEverything || !availabilityReported)
-    {
-      if (!MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE))
-        return;
-      availabilityReported = true;
-    }
+  if (forceUpdateEverything || !availabilityReported)
+  {
+    if (!MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE))
+      return;
+    availabilityReported = true;
+  }
 
   if (forceUpdateEverything || MQTTStatusMainPower != LastSentMainPowerState || MQTTStatusMainBrightness != LastSentMainBrightness || MQTTStatusMainGraphic != LastSentMainGraphic)
   {
@@ -448,19 +445,19 @@ bool MQTTStart(bool restart)
       printMQTTconnectionStatus();
     }
     else
-    {    
-    LastTimeTriedToConnect = millis();
-    MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
-    MQTTclient.setCallback(MQTTCallback);
-    MQTTclient.setBufferSize(2048);
-#ifdef MQTT_USE_TLS
-    bool result = loadCARootCert();
-    if (!result)
     {
-      return false; // load certificate failed -> do not continue
-    }
+      LastTimeTriedToConnect = millis();
+      MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
+      MQTTclient.setCallback(MQTTCallback);
+      MQTTclient.setBufferSize(2048);
+#ifdef MQTT_USE_TLS
+      bool result = loadCARootCert();
+      if (!result)
+      {
+        return false; // load certificate failed -> do not continue
+      }
 #endif
-  }
+    }
     Serial.println("");
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message, if the connection get lost
@@ -488,13 +485,14 @@ bool MQTTStart(bool restart)
 
 #ifdef MQTT_PLAIN_ENABLED
     bool ok = MQTTclient.subscribe(concat2(MQTT_CLIENT, "/directive/#")); // Subscribes only to messages send to the device
-    if (!ok) Serial.println ("Error subscribing to /directive messages!");
+    if (!ok)
+      Serial.println("Error subscribing to /directive messages!");
 #ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: Subscribed to /directive/# messages sent to the device.");
     Serial.println("DEBUG: Sending initial status messages...");
 #endif
     // send initial status messages
-    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                // Reports that the device is online
+    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                          // Reports that the device is online
     MQTTPublish(concat2(MQTT_CLIENT, "/report/firmware"), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
     MQTTPublish(concat2(MQTT_CLIENT, "/report/ip"), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
     MQTTPublish(concat2(MQTT_CLIENT, "/report/network"), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
@@ -838,7 +836,7 @@ void MQTTReportStatus(bool forceUpdate)
     char message[5];
     snprintf(message, sizeof(message), "%d", MQTTStatusState);
     MQTTPublish(concat2(MQTT_CLIENT, "/report/setpoint"), message, MQTT_RETAIN_STATE_MESSAGES);
-    //MQTTPublish(concat2(MQTT_CLIENT, "/report/temperature"), message, MQTT_RETAIN_STATE_MESSAGES);
+    // MQTTPublish(concat2(MQTT_CLIENT, "/report/temperature"), message, MQTT_RETAIN_STATE_MESSAGES);
     LastSentStatus = MQTTStatusState;
   }
 }
@@ -871,7 +869,8 @@ void MQTTReportBackEverything(bool forceUpdateEverything)
   if (MQTTclient.connected())
   {
 #ifdef MQTT_PLAIN_ENABLED
-    if (!availabilityReported) MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);
+    if (!availabilityReported)
+      MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);
     MQTTReportPowerState(forceUpdateEverything);
     MQTTReportStatus(forceUpdateEverything);
     MQTTReportWiFiSignal();

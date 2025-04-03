@@ -58,7 +58,7 @@ jobs:
       run: |
         echo "Updating FIRMWARE_VERSION in GLOBAL_DEFINES.h"
         echo "Version: $VERSION"
-        sed -i "s/\(FIRMWARE_VERSION.*v\)1\.0/\1$VERSION/" "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
+        sed -i "s|^\(#define FIRMWARE_VERSION\s*\"\)\([^\"\n]*\)\"|\1V$VERSION - \2\"|" "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
         echo "Modified FIRMWARE_VERSION:"
         grep '^#define FIRMWARE_VERSION' "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
 

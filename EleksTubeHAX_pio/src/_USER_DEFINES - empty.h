@@ -8,9 +8,9 @@
 #ifndef USER_DEFINES_H_
 #define USER_DEFINES_H_
 
-//#define DEBUG_OUTPUT_IMAGES
-//#define DEBUG_OUTPUT_MQTT
-//#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT_IMAGES
+// #define DEBUG_OUTPUT_MQTT
+// #define DEBUG_OUTPUT
 
 // ************* Type of the clock hardware  *************
 #define HARDWARE_Elekstube_CLOCK // uncomment for the original Elekstube clock
@@ -43,7 +43,7 @@
 #define GEOLOCATION_API_KEY "__enter_your_api_key_here__"
 
 // ************* MQTT plain mode config *************
-//#define MQTT_PLAIN_ENABLED                       // enable MQTT support for the external provider
+// #define MQTT_PLAIN_ENABLED                       // enable MQTT support for the external provider
 
 // MQTT support is limited to what an external service offers (for example SmartNest.cz).
 // You can use MQTT to control the clock via direct MQTT messages from external service or some DIY device.
@@ -54,15 +54,15 @@
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
 
 #ifdef MQTT_PLAIN_ENABLED
-#define MQTT_BROKER "smartnest.cz"        // Broker host
-#define MQTT_PORT 1883                   // Broker port
+#define MQTT_BROKER "smartnest.cz"                   // Broker host
+#define MQTT_PORT 1883                               // Broker port
 #define MQTT_USERNAME "__enter_your_username_here__" // Username from Smartnest
 #define MQTT_PASSWORD "__enter_your_api_key_here__"  // Password from Smartnest or API key (under MY Account)
 #define MQTT_CLIENT "__enter_your_device_id_here__"  // Device Id from Smartnest
 #endif
 
 // ************* MQTT HomeAssistant config *************
-//#define MQTT_HOME_ASSISTANT // Uncomment if you want Home Assistant (HA) support 
+// #define MQTT_HOME_ASSISTANT // Uncomment if you want Home Assistant (HA) support
 
 // You will either need a local MQTT broker to use MQTT with Home Assistant (e.g. Mosquitto) or use an internet-based broker with Home Assistant support.
 // If not done already, you can set up a local one easily via an Add-On in HA. See: https://www.home-assistant.io/integrations/mqtt/
@@ -81,11 +81,11 @@
 // --- MQTT broker settings ---
 // Fill in the data according to configuration of your local MQTT broker that is linked to HomeAssistant - for example Mosquitto.
 #ifdef MQTT_HOME_ASSISTANT
-#define MQTT_BROKER "_enter_IP_of_the_broker_"        // Broker host
-#define MQTT_PORT 1883                                // Broker port
-#define MQTT_USERNAME "_enter_MQTT_username_"         // Username
-#define MQTT_PASSWORD "_enter_MQTT_password_"         // Password
-#define MQTT_CLIENT "clock"                           // Device Id
+#define MQTT_BROKER "_enter_IP_of_the_broker_" // Broker host
+#define MQTT_PORT 1883                         // Broker port
+#define MQTT_USERNAME "_enter_MQTT_username_"  // Username
+#define MQTT_PASSWORD "_enter_MQTT_password_"  // Password
+#define MQTT_CLIENT "clock"                    // Device Id
 #endif
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received

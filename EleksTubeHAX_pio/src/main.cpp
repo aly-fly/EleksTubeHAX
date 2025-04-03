@@ -16,7 +16,7 @@
 #include "Menu.h"
 #include "StoredConfig.h"
 #include "WiFi_WPS.h"
-#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
 #include "MQTT_client_ips.h"
 #endif
 #ifdef HARDWARE_NovelLife_SE_CLOCK // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -137,7 +137,7 @@ void setup()
   Serial.println("Done!");
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 
-#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
   // Setup MQTT
   tfts.setTextColor(TFT_YELLOW, TFT_BLACK);
   tfts.print("MQTT start...");
@@ -211,7 +211,7 @@ void loop()
   // Do all the maintenance work
   WifiReconnect(); // if not connected attempt to reconnect
 
-#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
   MQTTLoopFrequently();
 
   bool MQTTCommandReceived =
@@ -713,7 +713,7 @@ void loop()
     time_in_loop = millis() - millis_at_top;
     if (time_in_loop < 20)
     {
-#if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
       MQTTLoopInFreeTime();
 #endif
       // run once a day (= 744 times per month which is below the limit of 5k for free account)

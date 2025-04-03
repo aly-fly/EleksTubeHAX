@@ -154,15 +154,15 @@ void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
           showNoWifiStatus();
         }
 
-  #if defined (MQTT_PLAIN_ENABLED) || defined (MQTT_HOME_ASSISTANT)
-        if (digit == SECONDS_TENS)
+#if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
+      if (digit == SECONDS_TENS)
         if (!MQTTConnected)
         {
           showNoMqttStatus();
         }
-  #endif
+#endif
     }
-  }  
+  }
 }
 
 /*
