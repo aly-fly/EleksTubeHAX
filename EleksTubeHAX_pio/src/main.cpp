@@ -421,7 +421,7 @@ void loop()
   if (lastMQTTCommandExecuted != -1)
   {
     if (((millis() - lastMQTTCommandExecuted) > (MQTT_SAVE_PREFERENCES_AFTER_SEC * 1000)) && menu.getState() == Menu::idle)
-    {
+    { // // Save the config after a while (default is 60 seconds) if no new MQTT command was received and we are not in the menu.
       lastMQTTCommandExecuted = -1;
 
       Serial.print("Saving config...");

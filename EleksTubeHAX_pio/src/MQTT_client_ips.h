@@ -3,6 +3,10 @@
 
 #include "GLOBAL_DEFINES.h"
 
+#ifdef MQTT_USE_TLS
+#include "SPIFFS.h"
+#endif // MQTT_USE_TLS
+
 #ifdef MQTT_PLAIN_ENABLED
 #define MQTT_ALIVE_TOPIC "report/online"
 #define MQTT_ALIVE_MSG_ONLINE "true"

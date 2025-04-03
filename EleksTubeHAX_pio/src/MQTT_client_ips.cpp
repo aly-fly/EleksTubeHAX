@@ -438,15 +438,22 @@ bool loadCARootCert()
 bool MQTTStart(bool restart)
 {
   MQTTConnected = false;
-  if (((millis() - LastTimeTriedToConnect) > (MQTT_RECONNECT_WAIT_SEC * 100)) || (LastTimeTriedToConnect == 0))
-  {
+  if (((millis() - LastTimeTriedToConnect) > (MQTT_RECONNECT_WAIT_SEC * 1000)) || (LastTimeTriedToConnect == 0))
+  { // try to connect to MQTT broker only if the time since last connection attempt is greater than the defined wait time (default 30 sec)
     if (restart)
     {
+      Serial.println("MQTT reconnecting...");
       printMQTTconnectionStatus();
     }
     else
     {
       LastTimeTriedToConnect = millis();
+#ifdef DEBUG_OUTPUT_MQTT
+      Serial.println("DEBUG: Set MQTT broker to: ");
+      Serial.print(MQTT_BROKER);
+      Serial.print(":");
+      Serial.println(MQTT_PORT);
+#endif
       MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
       MQTTclient.setCallback(MQTTCallback);
       MQTTclient.setBufferSize(2048);
@@ -475,6 +482,8 @@ bool MQTTStart(bool restart)
     }
     else
     {
+      Serial.println("MQTT connection failed!");
+      LastTimeTriedToConnect = millis();
       printMQTTconnectionStatus();
       return false; // do not continue if not connected
     } // connect failed
