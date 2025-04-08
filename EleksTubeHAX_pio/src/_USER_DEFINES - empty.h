@@ -8,9 +8,11 @@
 #ifndef USER_DEFINES_H_
 #define USER_DEFINES_H_
 
-// #define DEBUG_OUTPUT_IMAGES
-// #define DEBUG_OUTPUT_MQTT
-// #define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT // uncomment for Debug printing via serial interface
+
+// #define DEBUG_OUTPUT_IMAGES // uncomment for Debug printing of image loading and drawing
+// #define DEBUG_OUTPUT_MQTT // uncomment for Debug printing of MQTT messages
+// #define DEBUG_OUTPUT_RTC // uncomment for Debug printing of RTC chip initialization and time setting
 
 // ************* Type of the clock hardware  *************
 #define HARDWARE_Elekstube_CLOCK // uncomment for the original Elekstube clock
