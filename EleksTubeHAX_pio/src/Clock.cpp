@@ -1,73 +1,174 @@
 #include "Clock.h"
 #include "WiFi_WPS.h"
 
-#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip #SI HAI or IPSTUBE XXXXXXXXXXXXXXXXXX
+#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip (SI HAI or IPSTUBE)
 // If it is a SI HAI Clock, use differnt RTC chip drivers
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 ThreeWire myWire(DS1302_IO, DS1302_SCLK, DS1302_CE); // IO, SCLK, CE
-RtcDS1302<ThreeWire> Rtc(myWire);
+RtcDS1302<ThreeWire> RTC(myWire);
 void RtcBegin()
 {
-  Rtc.Begin();
-  // check if chip is connected and alive
-  /*  TCS default value is 0x00 instead of 0x5C, but RTC seems to be working. Let's skip this check.
-      Serial.print("Checking DS1302 RTC... ");
-      uint8_t TCS = Rtc.GetTrickleChargeSettings();  // 01011100  Initial power-on state
-      Serial.print("TCS = ");
-      Serial.println(TCS);
-      if (TCS != 0x5C) {
-        Serial.println("Error communicating with DS1302 !");
-      }
-  */
-  if (!Rtc.IsDateTimeValid())
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: Tryng to call RTC.Begin()");
+#endif
+  RTC.Begin();
+  if (!RTC.IsDateTimeValid())
   {
-    // Common Causes:
-    //    1) first time you ran and the device wasn't running yet
-    //    2) the battery on the device is low or even missing
+    // Common Causes for this to be true:
+    //    1) the entire RTC was just set to the default date (01/01/2000 00:00:00)
+    //    2) first time you ran and the device wasn't running yet
+    //    3) the battery on the device is low or even missing
     Serial.println("RTC lost confidence in the DateTime!");
   }
-  if (Rtc.GetIsWriteProtected())
+  if (RTC.GetIsWriteProtected())
   {
     Serial.println("RTC was write protected, enabling writing now");
-    Rtc.SetIsWriteProtected(false);
+    RTC.SetIsWriteProtected(false);
   }
 
-  if (!Rtc.GetIsRunning())
+  if (!RTC.GetIsRunning())
   {
     Serial.println("RTC was not actively running, starting now");
-    Rtc.SetIsRunning(true);
+    RTC.SetIsRunning(true);
   }
 }
 
 uint32_t RtcGet()
 {
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: RtcGet() for DS1302 RTC entered.");
+  Serial.println("DEBUG_OUTPUT_RTC: Calling RTC.GetDateTime()...");
+#endif
   RtcDateTime temptime;
-  temptime = Rtc.GetDateTime();
+  temptime = RTC.GetDateTime();
   uint32_t returnvalue = temptime.Unix32Time();
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.print("DEBUG_OUTPUT_RTC: RTC.GetDateTime() returned: ");
   Serial.println(returnvalue);
+#endif
   return returnvalue;
 }
 
 void RtcSet(uint32_t tt)
 {
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: RtcSet() for DS1302 RTC entered.");
+  Serial.print("DEBUG_OUTPUT_RTC: Setting DS1302 RTC to: ");
+  Serial.println(tt);
+#endif
   RtcDateTime temptime;
   temptime.InitWithUnix32Time(tt);
-  Rtc.SetDateTime(temptime);
+#ifdef DEBUG_OUTPUT
+  Serial.println("DEBUG_OUTPUT_RTC: DS1302 RTC time set.");
+#endif
+  RTC.SetDateTime(temptime);
 }
-#else
-// For the DS1307 RTC
-#include <DS1307RTC.h>
-void RtcBegin() {}
-uint32_t RtcGet()
+#elif defined(HARDWARE_NovelLife_SE_CLOCK) // for NovelLife_SE clone with R8025T RTC chip
+#include <RTC_RX8025T.h>                   // This header will now use Wire1 for I2C operations.
+
+RX8025T RTC;
+
+void RtcBegin()
 {
-  return RTC.get();
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("");
+  Serial.println("DEBUG_OUTPUT_RTC: Trying to call RTC.Init()");
+#endif
+  RTC.init((uint32_t)RTC_SDA_PIN, (uint32_t)RTC_SCL_PIN); // setup second I2C for the RX8025T RTC chip
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: RTC RX8025T initialized!");
+#endif
+  delay(100);
+  return;
 }
+
 void RtcSet(uint32_t tt)
 {
-  RTC.set(tt);
-}
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.print("DEBUG_OUTPUT_RTC: Setting RX8025T RTC to: ");
+  Serial.println(tt);
 #endif
+
+  int ret = RTC.set(tt);
+  if (ret != 0)
+  {
+    Serial.print("Error setting RX8025T RTC: ");
+    Serial.println(ret);
+  }
+  else
+  {
+#ifdef DEBUG_OUTPUT_RTC
+    Serial.println("DEBUG_OUTPUT_RTC: RX8025T RTC time set successfully!");
+#endif
+  }
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: RX8025T RTC time set.");
+#endif
+}
+
+uint32_t RtcGet()
+{
+  uint32_t returnvalue = RTC.get(); // Get the RTC time
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.print("DEBUG_OUTPUT_RTC: RtcGet() RX8025T returned: ");
+  Serial.println(returnvalue);
+#endif
+  return returnvalue;
+}
+#else // for Elekstube and all other clocks with DS3231 RTC chip or DS1307/PCF8523
+#include <RTClib.h>
+
+RTC_DS3231 RTC; // DS3231, works also with DS1307 or PCF8523
+
+void RtcBegin()
+{
+  if (!RTC.begin())
+  {
+    Serial.println("NO supported RTC found!");
+  }
+  else
+  {
+#ifdef DEBUG_OUTPUT_RTC
+    Serial.println("DEBUG_OUTPUT_RTC: RTC found!");
+#endif
+  }
+
+  // check if the RTC chip reports a power failure
+  bool bPowerLost = 0;
+  bPowerLost = RTC.lostPower();
+  if (bPowerLost)
+  {
+    Serial.println("RTC reports power was lost! Setting time to default value.");
+    RTC.adjust(DateTime(2023, 1, 1, 0, 0, 0)); // set the RTC time to a default value
+  }
+}
+
+uint32_t RtcGet()
+{
+  DateTime now = RTC.now(); // convert to unix time
+  uint32_t returnvalue = now.unixtime();
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.print("DEBUG_OUTPUT_RTC: DS3231 RTC now.unixtime() = ");
+  Serial.println(returnvalue);
+#endif
+  return returnvalue;
+}
+
+void RtcSet(uint32_t tt)
+{
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.print("DEBUG_OUTPUT_RTC: Attempting to set DS3231 RTC to: ");
+  Serial.println(tt);
+#endif
+
+  DateTime timetoset(tt); // convert to unix time
+  RTC.adjust(timetoset);  // set the RTC time
+#ifdef DEBUG_OUTPUT
+  Serial.println("DEBUG_OUTPUT_RTC: DS3231 RTC time updated.");
+#endif
+}
+#endif // end of RTC chip selection
 
 void Clock::begin(StoredConfig::Config::Clock *config_)
 {
@@ -110,17 +211,17 @@ void Clock::loop()
 // Static methods used for sync provider to TimeLib library.
 time_t Clock::syncProvider()
 {
-  Serial.println("syncProvider()");
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("Clock:syncProvider() entered.");
+#endif
   time_t rtc_now;
-  rtc_now = RtcGet();
+  rtc_now = RtcGet(); // Get the RTC time
 
-  if (millis() - millis_last_ntp > refresh_ntp_every_ms || millis_last_ntp == 0)
-  {
+  if (millis() - millis_last_ntp > refresh_ntp_every_ms || millis_last_ntp == 0) // Get NTP time only every 10 minutes or if not yet done
+  {                                                                              // It's time to get a new NTP sync
     if (WifiState == connected)
-    {
-      // It's time to get a new NTP sync
-      Serial.print("Getting NTP.");
-      //      ntpTimeClient.forceUpdate();  // maybe this breaks the NTP requests as this should not be done more than every minute.
+    { // We have WiFi, so try to get NTP time.
+      Serial.print("Try to get the actual time from NTP server...");
       if (ntpTimeClient.update())
       {
         Serial.print(".");
@@ -128,27 +229,41 @@ time_t Clock::syncProvider()
         Serial.println("NTP query done.");
         Serial.print("NTP time = ");
         Serial.println(ntpTimeClient.getFormattedTime());
-        //      if (ntp_now > 1644601505) { //is it valid - reasonable number?
+        rtc_now = RtcGet(); // Get the RTC time again, because it may have changed in the meantime
         // Sync the RTC to NTP if needed.
-        Serial.println("NTP, RTC, Diff: ");
+        Serial.print("NTP  :");
         Serial.println(ntp_now);
+        Serial.print("RTC  :");
         Serial.println(rtc_now);
+        Serial.print("Diff: ");
         Serial.println(ntp_now - rtc_now);
-        if (ntp_now != rtc_now)
-        {
+        if ((ntp_now != rtc_now) && (ntp_now > 1743364444)) // check if we have a difference and a valid NTP time
+        {                                                   // NTP time is valid and different from RTC time
+          Serial.println("RTC time is not valid, updating RTC.");
           RtcSet(ntp_now);
-          Serial.println("Updating RTC");
+          Serial.println("RTC is now set to NTP time.");
+          rtc_now = RtcGet(); // Check if RTC time is set correctly
+          Serial.print("RTC time = ");
+          Serial.println(rtc_now);
         }
-        millis_last_ntp = millis();
-        Serial.println("Using NTP time.");
+        else if ((ntp_now != rtc_now) && (ntp_now < 1743364444))
+        { // NTP can't be valid!
+          Serial.println("Time returned from NTP is not valid! Using RTC time!");
+          rtc_now = RtcGet(); // Get the RTC time again, because it may have changed in the meantime
+          return rtc_now;
+        }
+        millis_last_ntp = millis(); // store the last time we tried to get NTP time
+
+        Serial.println("Using NTP time!");
         return ntp_now;
       }
       else
-      { // NTP valid
+      {                     // NTP return value is not valid
+        rtc_now = RtcGet(); // Get the RTC time again, because it may have changed in the meantime
         Serial.println("Invalid NTP response, using RTC time.");
         return rtc_now;
       }
-    } // no wifi
+    } // no WiFi!
     Serial.println("No WiFi, using RTC time.");
     return rtc_now;
   }

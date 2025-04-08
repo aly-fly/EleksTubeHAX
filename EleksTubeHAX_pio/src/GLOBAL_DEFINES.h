@@ -156,36 +156,35 @@
 // Pins ADPS interupt
 #define GESTURE_SENSOR_INPUT_PIN (GPIO_NUM_5) // -> INTERRUPT
 
-// I2C to DS3231 RTC.
-#define RTC_SCL_PIN (22)
-#define RTC_SDA_PIN (21)
+// Second I2C to R8025T RTC.
+#define RTC_SCL_PIN (GPIO_NUM_32)
+#define RTC_SDA_PIN (GPIO_NUM_33)
 
 // Chip Select shift register, to select the display
-#define CSSR_DATA_PIN (14)
-#define CSSR_CLOCK_PIN (13) // SHcp changed from IO16 in original Elekstube
-#define CSSR_LATCH_PIN (15) // STcp was IO17 in original Elekstube
-
-// SPI to displays
-// DEFINED IN User_Setup.h
-// Look for: TFT_MOSI, TFT_SCLK, TFT_CS, TFT_DC, and TFT_RST
+#define CSSR_DATA_PIN (GPIO_NUM_14)
+#define CSSR_CLOCK_PIN (GPIO_NUM_13) // SHcp changed from IO16 in original Elekstube
+#define CSSR_LATCH_PIN (GPIO_NUM_15) // STcp was IO17 in original Elekstube
 
 // Power for all TFT displays are grounded through a MOSFET so they can all be turned off.
 // Active HIGH.
-#define TFT_ENABLE_PIN (4) /// Was 27 on elekstube
+#define TFT_ENABLE_PIN GPIO_NUM_4 /// Was 27 on elekstube
 
 // configure library \TFT_eSPI\User_Setup.h
 // ST7789 135 x 240 display with no chip select line
 #define ST7789_DRIVER // Configure all registers
 #define TFT_WIDTH 135
 #define TFT_HEIGHT 240
-#define CGRAM_OFFSET // Library will add offsets required
-#define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
-#define TFT_MOSI 23
-#define TFT_SCLK 18
-// #define TFT_CS    -1 // Not connected
-#define TFT_DC 25  // Data Command, aka Register Select or RS
-#define TFT_RST 26 // Connect reset to ensure display initialises
 
+// SPI to displays
+#define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
+#define TFT_MOSI (GPIO_NUM_23)
+#define TFT_SCLK (GPIO_NUM_18)
+#define TFT_CS -1              // Not connected -> via shift register
+#define TFT_DC (GPIO_NUM_25)   // Data Command, aka Register Select or RS
+#define TFT_RST (GPIO_NUM_26)  // Connect reset to ensure display initialises
+#define SPI_FREQUENCY 40000000 // 40MHz SPI speed
+
+#define CGRAM_OFFSET // Library will add offsets required
 // #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
 #define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
 #define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
@@ -194,13 +193,10 @@
 // #define LOAD_FONT8  // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
 // #define LOAD_FONT8N // Font 8. Alternative to Font 8 above, slightly narrower, so 3 digits fit a 160 pixel TFT
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
-
 #define SMOOTH_FONT
-// #define SPI_FREQUENCY  27000000
+
 #define SPI_FREQUENCY 40000000
-/*
- * To make the Library not over-write all this:
- */
+// To make the TFT_eSPI library not over-write all this with its default settings:
 #define USER_SETUP_LOADED
 #endif // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 

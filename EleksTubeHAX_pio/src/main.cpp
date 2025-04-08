@@ -734,14 +734,14 @@ void loop()
     }
   }
 #ifdef DEBUG_OUTPUT
-  if (time_in_loop <= 1)
+  if (time_in_loop <= 2) // if the loop time is less than 2ms, we don't need to print it in detail
     Serial.print(".");
   else
   {
-    Serial.print("time spent in loop (ms): ");
+    Serial.print("time spent in loop (ms): "); // print the time spent in the loop
     Serial.println(time_in_loop);
   }
-#endif
+#endif // DEBUG_OUTPUT
 }
 
 #ifdef HARDWARE_NovelLife_SE_CLOCK // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
