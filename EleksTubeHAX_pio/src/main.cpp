@@ -131,10 +131,10 @@ void setup()
   // Setup the clock.  It needs WiFi to be established already.
   tfts.setTextColor(TFT_MAGENTA, TFT_BLACK);
   tfts.print("Clock start...");
-  Serial.print("Clock start...");
+  Serial.println("Clock start-up...");
   uclock.begin(&stored_config.config.uclock);
   tfts.println("Done!");
-  Serial.println("Done!");
+  Serial.println("Clock start-up done!");
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 
 #if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)

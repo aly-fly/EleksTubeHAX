@@ -2,7 +2,6 @@
 #include "WiFi_WPS.h"
 
 #if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip (SI HAI or IPSTUBE)
-// If it is a SI HAI Clock, use differnt RTC chip drivers
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 ThreeWire myWire(DS1302_IO, DS1302_SCLK, DS1302_CE); // IO, SCLK, CE
@@ -10,7 +9,7 @@ RtcDS1302<ThreeWire> RTC(myWire);
 void RtcBegin()
 {
 #ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: Tryng to call RTC.Begin()");
+  Serial.println("DEBUG_OUTPUT_RTC: Tryng to call DS1302 RTC.Begin()");
 #endif
   RTC.Begin();
   if (!RTC.IsDateTimeValid())
@@ -19,32 +18,34 @@ void RtcBegin()
     //    1) the entire RTC was just set to the default date (01/01/2000 00:00:00)
     //    2) first time you ran and the device wasn't running yet
     //    3) the battery on the device is low or even missing
-    Serial.println("RTC lost confidence in the DateTime!");
+    Serial.println("DS1302 RTC lost confidence in the DateTime!");
   }
   if (RTC.GetIsWriteProtected())
   {
-    Serial.println("RTC was write protected, enabling writing now");
+    Serial.println("DS1302 RTC was write protected, enabling writing now");
     RTC.SetIsWriteProtected(false);
   }
 
   if (!RTC.GetIsRunning())
   {
-    Serial.println("RTC was not actively running, starting now");
+    Serial.println("DS1302 RTC was not actively running, starting now");
     RTC.SetIsRunning(true);
   }
+#ifdef DEBUG_OUTPUT_RTC
+  Serial.println("DEBUG_OUTPUT_RTC: RTC DS1302 initialized!");
+#endif
 }
 
 uint32_t RtcGet()
 {
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: RtcGet() for DS1302 RTC entered.");
-  Serial.println("DEBUG_OUTPUT_RTC: Calling RTC.GetDateTime()...");
+#ifdef DEBUG_OUTPUT_RTC  
+  Serial.println("DEBUG_OUTPUT_RTC: Calling DS1302 RTC.GetDateTime()...");
 #endif
   RtcDateTime temptime;
   temptime = RTC.GetDateTime();
   uint32_t returnvalue = temptime.Unix32Time();
 #ifdef DEBUG_OUTPUT_RTC
-  Serial.print("DEBUG_OUTPUT_RTC: RTC.GetDateTime() returned: ");
+  Serial.print("DEBUG_OUTPUT_RTC: DS1302 RTC.GetDateTime() returned: ");
   Serial.println(returnvalue);
 #endif
   return returnvalue;
@@ -52,8 +53,7 @@ uint32_t RtcGet()
 
 void RtcSet(uint32_t tt)
 {
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: RtcSet() for DS1302 RTC entered.");
+#ifdef DEBUG_OUTPUT_RTC  
   Serial.print("DEBUG_OUTPUT_RTC: Setting DS1302 RTC to: ");
   Serial.println(tt);
 #endif
@@ -73,7 +73,7 @@ void RtcBegin()
 {
 #ifdef DEBUG_OUTPUT_RTC
   Serial.println("");
-  Serial.println("DEBUG_OUTPUT_RTC: Trying to call RTC.Init()");
+  Serial.println("DEBUG_OUTPUT_RTC: Trying to call RX8025T RTC.Init()");
 #endif
   RTC.init((uint32_t)RTC_SDA_PIN, (uint32_t)RTC_SCL_PIN); // setup second I2C for the RX8025T RTC chip
 #ifdef DEBUG_OUTPUT_RTC
@@ -125,12 +125,12 @@ void RtcBegin()
 {
   if (!RTC.begin())
   {
-    Serial.println("NO supported RTC found!");
+    Serial.println("No supported RTC found!");
   }
   else
   {
 #ifdef DEBUG_OUTPUT_RTC
-    Serial.println("DEBUG_OUTPUT_RTC: RTC found!");
+    Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC found!");
 #endif
   }
 
@@ -139,8 +139,14 @@ void RtcBegin()
   bPowerLost = RTC.lostPower();
   if (bPowerLost)
   {
-    Serial.println("RTC reports power was lost! Setting time to default value.");
+    Serial.println("DS3231/DS1307 RTC reports power was lost! Setting time to default value.");
     RTC.adjust(DateTime(2023, 1, 1, 0, 0, 0)); // set the RTC time to a default value
+  }
+  else
+  {
+#ifdef DEBUG_OUTPUT_RTC
+    Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC power is OK!");
+#endif
   }
 }
 
@@ -149,7 +155,7 @@ uint32_t RtcGet()
   DateTime now = RTC.now(); // convert to unix time
   uint32_t returnvalue = now.unixtime();
 #ifdef DEBUG_OUTPUT_RTC
-  Serial.print("DEBUG_OUTPUT_RTC: DS3231 RTC now.unixtime() = ");
+  Serial.print("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC now.unixtime() returned: ");
   Serial.println(returnvalue);
 #endif
   return returnvalue;
@@ -158,14 +164,14 @@ uint32_t RtcGet()
 void RtcSet(uint32_t tt)
 {
 #ifdef DEBUG_OUTPUT_RTC
-  Serial.print("DEBUG_OUTPUT_RTC: Attempting to set DS3231 RTC to: ");
+  Serial.print("DEBUG_OUTPUT_RTC: Attempting to set DS3231/DS1307 RTC to: ");
   Serial.println(tt);
 #endif
 
   DateTime timetoset(tt); // convert to unix time
   RTC.adjust(timetoset);  // set the RTC time
 #ifdef DEBUG_OUTPUT
-  Serial.println("DEBUG_OUTPUT_RTC: DS3231 RTC time updated.");
+  Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC time updated.");
 #endif
 }
 #endif // end of RTC chip selection
@@ -178,7 +184,7 @@ void Clock::begin(StoredConfig::Config::Clock *config_)
   {
     // Config is invalid, probably a new device never had its config written.
     // Load some reasonable defaults.
-    Serial.println("Loaded Clock config is invalid, using default.  This is normal on first boot.");
+    Serial.println("Loaded Clock config is invalid, using default config values. This is normal on first boot.");
     setTwelveHour(false);
     setBlankHoursZero(false);
     setTimeZoneOffset(1 * 3600); // CET
