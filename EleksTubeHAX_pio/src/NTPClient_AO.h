@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Arduino.h"
+#include <_USER_DEFINES.h> // User defines (located in the src folder)
 
 #include <Udp.h>
 
@@ -11,7 +12,7 @@
 #define NTP_PACKET_SIZE 48
 #define NTP_DEFAULT_LOCAL_PORT 1337
 
-#define DEBUG_NTPClient
+//#define DEBUG_NTPClient
 
 class NTPClient
 {

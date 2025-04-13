@@ -16,9 +16,76 @@
 #include <RTC_RX8025T.h>
 #include <Wire.h>
 
-RX8025T::RX8025T()
+#define _BV2(bit) (1 << (bit))
+
+// RX8025T I2C Address
+#define RX8025T_ADDR 0x32
+
+// RX8025T Register Addresses
+#define RX8025T_SECONDS 0x00
+#define RX8025T_MINUTES 0x01
+#define RX8025T_HOURS 0x02
+#define RX8025T_DAY 0x03
+#define RX8025T_DATE 0x04
+#define RX8025T_MONTH 0x05
+#define RX8025T_YEAR 0x06
+#define RX8025T_RAM 0x07
+#define RX8025T_ALARM_MINUTES 0x08
+#define RX8025T_ALARM_HOURS 0x09
+#define RX8025T_ALARM_DAYDATE 0x0A
+#define RX8025T_TIMER_COUNTER_0 0x0B
+#define RX8025T_TIMER_COUNTER_1 0x0C
+#define RX8025T_RTC_EXT 0x0D
+#define RX8025T_RTC_STATUS 0x0E
+#define RX8025T_RTC_CONTROL 0x0F
+
+// Extension register bits
+#define TSEL0 0
+#define TSEL1 1
+#define FSEL0 2
+#define FSEL1 3
+#define TE 4
+#define USEL 5
+#define WADA 6
+
+// Status register bits
+#define VDET 0
+#define VLF 1
+#define AF 3
+#define TF 4
+#define UF 5
+
+// Control register bits
+#define RESET 0
+#define AIE 3
+#define TIE 4
+#define UIE 5
+#define CSEL0 6
+#define CSEL1 7
+
+// Time update interrupt function
+#define INT_SECOND 0x00
+#define INT_MINUTE 0x20
+
+// Time update interrupt
+#define INT_ON 0x20
+#define INT_OFF 0x00
+
+// Temperature compensation interval
+#define INT_0_5_SEC 0x00
+#define INT_2_SEC 0x40
+#define INT_10_SEC 0x80
+#define INT_30_SEC 0xC0
+
+// FOUT frequency
+#define FOUT_32768 0x00 // or 0x0C
+#define FOUT_1024 0x04
+#define FOUT_1 0x08
+
+RX8025T::RX8025T() : i2cBus(&Wire)  // Initialize i2cBus with default Wire instance
 {
 }
+
 /*----------------------------------------------------------------------*
  * I2C start, RTC initialization, cleaning of registers and flags.      *
  * If the VLF flag is "1" there was data loss or                        *
@@ -26,53 +93,30 @@ RX8025T::RX8025T()
  * If VDET flag is "1" temperature compensation is not working.         *
  * Default settings.                                                    *
  *----------------------------------------------------------------------*/
-void RX8025T::init(void)
+void RX8025T::init(uint32_t rtcSDA, uint32_t rtcSCL, TwoWire &wireBus)
 {
-  uint8_t statusReg, mask;
+  i2cBus = &wireBus; // Assign the passed TwoWire instance to the member variable
 
-  Wire1.begin();
+#ifdef DEBUG_OUTPUT_RTC  
+  Serial.println("DEBUG_OUTPUT_RTC: RX8025T RTC SDA pin: " + String(rtcSDA) + " and SCL pin: " + String(rtcSCL));
+#endif
 
-  statusReg = readRTC(RX8025T_RTC_STATUS);
-  mask = _BV(VLF) | _BV(VDET);
-
-  if (statusReg & mask)
+  if (rtcSDA != -1 && rtcSCL != -1)
   {
-    writeRTC(RX8025T_RTC_CONTROL, _BV(RESET)); // Reset module
+    i2cBus->begin(rtcSDA, rtcSCL); // Custom initialization with specified SDA and SCL pins
+  }
+  else
+  {
+    i2cBus->begin(); // Default initialization with default SDA and SCL pins
   }
 
-  // Clear control registers
-  writeRTC(RX8025T_RTC_EXT, 0x00);
-  writeRTC(RX8025T_RTC_STATUS, 0x00);
-  // Dafault value of temperature compensation interval is 2 seconds
-  writeRTC(RX8025T_RTC_CONTROL, (0x00 | INT_2_SEC));
-}
-
-void RX8025T::init(uint32_t rtcSDA, uint32_t rtcSCL)
-{
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: Entering RX8025T_init(uint32_t, uint32_t)");
-  Serial.print("DEBUG_OUTPUT_RTC: Initializing Wire1 with SDA = ");
-  Serial.print(rtcSDA);
-  Serial.print(", SCL = ");
-  Serial.println(rtcSCL);
-#endif
-  Wire1.begin(rtcSDA, rtcSCL);
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: Wire1.begin completed");
-#endif
-
-  uint8_t statusReg, mask;
-  statusReg = readRTC(RX8025T_RTC_STATUS);
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.print("DEBUG_OUTPUT_RTC: Read status register: 0x");
-  Serial.println(statusReg, HEX);
-#endif
-  mask = _BV(VLF) | _BV(VDET);
+  uint8_t statusReg = readRTC(RX8025T_RTC_STATUS);
+  uint8_t mask = _BV(VLF) | _BV(VDET);
 
   if (statusReg & mask)
   {
 #ifdef DEBUG_OUTPUT_RTC
-    Serial.println("DEBUG_OUTPUT_RTC: Status flags indicate data loss or temp compensation error, resetting RTC module.");
+    Serial.println("DEBUG_OUTPUT_RTC: Resetting RX8025T due to VLF or VDET flag.");
 #endif
     writeRTC(RX8025T_RTC_CONTROL, _BV(RESET)); // Reset module
   }
@@ -80,14 +124,7 @@ void RX8025T::init(uint32_t rtcSDA, uint32_t rtcSCL)
   // Clear control registers
   writeRTC(RX8025T_RTC_EXT, 0x00);
   writeRTC(RX8025T_RTC_STATUS, 0x00);
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: Control registers cleared");
-#endif
-  // Dafault value of temperature compensation interval is 2 seconds
   writeRTC(RX8025T_RTC_CONTROL, (0x00 | INT_2_SEC));
-#ifdef DEBUG_OUTPUT_RTC
-  Serial.println("DEBUG_OUTPUT_RTC: Temperature compensation interval set to 2 seconds; RTC init complete.");
-#endif
 }
 
 /*----------------------------------------------------------------------*
@@ -100,8 +137,14 @@ time_t RX8025T::get()
   tmElements_t tm;
 
   if (read(tm))
-    return 0;
-  return (makeTime(tm));
+  {
+#ifdef DEBUG_OUTPUT_RTC
+        Serial.println("DEBUG_OUTPUT_RTC: Failed to read time from RX8025T.");
+#endif
+        return 0;
+  }
+  
+  return makeTime(tm);
 }
 
 /*----------------------------------------------------------------------*
@@ -112,9 +155,9 @@ time_t RX8025T::get()
 uint8_t RX8025T::set(time_t t)
 {
   tmElements_t tm;
-
   breakTime(t, tm);
-  return (write(tm));
+
+  return write(tm);
 }
 
 /*----------------------------------------------------------------------*
@@ -123,19 +166,26 @@ uint8_t RX8025T::set(time_t t)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::read(tmElements_t &tm)
 {
-  Wire1.beginTransmission(RX8025T_ADDR);
-  Wire1.write((uint8_t)RX8025T_SECONDS);
-  if (uint8_t e = Wire1.endTransmission())
+  i2cBus->beginTransmission(RX8025T_ADDR);
+  i2cBus->write((uint8_t)RX8025T_SECONDS);
+  if (uint8_t e = i2cBus->endTransmission())
+  {
+#ifdef DEBUG_OUTPUT_RTC
+    Serial.print("DEBUG_OUTPUT_RTC: I2C error during read: ");
+    Serial.println(e);
+#endif
     return e;
-  // request 7 bytes (secs, min, hr, dow, date, mth, yr)
-  Wire1.requestFrom(RX8025T_ADDR, tmNbrFields);
-  tm.Second = bcd2dec(Wire1.read());
-  tm.Minute = bcd2dec(Wire1.read());
-  tm.Hour = bcd2dec(Wire1.read());
-  tm.Wday = bin2wday(Wire1.read());
-  tm.Day = bcd2dec(Wire1.read());
-  tm.Month = bcd2dec(Wire1.read());
-  tm.Year = y2kYearToTm(bcd2dec(Wire1.read()));
+  }
+
+  i2cBus->requestFrom(RX8025T_ADDR, tmNbrFields);
+  tm.Second = bcd2dec(i2cBus->read());
+  tm.Minute = bcd2dec(i2cBus->read());
+  tm.Hour = bcd2dec(i2cBus->read());
+  tm.Wday = bin2wday(i2cBus->read());
+  tm.Day = bcd2dec(i2cBus->read());
+  tm.Month = bcd2dec(i2cBus->read());
+  tm.Year = y2kYearToTm(bcd2dec(i2cBus->read()));
+
   return 0;
 }
 
@@ -146,17 +196,16 @@ uint8_t RX8025T::read(tmElements_t &tm)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::write(tmElements_t &tm)
 {
-  Wire1.beginTransmission(RX8025T_ADDR);
-  Wire1.write((uint8_t)RX8025T_SECONDS);
-  Wire1.write(dec2bcd(tm.Second));
-  Wire1.write(dec2bcd(tm.Minute));
-  Wire1.write(dec2bcd(tm.Hour));
-  Wire1.write(wday2bin(tm.Wday));
-  Wire1.write(dec2bcd(tm.Day));
-  Wire1.write(dec2bcd(tm.Month));
-  Wire1.write(dec2bcd(tmYearToY2k(tm.Year)));
-  uint8_t ret = Wire1.endTransmission();
-  return ret;
+  i2cBus->beginTransmission(RX8025T_ADDR);
+  i2cBus->write((uint8_t)RX8025T_SECONDS);
+  i2cBus->write(dec2bcd(tm.Second));
+  i2cBus->write(dec2bcd(tm.Minute));
+  i2cBus->write(dec2bcd(tm.Hour));
+  i2cBus->write(wday2bin(tm.Wday));
+  i2cBus->write(dec2bcd(tm.Day));
+  i2cBus->write(dec2bcd(tm.Month));
+  i2cBus->write(dec2bcd(tmYearToY2k(tm.Year)));
+  return i2cBus->endTransmission();
 }
 
 /*----------------------------------------------------------------------*
@@ -168,11 +217,13 @@ uint8_t RX8025T::write(tmElements_t &tm)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::writeRTC(uint8_t addr, uint8_t *values, uint8_t nBytes)
 {
-  Wire1.beginTransmission(RX8025T_ADDR);
-  Wire1.write(addr);
+  i2cBus->beginTransmission(RX8025T_ADDR);
+  i2cBus->write(addr);
   for (uint8_t i = 0; i < nBytes; i++)
-    Wire1.write(values[i]);
-  return Wire1.endTransmission();
+  {
+    i2cBus->write(values[i]);
+  }
+  return i2cBus->endTransmission();
 }
 
 /*----------------------------------------------------------------------*
@@ -182,7 +233,7 @@ uint8_t RX8025T::writeRTC(uint8_t addr, uint8_t *values, uint8_t nBytes)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::writeRTC(uint8_t addr, uint8_t value)
 {
-  return (writeRTC(addr, &value, 1));
+  return writeRTC(addr, &value, 1);
 }
 
 /*----------------------------------------------------------------------*
@@ -194,15 +245,26 @@ uint8_t RX8025T::writeRTC(uint8_t addr, uint8_t value)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::readRTC(uint8_t addr, uint8_t *values, uint8_t nBytes)
 {
-  Wire1.beginTransmission(RX8025T_ADDR);
-  Wire1.write(addr);
-  if (uint8_t e = Wire1.endTransmission())
+  i2cBus->beginTransmission(RX8025T_ADDR);
+  i2cBus->write(addr);
+  if (uint8_t e = i2cBus->endTransmission())
+  {
+#ifdef DEBUG_OUTPUT_RTC
+    Serial.print("DEBUG_OUTPUT_RTC: I2C error during read: ");
+    Serial.println(e);
+#endif
     return e;
-  Wire1.requestFrom((uint8_t)RX8025T_ADDR, nBytes);
+  }
+
+  i2cBus->requestFrom((uint8_t)RX8025T_ADDR, nBytes);
   for (uint8_t i = 0; i < nBytes; i++)
-    values[i] = Wire1.read();
+  {
+    values[i] = i2cBus->read();
+  }
+
   return 0;
 }
+
 
 /*----------------------------------------------------------------------*
  * Read a single uint8_t from RTC RAM.                                  *
@@ -210,10 +272,10 @@ uint8_t RX8025T::readRTC(uint8_t addr, uint8_t *values, uint8_t nBytes)
  *----------------------------------------------------------------------*/
 uint8_t RX8025T::readRTC(uint8_t addr)
 {
-  uint8_t b;
+  uint8_t value;
+  readRTC(addr, &value, 1);
 
-  readRTC(addr, &b, 1);
-  return b;
+  return value;
 }
 
 /*----------------------------------------------------------------------*
@@ -343,5 +405,3 @@ uint8_t __attribute__((noinline)) RX8025T::bcd2dec(uint8_t n)
 {
   return n - 6 * (n >> 4);
 }
-
-RX8025T RTC_RX8025T = RX8025T();

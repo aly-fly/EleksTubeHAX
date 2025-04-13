@@ -75,7 +75,8 @@ void RtcBegin()
   Serial.println("");
   Serial.println("DEBUG_OUTPUT_RTC: Trying to call RX8025T RTC.Init()");
 #endif
-  RTC.init((uint32_t)RTC_SDA_PIN, (uint32_t)RTC_SCL_PIN); // setup second I2C for the RX8025T RTC chip
+  //RTC_RX8025T.init((uint32_t)RTC_SDA_PIN, (uint32_t)RTC_SCL_PIN, Wire1); // setup second I2C for the RX8025T RTC chip
+  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire1); // setup second I2C for the RX8025T RTC chip
 #ifdef DEBUG_OUTPUT_RTC
   Serial.println("DEBUG_OUTPUT_RTC: RTC RX8025T initialized!");
 #endif
@@ -90,7 +91,8 @@ void RtcSet(uint32_t tt)
   Serial.println(tt);
 #endif
 
-  int ret = RTC.set(tt);
+  //int ret = RTC_RX8025T.set(tt);
+  int ret = RTC.set(tt); // set the RTC time
   if (ret != 0)
   {
     Serial.print("Error setting RX8025T RTC: ");
@@ -109,6 +111,7 @@ void RtcSet(uint32_t tt)
 
 uint32_t RtcGet()
 {
+  //uint32_t returnvalue = RTC_RX8025T.get(); // Get the RTC time
   uint32_t returnvalue = RTC.get(); // Get the RTC time
 #ifdef DEBUG_OUTPUT_RTC
   Serial.print("DEBUG_OUTPUT_RTC: RtcGet() RX8025T returned: ");
@@ -194,8 +197,9 @@ void Clock::begin(StoredConfig::Config::Clock *config_)
 
   RtcBegin();
   ntpTimeClient.begin();
-  ntpTimeClient.update();
+  ntpTimeClient.update();  
   Serial.print("NTP time = ");
+  //millis_last_ntp = millis();
   Serial.println(ntpTimeClient.getFormattedTime());
   setSyncProvider(&Clock::syncProvider);
 }
@@ -218,21 +222,20 @@ void Clock::loop()
 time_t Clock::syncProvider()
 {
 #ifdef DEBUG_OUTPUT_RTC
-  Serial.println("Clock:syncProvider() entered.");
+  Serial.println("DEBUG_OUTPUT_RTC: Clock:syncProvider() entered.");
 #endif
   time_t rtc_now;
   rtc_now = RtcGet(); // Get the RTC time
 
   if (millis() - millis_last_ntp > refresh_ntp_every_ms || millis_last_ntp == 0) // Get NTP time only every 10 minutes or if not yet done
-  {                                                                              // It's time to get a new NTP sync
+  { // It's time to get a new NTP sync
     if (WifiState == connected)
     { // We have WiFi, so try to get NTP time.
       Serial.print("Try to get the actual time from NTP server...");
       if (ntpTimeClient.update())
       {
-        Serial.print(".");
-        time_t ntp_now = ntpTimeClient.getEpochTime();
         Serial.println("NTP query done.");
+        time_t ntp_now = ntpTimeClient.getEpochTime();
         Serial.print("NTP time = ");
         Serial.println(ntpTimeClient.getFormattedTime());
         rtc_now = RtcGet(); // Get the RTC time again, because it may have changed in the meantime
