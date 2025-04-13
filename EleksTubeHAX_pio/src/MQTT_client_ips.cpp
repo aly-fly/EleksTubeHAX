@@ -975,7 +975,6 @@ bool MQTTReportDiscovery()
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicFront, "/set");
   discovery["brightness"] = true;
   discovery["brightness_scale"] = MQTT_BRIGHTNESS_MAIN_MAX;
-  discovery["color_mode"] = false;
   discovery["effect"] = true;
   for (size_t i = 1; i <= tfts.NumberOfClockFaces; i++)
   {
@@ -1007,7 +1006,6 @@ bool MQTTReportDiscovery()
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicBack, "/set");
   discovery["brightness"] = true;
   discovery["brightness_scale"] = MQTT_BRIGHTNESS_BACK_MAX;
-  discovery["color_mode"] = true;
   discovery["supported_color_modes"][0] = "hs";
   discovery["effect"] = true;
   for (size_t i = 0; i < backlights.num_patterns; i++)
