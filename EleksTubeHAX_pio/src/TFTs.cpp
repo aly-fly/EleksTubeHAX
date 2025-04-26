@@ -8,9 +8,9 @@ void TFTs::begin()
   chip_select.setAll(); // Start with all displays selected
 
 #ifdef DIM_WITH_ENABLE_PIN_PWM
-  // if hardware dimming is used, we need to attach the pin to a PWM channel
-  ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);
-  ledcChangeFrequency(TFT_PWM_CHANNEL, 20000, 8);
+  // if hardware dimming is used, we need to attach the pin to a PWM channel  
+  ledcSetup(TFT_ENABLE_PIN, 20000, 8); // 20 kHz PWM, 8-Bit resolution
+  ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL); // Attach the pin to the PWM channel
 #else
   pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
