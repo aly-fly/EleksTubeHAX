@@ -297,6 +297,7 @@ void MQTTReportState(bool forceUpdateEverything)
     state["state"] = MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON;
     state["brightness"] = MQTTStatusMainBrightness;
     state["effect"] = tfts.clockFaceToName(MQTTStatusMainGraphic);
+    state["color_mode"] = "brightness";
 
     if (!MQTTPublish(concat3(MQTT_CLIENT, "/", TopicFront), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
@@ -973,6 +974,7 @@ bool MQTTReportDiscovery()
   discovery["state_topic"] = concat3(MQTT_CLIENT, "/", TopicFront);
   discovery["json_attributes_topic"] = concat3(MQTT_CLIENT, "/", TopicFront);
   discovery["command_topic"] = concat4(MQTT_CLIENT, "/", TopicFront, "/set");
+  discovery["supported_color_modes"][0] = "brightness";
   discovery["brightness"] = true;
   discovery["brightness_scale"] = MQTT_BRIGHTNESS_MAIN_MAX;
   discovery["effect"] = true;
