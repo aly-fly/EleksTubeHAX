@@ -885,7 +885,7 @@ Note: This problem does not appear on Gen2 hardware from Elekstube! All clocks s
     
 *   Aljaz Ogrin, aka aly-fly ... @aly-fly on GitHub and Instagram
     
-*   @Martinius79 on GitHub
+*   Clemens Sutor, aka Martinius79 ... @Martinius79 on GitHub
     
 *   Misc code snips either committed by or copied from: @icebreaker-ch, @meddle99, @OggyP, @bitrot-alpha
     
