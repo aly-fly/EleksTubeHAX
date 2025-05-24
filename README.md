@@ -314,13 +314,14 @@ In short:
 *   PlatformIO (PIO) will detect the `platformio.ini` file and open the project as an PlatformIO project automatically and will download all needed packages/libraries.
     
 *   If this is not happening automatilly, go to the PIO tab in VSC and select "Pick a Folder" and select the `EleksTubeHAX_pio` folder.
-    
 
 #### 5.3.1 ESP32 platform support
 
 The EspressIF 32 development platform for PlatformIO is required to support the ESP32 microcontroller. It will be installed automatically when this project is opened in VSCode/PlatformIO or if the first build is triggered. It will take a while - observe status messages in the bottom right corner.
 
-Tested on version 6.0.9 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
+Tested on version 6.0.10 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
+
+It is possible that the project also works with ESP32 platform modules from other sources (like Tasmota), but it is not recommended!
 
 #### 5.3.2 PIO build environment
 
@@ -343,35 +344,55 @@ Upload port is set to 921600 baud in the `platformio.ini` file.
 
 #### 5.3.3 Libraries in use
 
-All the listed libraries are in use (see `platformio.ini` file).
+All external libraries in use (for details, see the `platformio.ini` file) are automatically installed from the [PlatformIO registry](https://registry.platformio.org) (or their specified source locations). Since no fixed version numbers are set by default in `platformio.ini`, the **most recent versions** are fetched when the project is first opened or before the initial compilation.
 
-The most recent versions are automatically installed from the [PlatformIO registry](https://registry.platformio.org) (or the given source location) as soon as the project is opened or before first compilation.
+* The initial installation may take some time - monitor status messages in the build log screen to see the progress.
 
-It will take a while to initally install them - observe status messages in build log screen.
+* Standard libraries from the frameworks (espressif32 + arduino) are not explicitly listed.
 
-Compiles and works fine with listed library versions below, as of 2024-02-03. Newer (or possibly older) versions should be fine too.
+##### 5.3.3.1 Verified Working Versions (as of 2025-05-18)
 
-If you have issues with automatic installation, here are locations of the original source code.
+The project compiles and runs correctly with the library versions listed below. Newer (and possibly older) versions should also work.
 
-| Library | Author | Version | Link |
+If you encounter issues with automatic installation, refer to the comments in `platformio.ini` for troubleshooting.
+
+##### 5.3.3.2 Used libraries
+
+| Library | Author | Version | Source Code Link |
 | --- | --- | --- | --- |
-| NTPClient | Fabrice Weinberg | 3.2.1 | [https://github.com/arduino-libraries/NTPClient](https://github.com/arduino-libraries/NTPClient) |
-| Adafruit NeoPixel | Adafruit | 1.12.0 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
-| DS1307RTC | Paul Stoffregen | 1.4.1 | [https://github.com/PaulStoffregen/DS1307RTC](https://github.com/PaulStoffregen/DS1307RTC) |
-| Time | Paul Stoffregen | 1.6.1 | [https://github.com/PaulStoffregen/Time](https://github.com/PaulStoffregen/Time) |
-| TFT\_eSPI | Bodmer | 2.5.34 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
-| PubSubClient | Nick O'Leary | 2.8.0 | [https://www.arduinolibraries.info/libraries/pub-sub-client](https://www.arduinolibraries.info/libraries/pub-sub-client) |
-| ArduinoJson | Benoit Blanchon | 7.0.2 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
-| RTC by Makuna | Michael C.Miller | 2.4.2 | [https://github.com/Makuna/Rtc/wiki](https://github.com/Makuna/Rtc/wiki) |
-| SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
+| adafruit/Adafruit NeoPixel | Adafruit | 1.12.5 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
+| adafruit/RTClib | Adafruit | 2.1.4 | [https://github.com/adafruit/RTClib](https://github.com/adafruit/RTClib) |
+| paulstoffregen/Time | Paul Stoffregen | 1.6.1 | [https://github.com/PaulStoffregen/Time](https://github.com/PaulStoffregen/Time) |
+| bodmer/TFT\_eSPI | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
+| knolleary/PubSubClient | Nick O'Leary | 2.8.0 | [https://www.arduinolibraries.info/libraries/pub-sub-client](https://www.arduinolibraries.info/libraries/pub-sub-client) |
+| bblanchon/ArduinoJson | Benoit Blanchon | 7.4.1 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
+| makuna/RTC | Michael C.Miller | 2.5.0 | [https://github.com/Makuna/Rtc/wiki](https://github.com/Makuna/Rtc/wiki) |
+| sparkfun/SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
 
-**Notes**: `RTC by Makuna` is only required for "SI HAI clock".
+**Notes**:
+`makuna/RTC` is only required for "SI HAI clock".
 
 `sparkfun/SparkFun APDS9960 RGB and Gesture Sensor` is only required by NovelLife SE clocks with gesture sensor.
 
-Code from `IPgeolocation` and `NTPclient` libraries were copied into the project and heavily updated (mostly bug fixes and error-catching).
+##### 5.3.3.3 Library Code Used
 
-`DS1307RTC` is only available in version "0.0.0-alpha+sha.c2590c0033" from the PlatformIO registry. This version is working and should be compiled from the latest code version in the original repo of the lib. But to have a "nicer" version number (1.4.1), add `https://github.com/PaulStoffregen/DS1307RTC.git#1.4.1` instead of `paulstoffregen/DS1307RTC` into the `platform.ini`.
+Code from `dushyantahuja/IPGeolocation` and `arduino-libraries/NTPClient` libraries were copied into the project and heavily updated (mostly bug fixes and error-catching).
+
+Original libraries:
+
+| Library | Author | Latest version | Source Code Link |
+| --- | --- | --- | --- |
+| arduino-libraries/NTPClient | Arduino Libraries | 3.2.1 | [https://github.com/arduino-libraries/NTPClient](https://github.com/arduino-libraries/NTPClient) |
+| dushyantahuja/IPGeolocation | Dushyant Ahuja | 3.0.0 | [https://github.com/dushyantahuja/IPGeolocation](https://github.com/dushyantahuja/IPGeolocation) |
+
+##### 5.3.3.4 Modified Libraries
+
+| Library | Author | Latest Version | Source Code Link |
+| --- | --- | --- | --- |
+| (not listed) | Marcin Saj | 1.0.7 | [https://github.com/marcinsaj/RTC_RX8025T](https://github.com/marcinsaj/RTC_RX8025T) |
+
+Some libraries require modifications to work with the specific clock hardware or to implement required functionality.  
+The modified versions are stored in the `lib` directory of the `EleksTubeHAX_pio` project.
 
 #### 5.3.4 Configure the `TFT_eSPI` library
 
@@ -468,7 +489,7 @@ This will upload the files to the SPIFFS filesystem on the ESP32 (flash of the c
 
 Note: The data will stay there, even if you re-upload the real firmware to the app partition, because the data partition is not overriden or modified by that.
 
-Note: For IPSTUBE clocks use "EleksTubeHax" environment
+Note: For IPSTUBE clocks use "EleksTubeHax8MB" environment
 
 ### 5.4.3 Check if clock is working
 
@@ -670,7 +691,7 @@ All MQTT messages from and to the clock are also traced out via the serial inter
 
 ## 6\. Known problems/limitations
 
-##### 6.1 No RTC for SI HAI IPS Clock
+##### 6.1 No RTC backup battery for SI HAI IPS Clock
 
 There is no battery on the SI HAI IPS clock, so the clock will loose the time, if powered off.
 
@@ -777,11 +798,13 @@ The original manufacturer has an 'interesting' way to update the firmware "over-
 
 If you want to bring the EleksTubeHAX firmware to the clock, we need either to solder a CH340 chip and the transistors and resistors on there designated places, or use an "external" USB-UART bridge/board.
 
-The "easiser" way is the external board solution IMO.
-
 Below the missing chip are some soldering headers:
 
 ![PunkCyber / RGB Glow tube](/documentation/ImagesMD/PunkCyber_PCB_CH340_header.jpg)
+
+##### Way 1 - External UART-USB adapter
+
+The "easiser" way is the external board solution IMO.
 
 BOOT is connected to GPIO0 (pin 25) on the ESP32 EN is connected to EN (pin 3) on the ESP32 G is connected to Ground (pins 1/38/15) on the ESP32 R is connected to GPIO1 / TxD (pin 35) on the ESP32 T is connected to GPIO3 / RxD (pin 34) on the ESP32
 
@@ -823,7 +846,24 @@ Successful backup:
 
 Thanks to @Fastdruid for finding a good way to overcome this problem! (see [Issue 62](https://github.com/aly-fly/EleksTubeHAX/issues/62))
 
-**Note** Even with components soldered onto the existing solder headers, I was not able to get the auto-download mode working again. I guess I am missing something here. I will try again when I have more time.
+##### Way 2 - Buy Missing Components and Solder Them
+
+**Components needed:**
+
+* 1× CH340C chip (SOP-16 package) - USB to UART converter
+* 2× 1µF SMD capacitors (50V - 0805 format) - for auto-download circuit
+* 2× 8050 transistors (SOT-23 package) - for auto-download circuit
+* 1× 4.7nF SMD capacitor (50V - 0805 format) - decoupling capacitor
+
+**Soldering notes:**
+
+* All components are surface-mount (SMD) devices
+* Recommended tools:
+  * Solder paste
+  * Hot air soldering station
+* It is possible to solder these few components with a normal soldering iron and wire, but I would not recommend it.
+
+When properly soldered, the clock will be recognized as a virtual COM port when connected via USB-C to your computer
 
 #### 8.2 EleksTube Gen1: 5V on CH340 and ESP32
 
