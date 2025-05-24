@@ -117,24 +117,24 @@ If activated in the code, clock can be remote controlled via Home Assistant - on
 
 Features:
 
-*   Device detected as two different lights - main and back
-    
-*   Turn displays on/off
-    
-*   Control brightness level
-    
-*   Change modes/effects of the LEDs (main and back)
-    
-*   Change the color of the LEDs (in constant mode)
-    
-*   Switching 12/24 hours mode
-    
-*   Switching blank zeroes setting
-    
-*   Modes/Effects speed change for backlight (Pulse, Breath and Rainbow)
-    
-*   Clock automatically appears in the active MQTT integration in HA
-    
+* Clock automatically appears in the active MQTT integration in HA (auto discovery)
+* HA detects when the clock is powered off and grays out the entity.
+* **Device detected as two separate light entities**  
+  * Main (LCD displays)
+  * Back (LED backlight)
+* **Display control**
+  * Turn LCDs on/off (*Main*)
+  * Adjust LCD brightness (*Main*)
+  * Change clock face/effect (*Main*)
+* **Backlight control**
+  * Turn LEDs on/off (*Back*)
+  * Adjust LED brightness (*Back*)
+  * Switch effects (Dark, Test, Constant, Pulse, Breathe or Rainbow) (*Back*)
+  * Set static color (*Back*, Constant mode only)
+  * Adjust effect speed (*Back*, for Pulse, Breathe and Rainbow)
+* **Clock settings**
+  * Toggle 12/24-hour format
+  * Enable/disable blank zeros
 
 ### 3.2 Clock specific features
 
@@ -628,7 +628,7 @@ Note: If you want to use an internet-based broker, you can use HiveMQ. You will 
 
 Interactions between the firmware of the clock and Home Assistant is done like descriped in the MQTT integration documentations (see below).
 
-If using the default auto discovery, the clock and all its entities will be found by the MQTT integration without user intervention.
+By default, the clock sends auto-discovery messages, and all its entities will be detected by the MQTT integration without user intervention.
 
 The clock is discoverd as two lights (Main and Back) and some other entities (i.e. a switch) as Configuration. The last one is needed to be able to switch the settings of the clock.
 
