@@ -17,7 +17,7 @@
 class NTPClient
 {
 private:
-  UDP *_udp;s
+  UDP *_udp;
   bool _udpSetup = false;
 
   const char *_poolServerName = "pool.ntp.org"; // Default time server
