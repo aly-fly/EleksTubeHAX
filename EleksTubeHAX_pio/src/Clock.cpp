@@ -38,7 +38,7 @@ void RtcBegin()
 
 uint32_t RtcGet()
 {
-#ifdef DEBUG_OUTPUT_RTC  
+#ifdef DEBUG_OUTPUT_RTC
   Serial.println("DEBUG_OUTPUT_RTC: Calling DS1302 RTC.GetDateTime()...");
 #endif
   RtcDateTime temptime;
@@ -53,7 +53,7 @@ uint32_t RtcGet()
 
 void RtcSet(uint32_t tt)
 {
-#ifdef DEBUG_OUTPUT_RTC  
+#ifdef DEBUG_OUTPUT_RTC
   Serial.print("DEBUG_OUTPUT_RTC: Setting DS1302 RTC to: ");
   Serial.println(tt);
 #endif
@@ -75,8 +75,7 @@ void RtcBegin()
   Serial.println("");
   Serial.println("DEBUG_OUTPUT_RTC: Trying to call RX8025T RTC.Init()");
 #endif
-  //RTC_RX8025T.init((uint32_t)RTC_SDA_PIN, (uint32_t)RTC_SCL_PIN, Wire1); // setup second I2C for the RX8025T RTC chip
-  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire1); // setup second I2C for the RX8025T RTC chip
+  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire1); // Initialize the RTC with the second I2C bus (Wire1)
 #ifdef DEBUG_OUTPUT_RTC
   Serial.println("DEBUG_OUTPUT_RTC: RTC RX8025T initialized!");
 #endif
@@ -91,7 +90,7 @@ void RtcSet(uint32_t tt)
   Serial.println(tt);
 #endif
 
-  //int ret = RTC_RX8025T.set(tt);
+  // int ret = RTC_RX8025T.set(tt);
   int ret = RTC.set(tt); // set the RTC time
   if (ret != 0)
   {
@@ -111,7 +110,6 @@ void RtcSet(uint32_t tt)
 
 uint32_t RtcGet()
 {
-  //uint32_t returnvalue = RTC_RX8025T.get(); // Get the RTC time
   uint32_t returnvalue = RTC.get(); // Get the RTC time
 #ifdef DEBUG_OUTPUT_RTC
   Serial.print("DEBUG_OUTPUT_RTC: RtcGet() RX8025T returned: ");
@@ -130,7 +128,7 @@ void RtcBegin()
   {
     Serial.println("No supported RTC found!");
   }
-  #ifdef DEBUG_OUTPUT_RTC
+#ifdef DEBUG_OUTPUT_RTC
   else
   {
     bool RegReadSuccess = false;
@@ -138,34 +136,34 @@ void RtcBegin()
 
     Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC found!");
     Serial.printf("Square Wave output status: 0x%x\r\n", RTC.readSqwPinMode());
-    Serial.printf("32KHz output status: %s\r\n", RTC.isEnabled32K() ? "Enabled":"Disabled");
-    //manually read the control and status registers of the DS3231
+    Serial.printf("32KHz output status: %s\r\n", RTC.isEnabled32K() ? "Enabled" : "Disabled");
+    // manually read the control and status registers of the DS3231
     Wire.beginTransmission(0x68);
-    Wire.write(0x0E); //address of the control register, 0x0E
+    Wire.write(0x0E); // address of the control register, 0x0E
     Wire.endTransmission();
     RegReadSuccess = Wire.requestFrom(0x68, 2);
-    Serial.printf("Read from control and status registers: %s\r\n",  RegReadSuccess ? "Success":"Failed!");
+    Serial.printf("Read from control and status registers: %s\r\n", RegReadSuccess ? "Success" : "Failed!");
     if (RegReadSuccess)
     {
       ctrl = Wire.read();
       Serial.println("DS3231 Control Register:");
-      Serial.printf("EOSC:%d BBSQW:%d CONV:%d RS2:%d RS1:%d INTCN:%d A2IE:%d A1IE:%d\r\n", 
-        (ctrl & 0x80) >> 7, (ctrl & 0x40) >> 6, (ctrl & 0x20) >> 5, (ctrl & 0x10) >> 4, (ctrl & 0x08) >> 3,
-        (ctrl & 0x04) >> 2, (ctrl & 0x02)>> 1, (ctrl & 0x01) );
+      Serial.printf("EOSC:%d BBSQW:%d CONV:%d RS2:%d RS1:%d INTCN:%d A2IE:%d A1IE:%d\r\n",
+                    (ctrl & 0x80) >> 7, (ctrl & 0x40) >> 6, (ctrl & 0x20) >> 5, (ctrl & 0x10) >> 4, (ctrl & 0x08) >> 3,
+                    (ctrl & 0x04) >> 2, (ctrl & 0x02) >> 1, (ctrl & 0x01));
 
       ctrl = ctrl >> 8;
       Serial.println("DS3231 Status Register:");
       Serial.printf("OSF:%d EN32Khz:%d BSY:%d A2F:%d A1F:%d\r\n",
-        (ctrl & 0x80) >> 7, (ctrl & 0x08) >> 3, (ctrl & 0x04) >> 2, 
-        (ctrl & 0x02)>> 1, (ctrl & 0x01) );
+                    (ctrl & 0x80) >> 7, (ctrl & 0x08) >> 3, (ctrl & 0x04) >> 2,
+                    (ctrl & 0x02) >> 1, (ctrl & 0x01));
     }
     Serial.println("Forcing temperature conversion now.");
     Wire.beginTransmission(0x68);
     Wire.write(0x0E);
-    Wire.write(0x3C); //Set CONV=1, set RS2,RS1,INTCN = 1
+    Wire.write(0x3C); // Set CONV=1, set RS2,RS1,INTCN = 1
     Wire.endTransmission();
-    delay(5);//allow some time for BSY to be set
-    
+    delay(5); // allow some time for BSY to be set
+
     Wire.beginTransmission(0x68);
     Wire.write(0x0F);
     Wire.endTransmission();
@@ -174,7 +172,7 @@ void RtcBegin()
     {
       ctrl = 0;
       ctrl = Wire.read();
-      Serial.printf("Temperature conversion busy flag: %s\r\n", ((ctrl & 0x04) >> 2) ? "Set!":"Not set..");
+      Serial.printf("Temperature conversion busy flag: %s\r\n", ((ctrl & 0x04) >> 2) ? "Set!" : "Not set..");
       Serial.println("Waiting 2 seconds for temperature conversion to finish.");
       delay(2000);
       Serial.printf("DS3231 Temperature: %f C\r\n", RTC.getTemperature());
@@ -185,7 +183,6 @@ void RtcBegin()
     }
   }
 #endif
-
 
   // check if the RTC chip reports a power failure
   bool bPowerLost = 0;
@@ -247,9 +244,9 @@ void Clock::begin(StoredConfig::Config::Clock *config_)
 
   RtcBegin();
   ntpTimeClient.begin();
-  ntpTimeClient.update();  
+  ntpTimeClient.update();
   Serial.print("NTP time = ");
-  //millis_last_ntp = millis();
+  // millis_last_ntp = millis();
   Serial.println(ntpTimeClient.getFormattedTime());
   setSyncProvider(&Clock::syncProvider);
 }
@@ -278,7 +275,7 @@ time_t Clock::syncProvider()
   rtc_now = RtcGet(); // Get the RTC time
 
   if (millis() - millis_last_ntp > refresh_ntp_every_ms || millis_last_ntp == 0) // Get NTP time only every 10 minutes or if not yet done
-  { // It's time to get a new NTP sync
+  {                                                                              // It's time to get a new NTP sync
     if (WifiState == connected)
     { // We have WiFi, so try to get NTP time.
       Serial.print("Try to get the actual time from NTP server...");

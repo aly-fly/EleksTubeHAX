@@ -8,10 +8,10 @@ void TFTs::begin()
   chip_select.setAll(); // Start with all displays selected
 
 #ifdef DIM_WITH_ENABLE_PIN_PWM
-  // if hardware dimming is used, we need to attach the pin to a PWM channel
-  ledcSetup(TFT_ENABLE_PIN, 20000, 8); // 20 kHz PWM, 8-Bit resolution
-  ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL); // Attach the pin to the PWM channel
-  ledcChangeFrequency(TFT_PWM_CHANNEL, 20000, 8); // need to set the frequency and resolution again to have the hardware dimming working properly
+  // If hardware dimming is used, init ledc, set the pin and channel for PWM and set frequency and resolution
+  ledcSetup(TFT_ENABLE_PIN, TFT_PWM_FREQ, TFT_PWM_RESOLUTION);            // PWM, globally defined
+  ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);                         // Attach the pin to the PWM channel
+  ledcChangeFrequency(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION); // need to set the frequency and resolution again to have the hardware dimming working properly
 #else
   pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
@@ -20,7 +20,7 @@ void TFTs::begin()
   fillScreen(TFT_BLACK);     // to avoid/reduce flickering patterns on the screens
   enableAllDisplays();       // Signal, that the displays are enabled now and do the hardware dimming, if available and enabled
 
-  if (!SPIFFS.begin()) // init SPIFFS
+  if (!SPIFFS.begin()) // Initialize SPIFFS
   {
     Serial.println("SPIFFS initialization failed!");
     NumberOfClockFaces = 0;
@@ -42,7 +42,7 @@ void TFTs::reinit()
 
 #ifdef DIM_WITH_ENABLE_PIN_PWM
     ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);
-    ledcChangeFrequency(TFT_PWM_CHANNEL, 20000, 8);
+    ledcChangeFrequency(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION);
 #else
     pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif

@@ -70,11 +70,11 @@
 
 // Define the activate and deactivate state for the diplay power transistor
 // also define, how the dimming value is calculated
-#ifndef HARDWARE_IPSTUBE_CLOCK // for all clocks, except HARDWARE_IPSTUBE_CLOCK
-#define ACTIVATEDISPLAYS HIGH  // Activate is HIGH
-#define DEACTIVATEDISPLAYS LOW // Deactivate is LOW
-#define CALCDIMVALUE(x) (x)    // Dimming value is directly used for software dimming
-#else // only for HARDWARE_IPSTUBE_CLOCK in the moment
+#ifndef HARDWARE_IPSTUBE_CLOCK    // for all clocks, except HARDWARE_IPSTUBE_CLOCK
+#define ACTIVATEDISPLAYS HIGH     // Activate is HIGH
+#define DEACTIVATEDISPLAYS LOW    // Deactivate is LOW
+#define CALCDIMVALUE(x) (x)       // Dimming value is directly used for software dimming
+#else                             // only for HARDWARE_IPSTUBE_CLOCK in the moment
 #define ACTIVATEDISPLAYS LOW      // Activate is LOW for the IPSTUBEs
 #define DEACTIVATEDISPLAYS HIGH   // Deactivate is HIGH for the IPSTUBEs
 #define CALCDIMVALUE(x) (255 - x) // Dimming value is "inverted" for hardware dimming for IPSTUBEs
@@ -425,6 +425,10 @@
 #define SPI_FREQUENCY 40000000
 
 #define SPI_READ_FREQUENCY 20000000
+
+// Global definitions for PWM frequency and resolution for TFT dimming
+#define TFT_PWM_FREQ 20000   // PWM frequency for TFT dimming (Hz)
+#define TFT_PWM_RESOLUTION 8 // PWM resolution for TFT dimming (bits)
 
 /*
  * To make the Library not over-write all this:
