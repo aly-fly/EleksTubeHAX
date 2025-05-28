@@ -32,11 +32,11 @@ public:
         RX8025T();
 
         void init(uint32_t rtcSDA = -1, uint32_t rtcSCL = -1, TwoWire &wireBus = Wire);
-        //static time_t get(void); // Must be static to work with setSyncProvider() in the Time library
+        // static time_t get(void); // Must be static to work with setSyncProvider() in the Time library
         time_t get(void);
         uint8_t set(time_t t);
 
-        //static uint8_t read(tmElements_t &tm); // must be static to work with get() and setSyncProvider() in the Time library
+        // static uint8_t read(tmElements_t &tm); // must be static to work with get() and setSyncProvider() in the Time library
         uint8_t read(tmElements_t &tm);
         uint8_t write(tmElements_t &tm);
 
@@ -61,6 +61,6 @@ private:
         static uint8_t bcd2dec(uint8_t n);
 };
 
-//extern RX8025T RTC_RX8025T;
+// extern RX8025T RTC_RX8025T;
 
 #endif

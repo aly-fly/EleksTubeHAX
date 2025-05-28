@@ -12,12 +12,12 @@
 #define NTP_PACKET_SIZE 48
 #define NTP_DEFAULT_LOCAL_PORT 1337
 
-//#define DEBUG_NTPClient
+// #define DEBUG_NTPClient
 
 class NTPClient
 {
 private:
-  UDP *_udp;
+  UDP *_udp;s
   bool _udpSetup = false;
 
   const char *_poolServerName = "pool.ntp.org"; // Default time server

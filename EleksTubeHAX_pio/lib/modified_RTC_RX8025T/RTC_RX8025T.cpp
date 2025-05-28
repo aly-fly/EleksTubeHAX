@@ -82,7 +82,7 @@
 #define FOUT_1024 0x04
 #define FOUT_1 0x08
 
-RX8025T::RX8025T() : i2cBus(&Wire)  // Initialize i2cBus with default Wire instance
+RX8025T::RX8025T() : i2cBus(&Wire) // Initialize i2cBus with default Wire instance
 {
 }
 
@@ -97,7 +97,7 @@ void RX8025T::init(uint32_t rtcSDA, uint32_t rtcSCL, TwoWire &wireBus)
 {
   i2cBus = &wireBus; // Assign the passed TwoWire instance to the member variable
 
-#ifdef DEBUG_OUTPUT_RTC  
+#ifdef DEBUG_OUTPUT_RTC
   Serial.println("DEBUG_OUTPUT_RTC: RX8025T RTC SDA pin: " + String(rtcSDA) + " and SCL pin: " + String(rtcSCL));
 #endif
 
@@ -139,11 +139,11 @@ time_t RX8025T::get()
   if (read(tm))
   {
 #ifdef DEBUG_OUTPUT_RTC
-        Serial.println("DEBUG_OUTPUT_RTC: Failed to read time from RX8025T.");
+    Serial.println("DEBUG_OUTPUT_RTC: Failed to read time from RX8025T.");
 #endif
-        return 0;
+    return 0;
   }
-  
+
   return makeTime(tm);
 }
 
@@ -264,7 +264,6 @@ uint8_t RX8025T::readRTC(uint8_t addr, uint8_t *values, uint8_t nBytes)
 
   return 0;
 }
-
 
 /*----------------------------------------------------------------------*
  * Read a single uint8_t from RTC RAM.                                  *
