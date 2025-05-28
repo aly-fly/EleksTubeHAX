@@ -367,12 +367,9 @@ If you encounter issues with automatic installation, refer to the comments in `p
 | knolleary/PubSubClient | Nick O'Leary | 2.8.0 | [https://www.arduinolibraries.info/libraries/pub-sub-client](https://www.arduinolibraries.info/libraries/pub-sub-client) |
 | bblanchon/ArduinoJson | Benoit Blanchon | 7.4.1 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
 | makuna/RTC | Michael C.Miller | 2.5.0 | [https://github.com/Makuna/Rtc/wiki](https://github.com/Makuna/Rtc/wiki) |
-| sparkfun/SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
 
 **Notes**:
 `makuna/RTC` is only required for "SI HAI clock".
-
-`sparkfun/SparkFun APDS9960 RGB and Gesture Sensor` is only required by NovelLife SE clocks with gesture sensor.
 
 ##### 5.3.3.3 Library Code Used
 
@@ -387,12 +384,15 @@ Original libraries:
 
 ##### 5.3.3.4 Modified Libraries
 
-| Library | Author | Latest Version | Source Code Link |
-| --- | --- | --- | --- |
-| (not listed) | Marcin Saj | 1.0.7 | [https://github.com/marcinsaj/RTC_RX8025T](https://github.com/marcinsaj/RTC_RX8025T) |
-
 Some libraries require modifications to work with the specific clock hardware or to implement required functionality.  
 The modified versions are stored in the `lib` directory of the `EleksTubeHAX_pio` project.
+
+| Library | Author | Latest Version | Source Code Link |
+| --- | --- | --- | --- |
+| sparkfun/SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
+| (not listed in PIO registry) | Marcin Saj | 1.0.7 | [https://github.com/marcinsaj/RTC_RX8025T](https://github.com/marcinsaj/RTC_RX8025T) |
+
+**Note:** The modified version of the `SparkFun APDS-9960` library is only required for the NovelLife SE clock (which includes a gesture sensor). It is always compiled **but not linked** for other clock variants.
 
 #### 5.3.4 Configure the `TFT_eSPI` library
 
