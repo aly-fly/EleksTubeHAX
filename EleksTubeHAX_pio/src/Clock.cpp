@@ -124,6 +124,7 @@ RTC_DS3231 RTC; // DS3231, works also with DS1307 or PCF8523
 
 void RtcBegin()
 {
+  Wire.begin(RTC_SDA_PIN, RTC_SCL_PIN);
   if (!RTC.begin())
   {
     Serial.println("No supported RTC found!");
