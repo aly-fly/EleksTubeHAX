@@ -851,9 +851,11 @@ Thanks to @Fastdruid for finding a good way to overcome this problem! (see [Issu
 **Components needed:**
 
 * 1× CH340C chip (SOP-16 package) - USB to UART converter
-* 2× 1µF SMD capacitors (50V - 0805 format) - for auto-download circuit
+* 2× 10k Ohm SMD resistors (0805 format) - for auto-download circuit
 * 2× 8050 transistors (SOT-23 package) - for auto-download circuit
 * 1× 4.7nF SMD capacitor (50V - 0805 format) - decoupling capacitor
+
+![PunkCyber Missing Components](/documentation/ImagesMD/PunkCyber_PCB_CH340_components.jpg)
 
 **Soldering notes:**
 
@@ -863,7 +865,9 @@ Thanks to @Fastdruid for finding a good way to overcome this problem! (see [Issu
   * Hot air soldering station
 * It is possible to solder these few components with a normal soldering iron and wire, but I would not recommend it.
 
-When properly soldered, the clock will be recognized as a virtual COM port when connected via USB-C to your computer
+![PunkCyber Soldered Components](/documentation/ImagesMD/PunkCyber_PCB_CH340_soldered.jpg)
+
+When properly soldered, the clock will be recognized as a virtual COM port when connected via USB-C to your computer.
 
 #### 8.2 EleksTube Gen1: 5V on CH340 and ESP32
 
