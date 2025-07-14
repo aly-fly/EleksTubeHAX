@@ -1,4 +1,25 @@
 /**
+ * The MIT License (MIT)
+ * Copyright (c) 2015 by Fabrice Weinberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+ 
+ /**
  * Copyright (c) 2015 by Fabrice Weinberg
  *
  * Library copied from: https://github.com/arduino-libraries/NTPClient
@@ -9,8 +30,7 @@
  * - checking NTP protocol version
  */
 
-#include "NTPClient_AO.h"
-
+#include "NTPClient.h"
 #ifdef DEBUG_NTPClient
 #define DBG(X) Serial.println(F(X))
 #else
@@ -34,11 +54,26 @@ NTPClient::NTPClient(UDP &udp, const char *poolServerName)
   this->_poolServerName = poolServerName;
 }
 
+NTPClient::NTPClient(UDP &udp, IPAddress poolServerIP)
+{
+  this->_udp = &udp;
+  this->_poolServerIP = poolServerIP;
+  this->_poolServerName = NULL;
+}
+
 NTPClient::NTPClient(UDP &udp, const char *poolServerName, long timeOffset)
 {
   this->_udp = &udp;
   this->_timeOffset = timeOffset;
   this->_poolServerName = poolServerName;
+}
+
+NTPClient::NTPClient(UDP &udp, IPAddress poolServerIP, long timeOffset)
+{
+  this->_udp = &udp;
+  this->_timeOffset = timeOffset;
+  this->_poolServerIP = poolServerIP;
+  this->_poolServerName = NULL;
 }
 
 NTPClient::NTPClient(UDP &udp, const char *poolServerName, long timeOffset, unsigned long updateInterval)
@@ -49,12 +84,21 @@ NTPClient::NTPClient(UDP &udp, const char *poolServerName, long timeOffset, unsi
   this->_updateInterval = updateInterval;
 }
 
+NTPClient::NTPClient(UDP &udp, IPAddress poolServerIP, long timeOffset, unsigned long updateInterval)
+{
+  this->_udp = &udp;
+  this->_timeOffset = timeOffset;
+  this->_poolServerIP = poolServerIP;
+  this->_poolServerName = NULL;
+  this->_updateInterval = updateInterval;
+}
+
 void NTPClient::begin()
 {
   this->begin(NTP_DEFAULT_LOCAL_PORT);
 }
 
-void NTPClient::begin(int port)
+void NTPClient::begin(unsigned int port)
 {
   this->_port = port;
 
@@ -187,17 +231,22 @@ bool NTPClient::update()
   if ((millis() - this->_lastUpdate >= this->_updateInterval) // Update after _updateInterval
       || this->_lastUpdate == 0)
   { // Update if there was no update yet.
-    if (!this->_udpSetup)
-      this->begin(); // setup the UDP client if needed
+    if (!this->_udpSetup || this->_port != NTP_DEFAULT_LOCAL_PORT)
+      this->begin(this->_port); // setup the UDP client if needed
     return this->forceUpdate();
   }
-  return true;
+  return false; // return false if update does not occur
+}
+
+bool NTPClient::isTimeSet() const
+{
+  return (this->_lastUpdate != 0); // returns true if the time has been set, else false
 }
 
 unsigned long NTPClient::getEpochTime() const
 {
   return this->_timeOffset +                      // User offset
-         this->_currentEpoc +                     // Epoc returned by the NTP server
+         this->_currentEpoc +                     // Epoch returned by the NTP server
          ((millis() - this->_lastUpdate) / 1000); // Time since last update
 }
 
@@ -285,4 +334,10 @@ bool NTPClient::sendNTPPacket()
     returnValue = this->_udp->endPacket() && returnValue;
   }
   return returnValue;
+}
+
+void NTPClient::setRandomPort(unsigned int minValue, unsigned int maxValue)
+{
+  randomSeed(analogRead(0));
+  this->_port = random(minValue, maxValue);
 }

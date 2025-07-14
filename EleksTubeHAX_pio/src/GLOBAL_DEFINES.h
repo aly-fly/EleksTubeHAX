@@ -7,6 +7,8 @@
  *   User configuration is located in "_USER_DEFINES.h"
  */
 
+ #pragma once
+
 #ifndef GLOBAL_DEFINES_H_
 #define GLOBAL_DEFINES_H_
 
@@ -29,7 +31,10 @@
 #define ESP_MANUFACTURER "ESPRESSIF"
 #define ESP_MODEL_NUMBER "ESP32"
 #define ESP_MODEL_NAME "IPS clock"
+
+#ifndef CONFIG_ESP32_WIFI_NVS_ENABLED
 #define CONFIG_ESP32_WIFI_NVS_ENABLED 1 // Force NVS usage for WiFi driver
+#endif // CONFIG_ESP32_WIFI_NVS_ENABLED
 
 // ************ MQTT config *********************
 #define MQTT_RECONNECT_WAIT_SEC 30      // how long to wait between retries to connect to broker

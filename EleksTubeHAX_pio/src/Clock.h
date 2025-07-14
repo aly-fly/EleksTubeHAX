@@ -7,7 +7,7 @@
 
 // For NTP
 #include <WiFi.h>
-#include "NTPClient_AO.h"
+#include "NTPClient.h"
 
 #include "StoredConfig.h"
 // For TFTs::blanked

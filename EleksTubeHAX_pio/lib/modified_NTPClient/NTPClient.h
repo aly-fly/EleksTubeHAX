@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Arduino.h"
-#include <_USER_DEFINES.h> // User defines (located in the src folder)
+// #include "_USER_DEFINES.h" // User defines (located in the src folder)
 
 #include <Udp.h>
 
@@ -21,7 +21,8 @@ private:
   bool _udpSetup = false;
 
   const char *_poolServerName = "pool.ntp.org"; // Default time server
-  int _port = NTP_DEFAULT_LOCAL_PORT;
+  IPAddress _poolServerIP;
+  unsigned int _port = NTP_DEFAULT_LOCAL_PORT;
   long _timeOffset = 0;
 
   unsigned long _updateInterval = 60000; // In ms
@@ -32,11 +33,14 @@ private:
   bool sendNTPPacket();
 
 public:
-  explicit NTPClient(UDP &udp);
-  explicit NTPClient(UDP &udp, long timeOffset);
-  explicit NTPClient(UDP &udp, const char *poolServerName);
+  NTPClient(UDP &udp);
+  NTPClient(UDP &udp, long timeOffset);
+  NTPClient(UDP &udp, const char *poolServerName);
   NTPClient(UDP &udp, const char *poolServerName, long timeOffset);
   NTPClient(UDP &udp, const char *poolServerName, long timeOffset, unsigned long updateInterval);
+  NTPClient(UDP &udp, IPAddress poolServerIP);
+  NTPClient(UDP &udp, IPAddress poolServerIP, long timeOffset);
+  NTPClient(UDP &udp, IPAddress poolServerIP, long timeOffset, unsigned long updateInterval);
 
   /**
    * Set time server name
@@ -46,6 +50,11 @@ public:
   void setPoolServerName(const char *poolServerName);
 
   /**
+   * Set random local port
+   */
+  void setRandomPort(unsigned int minValue = 49152, unsigned int maxValue = 65535);
+
+  /**
    * Starts the underlying UDP client with the default local port
    */
   void begin();
@@ -53,7 +62,7 @@ public:
   /**
    * Starts the underlying UDP client with the specified local port
    */
-  void begin(int port);
+  void begin(unsigned int port);
 
   /**
    * This should be called in the main loop of your application. By default an update from the NTP Server is only
@@ -69,6 +78,13 @@ public:
    * @return true on success, false on failure
    */
   bool forceUpdate();
+
+  /**
+   * This allows to check if the NTPClient successfully received a NTP packet and set the time.
+   *
+   * @return true if time has been set, else false
+   */
+  bool isTimeSet() const;
 
   int getDay() const;
   int getHours() const;
