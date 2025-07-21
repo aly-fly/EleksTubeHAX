@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Arduino.h"
-#include "..\..\src\_USER_DEFINES.h" // User defines (located in the src folder)
+#include "_USER_DEFINES.h" // User defines (automatically found via library.json build flags)
 
 #include <Udp.h>
 
