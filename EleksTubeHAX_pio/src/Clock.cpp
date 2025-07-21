@@ -332,7 +332,7 @@ time_t Clock::syncProvider()
   // check if we need to update from the NTP time
   if (millis() - millis_last_ntp > current_ntp_interval_ms || millis_last_ntp == 0) // Adaptive interval timing
   {                                                                                 // It's time to get a new NTP sync
-    Serial.println("Clock:syncProvider() - Time to update from NTP Server!");
+    Serial.println("\nTime to update from NTP Server!");
     if (WifiState == connected)
     { // We have WiFi, so try to get NTP time.
       Serial.print("Try to get the actual time from NTP server by calling ntpTimeClient.update()!\n");
