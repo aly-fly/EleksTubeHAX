@@ -67,6 +67,10 @@ void GestureInterruptRoutine(void); // only for NovelLife SE
 void HandleGesture(void);           // only for NovelLife SE
 #endif                              // NovelLife_SE Clone XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+//-----------------------------------------------------------------------
+// Setup
+//-----------------------------------------------------------------------
+
 void setup()
 {
   Serial.begin(115200);
@@ -205,9 +209,14 @@ void setup()
   Serial.println("Setup finished.");
 }
 
+//-----------------------------------------------------------------------
+// Main loop
+//-----------------------------------------------------------------------
+
 void loop()
 {
   uint32_t millis_at_top = millis();
+
   // Do all the maintenance work
   WifiReconnect(); // if not connected attempt to reconnect
 

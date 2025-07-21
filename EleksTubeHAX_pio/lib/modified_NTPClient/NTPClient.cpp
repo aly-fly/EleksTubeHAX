@@ -18,8 +18,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
- 
- /**
+
+/**
  * Copyright (c) 2015 by Fabrice Weinberg
  *
  * Library copied from: https://github.com/arduino-libraries/NTPClient
@@ -100,16 +100,20 @@ void NTPClient::begin()
 
 void NTPClient::begin(unsigned int port)
 {
+  DBG("NTPClient::begin()");
+
   this->_port = port;
 
   this->_udp->begin(this->_port);
 
   this->_udpSetup = true;
+
+  DBG("NTPClient::begin() - UDP client setup done. _udpSetup = true");
 }
 
 bool NTPClient::forceUpdate()
 {
-  DBG("Update from NTP Server...");
+  DBG("NTPClient::forceUpdate() - Update from NTP Server...");
 
   // flush any existing packets
   while (this->_udp->parsePacket() != 0)
@@ -117,7 +121,7 @@ bool NTPClient::forceUpdate()
 
   if (!this->sendNTPPacket())
   {
-    DBG("NTP err: Could not send packet");
+    DBG("NTPClient::forceUpdate() - Could not send packet");
     return false;
   }
 
@@ -130,7 +134,7 @@ bool NTPClient::forceUpdate()
     cb = this->_udp->parsePacket();
     if (timeout > 100)
     {
-      DBG("NTP Timeout!");
+      DBG("NTPClient::forceUpdate() - Timeout!");
       return false; // timeout after 1000 ms
     }
     timeout++;
@@ -144,12 +148,12 @@ bool NTPClient::forceUpdate()
 
   if (this->_udp->read(_packetBuffer, NTP_PACKET_SIZE) != NTP_PACKET_SIZE)
   {
-    DBG("NTP err: Incorrect data size");
+    DBG("NTPClient::forceUpdate() - NTP err: Incorrect data size");
     return false;
   }
 
 #ifdef DEBUG_NTPClient
-  Serial.print("NTP Data:");
+  Serial.print("NTPClient::forceUpdate() - Received NTP Data:");
   char s1[4];
   for (int i = 0; i < NTP_PACKET_SIZE; i++)
   {
@@ -174,33 +178,25 @@ bool NTPClient::forceUpdate()
   // Perform a few validity checks on the packet
   if ((_packetBuffer[0] & 0b11000000) == 0b11000000) // Check for LI=UNSYNC
   {
-#ifdef DEBUG_NTPClient
-    Serial.println("err: NTP UnSync");
-#endif
+    DBG("NTPClient::forceUpdate() - err: NTP UnSync");
     return false;
   }
 
   if ((_packetBuffer[0] & 0b00111000) >> 3 < 0b100) // Check for Version >= 4
   {
-#ifdef DEBUG_NTPClient
-    Serial.println("err: Incorrect NTP Version");
-#endif
+    DBG("NTPClient::forceUpdate() - err: Incorrect NTP Version");
     return false;
   }
 
   if ((_packetBuffer[0] & 0b00000111) != 0b100) // Check for Mode == Server
   {
-#ifdef DEBUG_NTPClient
-    Serial.println("err: NTP mode is not Server");
-#endif
+    DBG("NTPClient::forceUpdate() - err: NTP mode is not Server");
     return false;
   }
 
   if ((_packetBuffer[1] < 1) || (_packetBuffer[1] > 15)) // Check for valid Stratum
   {
-#ifdef DEBUG_NTPClient
-    Serial.println("err: Incorrect NTP Stratum");
-#endif
+    DBG("NTPClient::forceUpdate() - err: Incorrect NTP Stratum");
     return false;
   }
 
@@ -209,9 +205,7 @@ bool NTPClient::forceUpdate()
       _packetBuffer[20] == 0 && _packetBuffer[21] == 0 &&
       _packetBuffer[22] == 0 && _packetBuffer[23] == 0) // Check for ReferenceTimestamp != 0
   {
-#ifdef DEBUG_NTPClient
-    Serial.println("err: Incorrect NTP Ref Timestamp");
-#endif
+    DBG("NTPClient::forceUpdate() - err: Incorrect NTP Ref Timestamp");
     return false;
   }
 
@@ -223,6 +217,8 @@ bool NTPClient::forceUpdate()
 
   this->_currentEpoc = secsSince1900 - SEVENZYYEARS;
 
+  DBG("NTPClient::forceUpdate() - NTP time successfully received!");
+
   return true;
 }
 
@@ -231,6 +227,7 @@ bool NTPClient::update()
   if ((millis() - this->_lastUpdate >= this->_updateInterval) // Update after _updateInterval
       || this->_lastUpdate == 0)
   { // Update if there was no update yet.
+    DBG("NTPClient::update() - Time to update from NTP Server...");
     if (!this->_udpSetup || this->_port != NTP_DEFAULT_LOCAL_PORT)
       this->begin(this->_port); // setup the UDP client if needed
     return this->forceUpdate();

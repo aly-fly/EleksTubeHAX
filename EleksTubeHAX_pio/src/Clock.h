@@ -26,6 +26,12 @@ public:
   // This has to be static to pass to TimeLib::setSyncProvider.
   static time_t syncProvider();
 
+  // Adaptive NTP sync methods
+  static void handleNtpSuccess();
+  static void handleNtpFailure();
+  static void updateNtpInterval();
+  static uint32_t getCurrentNtpInterval() { return current_ntp_interval_ms; }
+
   // Set preferred hour format. true = 12hr, false = 24hr
   void setTwelveHour(bool th) { config->twelve_hour = th; }
   bool getTwelveHour() { return config->twelve_hour; }
@@ -106,7 +112,18 @@ private:
   static WiFiUDP ntpUDP;
   static NTPClient ntpTimeClient;
   static uint32_t millis_last_ntp;
-  const static uint32_t refresh_ntp_every_ms = 3600000; // Get new NTP every hour, use RTC in between.
+
+  // Adaptive NTP sync intervals
+  static uint32_t current_ntp_interval_ms;
+  static uint8_t consecutive_failures;
+  static uint8_t consecutive_successes;
+
+  // NTP interval constants (in milliseconds)
+  const static uint32_t ntp_interval_initial_ms = 300000; // 5 min - initial sync after boot
+  const static uint32_t ntp_interval_normal_ms = 1800000; // 30 min - normal operation
+  const static uint32_t ntp_interval_stable_ms = 3600000; // 1 hour - stable operation
+  const static uint32_t ntp_interval_error_ms = 600000;   // 10 min - after errors
+  const static uint32_t ntp_interval_max_ms = 7200000;    // 2 hours - maximum interval
 };
 
 extern Clock uclock;
