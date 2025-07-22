@@ -1,5 +1,5 @@
 /*
- * Library taken from: https://github.com/dushyantahuja/IPGeolocation  and heavily modified.
+ * Library taken from: https://github.com/dushyantahuja/IPGeolocation and heavily modified.
  * - added error checking
  * - cleaned code
  * - updated connection to server

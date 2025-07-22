@@ -7,6 +7,8 @@
  *   User configuration is located in "_USER_DEFINES.h"
  */
 
+#pragma once
+
 #ifndef GLOBAL_DEFINES_H_
 #define GLOBAL_DEFINES_H_
 
@@ -29,7 +31,10 @@
 #define ESP_MANUFACTURER "ESPRESSIF"
 #define ESP_MODEL_NUMBER "ESP32"
 #define ESP_MODEL_NAME "IPS clock"
+
+#ifndef CONFIG_ESP32_WIFI_NVS_ENABLED
 #define CONFIG_ESP32_WIFI_NVS_ENABLED 1 // Force NVS usage for WiFi driver
+#endif                                  // CONFIG_ESP32_WIFI_NVS_ENABLED
 
 // ************ MQTT config *********************
 #define MQTT_RECONNECT_WAIT_SEC 30      // how long to wait between retries to connect to broker
@@ -146,7 +151,7 @@
 #define BACKLIGHTS_PIN (GPIO_NUM_12)
 #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD.
 
-// No Buttons on SE verion!!!
+// No Buttons on SE version!!!
 // Set to pins, which should always be HIGH!
 #define BUTTON_LEFT_PIN (GPIO_NUM_3)
 #define BUTTON_MODE_PIN (GPIO_NUM_3)
@@ -155,6 +160,12 @@
 
 // Pins ADPS interupt
 #define GESTURE_SENSOR_INPUT_PIN (GPIO_NUM_5) // -> INTERRUPT
+
+// Pin for the active buzzer
+#define BUZZER_PIN (GPIO_NUM_19) // Buzzer pin, active HIGH, use with PWM
+
+// Pin for the microphone
+#define MIC_PIN (GPIO_NUM_35) // pin for the microphone -> over OP-AMP SK06
 
 // Second I2C to R8025T RTC.
 #define RTC_SCL_PIN (GPIO_NUM_32)
