@@ -133,6 +133,8 @@ void HandleGesture()
 }
 #endif // #ifdef HARDWARE_NOVELLIFE_CLOCK
 
+char UniqueDeviceName[32]; // Enough space for "EleksTubeHAK-" + 4 hex chars + null
+
 Backlights backlights;
 Buttons buttons;
 TFTs tfts;

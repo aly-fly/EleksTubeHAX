@@ -41,6 +41,8 @@ WiFiClientSecure espClient;
 WiFiClient espClient;
 #endif // MQTT_USE_TLS
 
+extern char UniqueDeviceName[32];
+
 // initialize the MQTT client
 PubSubClient MQTTclient(espClient);
 
@@ -69,10 +71,9 @@ bool endsWith(const char *str, const char *suffix);
 #ifdef MQTT_USE_TLS
 bool loadCARootCert();
 #endif // MQTT_USE_TLS
-
 #define concat5_into(buf, first, second, third, fourth, fifth) (snprintf((buf), sizeof(buf), "%s%s%s%s%s", (first), (second), (third), (fourth), (fifth)), (buf))
+
 // variables
-char UniqueDeviceName[32]; // Enough space for "EleksTubeIPS-" + 4 hex chars + null
 char outbuf[64];
 
 uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
@@ -473,12 +474,12 @@ bool MQTTStart(bool restart)
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message, if the connection get lost
     if (MQTTclient.connect(UniqueDeviceName,                                                      // MQTT client id
-                           MQTT_USERNAME,                                                   // MQTT username
-                           MQTT_PASSWORD,                                                   // MQTT password
+                           MQTT_USERNAME,                                                         // MQTT username
+                           MQTT_PASSWORD,                                                         // MQTT password
                            concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""), // last will topic
-                           0,                                                               // last will QoS
-                           MQTT_RETAIN_ALIVE_MESSAGES,                                      // retain message
-                           MQTT_ALIVE_MSG_OFFLINE))                                         // last will message
+                           0,                                                                     // last will QoS
+                           MQTT_RETAIN_ALIVE_MESSAGES,                                            // retain message
+                           MQTT_ALIVE_MSG_OFFLINE))                                               // last will message
     {
       Serial.println("MQTT connected");
       MQTTConnected = true;
@@ -505,7 +506,7 @@ bool MQTTStart(bool restart)
     Serial.println("DEBUG: Sending initial status messages...");
 #endif
     // send initial status messages
-    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                                                  // Reports that the device is online
+    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                                                        // Reports that the device is online
     MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/firmware", "", "", ""), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
     MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/ip", "", "", ""), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
     MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/network", "", "", ""), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
@@ -655,7 +656,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   else // process all other MQTT messages
   {
     if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "/set", "")) == 0) // Process "<UniqueDeviceName>/main/set"
-    {                                                                                      // Process JSON for main set command
+    {                                                                                            // Process JSON for main set command
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
       if (err)
