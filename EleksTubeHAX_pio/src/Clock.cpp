@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------------------------
 // begin RTC chip stuff
 //-----------------------------------------------------------------------------------------------
-#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip (SI HAI or IPSTUBE)
+#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip (Si Hai or IPSTUBE)
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 ThreeWire myWire(DS1302_IO, DS1302_SCLK, DS1302_CE); // IO, SCLK, CE
@@ -67,7 +67,7 @@ void RtcSet(uint32_t tt)
 #endif
   RTC.SetDateTime(temptime);
 }
-#elif defined(HARDWARE_NovelLife_SE_CLOCK) // for NovelLife_SE clone with R8025T RTC chip
+#elif defined(HARDWARE_NOVELLIFE_CLOCK) // for NovelLife_SE clone with R8025T RTC chip
 #include <RTC_RX8025T.h>                   // This header will now use Wire1 for I2C operations.
 
 RX8025T RTC;
@@ -120,7 +120,7 @@ uint32_t RtcGet()
 #endif
   return returnvalue;
 }
-#else // for Elekstube and all other clocks with DS3231 RTC chip or DS1307/PCF8523
+#else // for EleksTube and all other clocks with DS3231 RTC chip or DS1307/PCF8523
 #include <RTClib.h>
 
 RTC_DS3231 RTC; // DS3231, works also with DS1307 or PCF8523
@@ -241,7 +241,7 @@ void RtcSet(uint32_t tt)
 // Global variables for clock/NTP client
 uint32_t Clock::millis_last_ntp = 0;
 WiFiUDP Clock::ntpUDP;
-NTPClient Clock::ntpTimeClient(ntpUDP);
+NTPClient Clock::ntpTimeClient(ntpUDP, NTP_SERVER, 0, NTP_UPDATE_INTERVAL);
 
 // Adaptive NTP sync variables
 uint32_t Clock::current_ntp_interval_ms = Clock::ntp_interval_initial_ms;
@@ -266,17 +266,12 @@ void Clock::begin(StoredConfig::Config::Clock *config_)
 
   // Initialize the RTC chip
   RtcBegin();
+
   // Initialize the NTP client
   ntpTimeClient.begin();
 
   // Don't update the NTP time immediately here!!! Wait for the first loop() call!
   // Or the update interval will be too short and the initial call in the loop() will fail.
-  //-----------------
-  //  ntpTimeClient.update();
-  //  Serial.print("NTP time = ");
-  //  // millis_last_ntp = millis();
-  //  Serial.println(ntpTimeClient.getFormattedTime());
-  //-----------------
 
   // Set the sync provider for TimeLib to our syncProvider method
   setSyncProvider(&Clock::syncProvider);
@@ -332,10 +327,10 @@ time_t Clock::syncProvider()
   // check if we need to update from the NTP time
   if (millis() - millis_last_ntp > current_ntp_interval_ms || millis_last_ntp == 0) // Adaptive interval timing
   {                                                                                 // It's time to get a new NTP sync
-    Serial.println("\nTime to update from NTP Server!");
+    Serial.println("\nTime to update from NTP Server...");
     if (WifiState == connected)
     { // We have WiFi, so try to get NTP time.
-      Serial.print("Try to get the actual time from NTP server by calling ntpTimeClient.update()!\n");
+      Serial.print("Try to get the actual time from NTP server by calling ntpTimeClient.update()...\n");
       if (ntpTimeClient.update())
       {
         Serial.println("NTP update query was successful!");

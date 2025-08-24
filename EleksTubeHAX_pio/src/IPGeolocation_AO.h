@@ -9,7 +9,7 @@
 #define IPGeolocation_h
 
 #define DEBUG
-#define GEO_CONN_TIMEOUT_SEC 15
+#define GEO_CONN_TIMEOUT_SEC 15 // connection timeout in seconds
 
 #ifndef DEBUGPRINT
 #ifdef DEBUG

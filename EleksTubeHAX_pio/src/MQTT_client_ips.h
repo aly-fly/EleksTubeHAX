@@ -30,7 +30,7 @@
 #define TopicHAstatus "homeassistant/status"
 // The discovery messages are sent to Home Assistant to automatically discover the device and its entities.
 // The messages should be retained by default, but you can change this with the setting below.
-// Retained messages can create ghost entities that keep coming back (for example if you change MQTT_CLIENT). You need to delete them manually from the broker queue!
+// Retained messages can create ghost entities that keep coming back (for example if you change UniqueDeviceName). You need to delete them manually from the broker queue!
 #define MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES true // discovery messages are retained by default in HA.
 
 #define MQTT_BRIGHTNESS_MAIN_MAX 255
@@ -40,6 +40,7 @@
 #define MQTT_STATE_ON "ON"
 #define MQTT_STATE_OFF "OFF"
 
+extern char UniqueDeviceName[32];
 extern bool MQTTConnected;
 
 // commands from server

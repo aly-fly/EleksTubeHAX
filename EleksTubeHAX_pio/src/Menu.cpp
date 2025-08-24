@@ -80,8 +80,8 @@ void Menu::loop(Buttons &buttons)
     state_changed = true;
     return;
   }
-  // Some other button state, but it doesn't trigger any change in state.  There are LOTS of states that will
-  // get here, but I think they're all "just do nothing."  If there's an explicit state we want to handle,
+  // Some other button state, but it doesn't trigger any change in state. There are LOTS of states that will
+  // get here, but I think they're all "just do nothing." If there's an explicit state we want to handle,
   // add an if() block above.
 }
 #endif

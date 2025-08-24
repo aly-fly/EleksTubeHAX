@@ -67,7 +67,7 @@ void TFTs::loadClockFacesNames()
 {
   int8_t i = 0;
   const char *filename = "/clockfaces.txt";
-  Serial.println("Load clock face's names");
+  Serial.println("Loading clock face names...");
   fs::File f = SPIFFS.open(filename);
   if (!f)
   {
@@ -217,7 +217,7 @@ void TFTs::ProcessUpdatedDimming()
 {
 #ifdef DIM_WITH_ENABLE_PIN_PWM
   // hardware dimming is done via PWM on the pin defined by TFT_ENABLE_PIN
-  // ONLY for IPSTUBE clocks in the moment! Other clocks may be damaged!
+  // ONLY for IPSTube clocks in the moment! Other clocks may be damaged!
   if (TFTsEnabled)
   {
     ledcWrite(TFT_PWM_CHANNEL, CALCDIMVALUE(dimming));

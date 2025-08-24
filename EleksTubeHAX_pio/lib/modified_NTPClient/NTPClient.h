@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Arduino.h"
-#include "_USER_DEFINES.h" // User defines (automatically found via library.json build flags)
+#include "_USER_DEFINES.h"
 
 #include <Udp.h>
 
