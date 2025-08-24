@@ -1,4 +1,4 @@
-name: EleksTubeHAX builds with PlatformIO on multiple platforms
+name: Create EleksTubeHAX builds with PlatformIO on multiple platforms
 
 on:
   push:
@@ -48,10 +48,26 @@ jobs:
     - name: Install PlatformIO Core
       run: pip install --upgrade platformio
 
-    - name: Build PlatformIO Project for 4MB flash
-      run: pio run --environment EleksTubeHax
+    - name: Build PlatformIO Project for original EleksTube IPS clocks with 4MB flash.
+      run: pio run --environment EleksTube_4MB
       working-directory: ./EleksTubeHAX_pio
 
-    - name: Build PlatformIO Project for 8MB flash
-      run: pio run --environment EleksTubeHax8MB
+    - name: Build PlatformIO Project for original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip).
+      run: pio run --environment EleksTube_Gen2
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for the Si Hai copy of the clock.
+      run: pio run --environment SI_HAI
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for the NovelLife clocks.
+      run: pio run --environment NovelLife
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for the PunkCyber / RGB Glow tube / PCBway clocks.
+      run: pio run --environment PunkCyber
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for all clocks with 8MB flash on PCB (like the IPSTube model H401 and H402).
+      run: pio run --environment IPSTube_8MB
       working-directory: ./EleksTubeHAX_pio
