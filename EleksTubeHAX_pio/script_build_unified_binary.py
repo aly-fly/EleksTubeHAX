@@ -1,6 +1,5 @@
 # Combines separate bin files with their respective offsets into a single file
 # This single file must then be flashed to an ESP32 node with 0x0 offset.
-import esptool
 from os.path import join
 import sys
 import subprocess
@@ -10,7 +9,7 @@ platform = env.PioPlatform()
 
 env.Execute("$PYTHONEXE -m pip install intelhex")
 sys.path.append(join(platform.get_package_dir("tool-esptoolpy")))
-
+import esptool
 
 def pio_run_buildfs(source, target, env):
     print("script_build_unified_binary.py: Building SPIFFS filesystem image...")
