@@ -16,6 +16,9 @@
 #include <Arduino.h>
 #include "_USER_DEFINES.h"
 
+#define VALUE(string) #string
+#define TO_LITERAL(string) VALUE(string)
+
 // ************* Type of the clock hardware  *************
 // Do not uncomment, set by platform.ini file.
 // #define HARDWARE_ELEKSTUBE_CLOCK      // Original EleksTube IPS clocks with 4MB flash
@@ -31,7 +34,7 @@
 #endif // #ifdef HARDWARE_PUNKCYBER_CLOCK
 
 // ************* Version Infomation  *************
-#define FIRMWARE_VERSION "1.2"
+#define FIRMWARE_VERSION TO_LITERAL(BUILDVER)
 #define DEVICE_NAME "EleksTubeHAX"
 #define SAVED_CONFIG_NAMESPACE "configs"
 

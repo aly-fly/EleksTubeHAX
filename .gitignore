@@ -1,16 +1,1 @@
-# exclude personal settings for the project (wifi credentials, etc.) -> copy initially from "_USER_DEFINES - empty.h" to "_USER_DEFINES.h"
-_USER_DEFINES.h
-
-# PlatformIO build files - exclude all .pio folders and contents
-.pio/
-**/.pio/
-
-# VS Code workspace settings - exclude all .vscode folders and contents
-.vscode/
-**/.vscode/
-
-# But allow specific VS Code files to be committed
-!.vscode/extensions.json
-!.vscode/tasks.json
-!**/.vscode/extensions.json
-!**/.vscode/tasks.json
+.act_artifacts

@@ -9,28 +9,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  set-version:
-    runs-on: ubuntu-latest
-    outputs:
-      VERSION: ${{ steps.set_version.outputs.VERSION }}
-    steps:
-      - name: Set version number
-        id: set_version
-        run: |
-          MAJOR_VERSION=1
-          MINOR_VERSION=0
-          BUILD_NUMBER=${{ github.run_number }}
-          VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
   build-firmware:
-    needs: set-version
     strategy:
-      matrix:
-        hardware: ['Elekstube_CLOCK', 'Elekstube_CLOCK_Gen2', 'SI_HAI_CLOCK', 'NovelLife_SE_CLOCK', 'PunkCyber_CLOCK', 'IPSTUBE_CLOCK']
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ needs.set-version.outputs.VERSION }}
+      BUILD_NUMBER: ${{ github.run_number }}
     steps:
     - uses: actions/checkout@v4
 
@@ -45,114 +30,74 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Modify _USER_DEFINES.h file
+    - name: Create _USER_DEFINES.h file
       run: |
         echo "Copy _USER_DEFINES - empty.h to _USER_DEFINES.h"
         cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
-        echo "Modify _USER_DEFINES.h for hardware: ${{ matrix.hardware }}"
-        python3 ./EleksTubeHAX_pio/script_modify_user_defines.py "${{ matrix.hardware }}"
-        echo "Modified _USER_DEFINES.h content:"
-        cat "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
 
     - name: Update FIRMWARE_VERSION in GLOBAL_DEFINES.h
       run: |
-        echo "Updating FIRMWARE_VERSION in GLOBAL_DEFINES.h"
-        echo "Version: $VERSION"
-        sed -i "s|^\(#define FIRMWARE_VERSION\s*\"\)\([^\"\n]*\)\"|\1V$VERSION - \2\"|" "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
-        echo "Modified FIRMWARE_VERSION:"
-        grep '^#define FIRMWARE_VERSION' "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
-
-    - name: Install PlatformIO Core
-      run: pip install --upgrade platformio
-    
-    - name: Uncomment CREATE_FIRMWAREFILE in platformio.ini
-      run: |
-        echo "Uncomment CREATE_FIRMWAREFILE in platformio.ini!"
-        sed -i 's/; -D CREATE_FIRMWAREFILE/-D CREATE_FIRMWAREFILE/' "./EleksTubeHAX_pio/platformio.ini"
+        echo "Updating BUILDVER in platformio.ini"
+        echo "BUILD_NUMBER=$BUILD_NUMBER"
+        sed -E -i "s/(-D[[:space:]]*BUILDVER[[:space:]]*=[[:space:]]*[0-9]+\.[0-9]+\.)([0-9]+)/\1${BUILD_NUMBER}/" "./EleksTubeHAX_pio/platformio.ini"
         # Debug output
         echo "Modified platformio.ini content:"
         cat "./EleksTubeHAX_pio/platformio.ini"
 
-    - name: Build PlatformIO Project (for devices with 8MB flash)
-      if: ${{ matrix.hardware == 'IPSTUBE_CLOCK' }}
-      run: pio run --environment EleksTubeHax8MB
+    - name: Install PlatformIO Core
+      run: pip install --upgrade platformio
+
+    - name: Install esptool
+      run: pip install --upgrade esptool
+    
+    - name: Uncomment CREATE_FIRMWAREFILE in platformio.ini
+      run: |
+        echo "Uncomment CREATE_FIRMWAREFILE in platformio.ini!"
+        sed -i 's/;\s*-D\s*CREATE_FIRMWAREFILE/-D CREATE_FIRMWAREFILE/' "./EleksTubeHAX_pio/platformio.ini"
+        # Debug output
+        echo "Modified platformio.ini content:"
+        cat "./EleksTubeHAX_pio/platformio.ini"
+
+    - name: Build PlatformIO Project for original EleksTube IPS clocks with 4MB flash.
+      run: pio run --environment EleksTube_4MB
       working-directory: ./EleksTubeHAX_pio
 
-    - name: Build PlatformIO Project (for devices with 4MB flash)
-      if: ${{ matrix.hardware != 'IPSTUBE_CLOCK' }}
-      run: pio run --environment EleksTubeHax
+    - name: Build PlatformIO Project for original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip).
+      run: pio run --environment EleksTube_Gen2
       working-directory: ./EleksTubeHAX_pio
 
-    - name: Rename firmware files
-      run: |        
-        echo "Rename firmware files!"
-        if [ "${{ matrix.hardware }}" = "Elekstube_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_Elekstube_HAX_${{ env.VERSION }}_original.bin"
-          mv *_combined.bin "FW_Elekstube_HAX_${{ env.VERSION }}_original.bin"
-        elif [ "${{ matrix.hardware }}" = "Elekstube_CLOCK_Gen2" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_Elekstube_HAX_${{ env.VERSION }}_Gen2-1.bin"
-          mv *_combined.bin "FW_Elekstube_HAX_${{ env.VERSION }}_Gen2-1.bin"
-        elif [ "${{ matrix.hardware }}" = "SI_HAI_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_SI_HAI_CLOCK_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_SI_HAI_CLOCK_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "NovelLife_SE_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_NovelLife_SE_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_NovelLife_SE_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "PunkCyber_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_PunkCyber_Glow_PCBway_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_PunkCyber_Glow_PCBway_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "IPSTUBE_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax8MB
-          echo "move *_combined.bin to FW_IPSTUBE_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_IPSTUBE_HAX_${{ env.VERSION }}.bin"
-        else
-          echo "Unknown hardware: ${{ matrix.hardware }}"
-          exit 1
-        fi
+    - name: Build PlatformIO Project for the Si Hai copy of the clock.
+      run: pio run --environment SI_HAI
+      working-directory: ./EleksTubeHAX_pio
 
-    - name: Upload artifact
+    - name: Build PlatformIO Project for the NovelLife clocks.
+      run: pio run --environment NovelLife
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for the PunkCyber / RGB Glow tube / PCBway clocks.
+      run: pio run --environment PunkCyber
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Build PlatformIO Project for all clocks with 8MB flash on PCB (like the IPSTube model H401 and H402).
+      run: pio run --environment IPSTube_8MB
+      working-directory: ./EleksTubeHAX_pio
+
+    - name: Collect firmware bins (flatten)
+      run: |
+        set -euo pipefail
+        mkdir -p _artifact
+        shopt -s nullglob
+        # Copy each FW_*.bin to a flat staging dir.
+        for f in EleksTubeHAX_pio/.pio/build/*/FW_*.bin; do
+          env="$(basename "$(dirname "$f")")"
+          base="$(basename "$f")"
+          cp "$f" "_artifact/${base}"
+        done
+
+    - name: Upload artifact (flat)
       uses: actions/upload-artifact@v4
-      if: ${{ matrix.hardware == 'IPSTUBE_CLOCK' }}
       with:
-        name: firmware-${{ matrix.hardware }}        
-        path: |
-          EleksTubeHAX_pio/.pio/build/EleksTubeHax8MB/FW_*.bin
+        name: all-firmware
+        # Upload the files, not the directory, so they're at the artifact root.
+        path: _artifact/*.bin
         if-no-files-found: error
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      if: ${{ matrix.hardware != 'IPSTUBE_CLOCK' }}
-      with:
-        name: firmware-${{ matrix.hardware }}        
-        path: |
-          EleksTubeHAX_pio/.pio/build/EleksTubeHax/FW_*.bin
-        if-no-files-found: error
-
-  combine-artifacts:
-    needs: [set-version, build-firmware]
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.set-version.outputs.VERSION }}
-    steps:
-      - name: Check VERSION
-        run: |        
-          echo "VERSION=$VERSION"
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-firmware
-          pattern: firmware-*
-          merge-multiple: true
-
-      - name: Upload combined artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-firmware-v${{ env.VERSION }}
-          path: all-firmware/**/*.bin
-          if-no-files-found: error

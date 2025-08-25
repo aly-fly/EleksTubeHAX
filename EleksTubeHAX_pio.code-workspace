@@ -1,11 +1,13 @@
 {
 	"folders": [
-		{
-			"path": "EleksTubeHAX_pio"
-		},
-		{
-			"path": "."
-		}
-	],
+    {
+      "name": "EleksTubeHAX",
+      "path": "."
+    },
+    {
+      "name": "EleksTubeHAX_pio",
+      "path": "EleksTubeHAX_pio"
+    }
+  ],
   "settings": {}
 }

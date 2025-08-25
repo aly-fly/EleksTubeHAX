@@ -167,9 +167,10 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000); // Wait for serial monitor to catch up
+
   Serial.println("\nSystem starting...\n");
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
-  Serial.println(FIRMWARE_VERSION);
+  Serial.printf("Firmware version: v%s.\n", FIRMWARE_VERSION);
 
   uint64_t chipid = ESP.getEfuseMac(); // Get unique 48-bit chip ID
   snprintf(UniqueDeviceName, sizeof(UniqueDeviceName), "%s-%04X", DEVICE_NAME, (uint16_t)(chipid & 0xFFFF));

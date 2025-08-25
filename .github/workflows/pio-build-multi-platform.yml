@@ -38,11 +38,15 @@ jobs:
         python-version: '3.11'
        
     - name: Copy user_defines.h file on windows
-      run: copy "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
+      run: |
+        echo "Copy _USER_DEFINES - empty.h to _USER_DEFINES.h"
+        copy "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
       if: runner.os == 'Windows'
 
     - name: Copy user_defines.h file on linux
-      run: cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
+      run: |
+        echo "Copy _USER_DEFINES - empty.h to _USER_DEFINES.h"
+        cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
       if: runner.os == 'Linux'
       
     - name: Install PlatformIO Core
