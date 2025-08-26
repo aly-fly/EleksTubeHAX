@@ -427,6 +427,10 @@
  *   PunkCyber Clone    *
  ************************/
 #ifdef HARDWARE_PUNKCYBER_CLOCK
+#undef DEVICE_MANUFACTURER
+#undef DEVICE_MODEL
+#undef DEVICE_HW_VERSION
+
 #define DEVICE_MANUFACTURER "PunkCyber"
 #define DEVICE_MODEL "IPS Clock"
 #define DEVICE_HW_VERSION "1.0"
