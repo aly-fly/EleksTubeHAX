@@ -1,16 +1,36 @@
-# exclude personal settings for the project (wifi credentials, etc.) -> copy initially from "_USER_DEFINES - empty.h" to "_USER_DEFINES.h"
-_USER_DEFINES.h
+# Created by https://www.toptal.com/developers/gitignore/api/platformio,visualstudiocode
+# Edit at https://www.toptal.com/developers/gitignore?templates=platformio,visualstudiocode
 
-# PlatformIO build files - exclude all .pio folders and contents
-.pio/
-**/.pio/
+### PlatformIO ###
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+.pio
 
-# VS Code workspace settings - exclude all .vscode folders and contents
-.vscode/
-**/.vscode/
-
-# But allow specific VS Code files to be committed
-!.vscode/extensions.json
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
 !.vscode/tasks.json
-!**/.vscode/extensions.json
-!**/.vscode/tasks.json
+#!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+### Local History for Visual Studio Code ###
+.history
+
+### Built Visual Studio Code Extensions ###
+*.vsix
+
+### VisualStudioCode Patch ###
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/platformio,visualstudiocode
+
+# Exclude personal settings for the project (wifi credentials, etc.).
+include/_USER_DEFINES.h
+
+# Ignore "act" files (GitHub Actions locally).
+.act_artifacts
+.actrc
+.act
