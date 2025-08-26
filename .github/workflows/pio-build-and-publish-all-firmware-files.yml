@@ -7,18 +7,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Kill older runs for the same ref to save minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  actions: write # Required to list/delete caches during pruning
 
 env:
   PIO_DIR: EleksTubeHAX_pio # Set project base dir once here
-  GH_TOKEN: ${{ github.token }}
-  GITHUB_TOKEN: ${{ github.token }}
-  CI: true
-  GH_PROMPT_DISABLED: "1"
-  GH_PAGER: cat
-  GH_NO_UPDATE_NOTIFIER: "1"
 
 jobs:
   discover-envs:
@@ -51,8 +49,10 @@ jobs:
           echo "  🐞 Detected PIO environments: ${envs_json}."
 
   build:
+    name: Build ${{ matrix.env }}.
     runs-on: ubuntu-latest
     needs: discover-envs
+
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
@@ -67,39 +67,6 @@ jobs:
     steps:
       - name: Checkout repo.
         uses: actions/checkout@v4
-
-      # --- Tooling installs (gh + jq) ---------------------------------------
-      - name: Install GitHub CLI & jq (Linux).
-        if: runner.os == 'Linux'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y jq
-          if ! command -v gh >/dev/null 2>&1; then
-            # Install GitHub CLI via official apt repo if not already on image.
-            type -p curl >/dev/null || sudo apt-get install -y curl
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-              | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-              | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt-get update
-            sudo apt-get install -y gh
-          fi
-
-      - name: Install GitHub CLI & jq (Windows).
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          choco install gh jq -y --no-progress
-          refreshenv
-
-      - name: Install GitHub CLI & jq (macOS).
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install gh jq || true
-      # ----------------------------------------------------------------------
 
       - name: Cache PlatformIO core (platforms/frameworks).
         uses: actions/cache@v4
@@ -212,23 +179,65 @@ jobs:
       name: Prune old PlatformIO caches
       runs-on: ubuntu-latest
       needs: build
+
+      permissions:
+        contents: read
+        actions: write # Required to list/delete caches during pruning
+
       if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
       steps:
+        - name: Detect local act runtime
+          id: detect
+          shell: bash
+          run: |
+            if [ "${ACT:-}" = "true" ]; then
+              echo "is_act=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "is_act=false" >> "$GITHUB_OUTPUT"
+            fi
+
+        # --- Tooling installs (gh + jq) ---------------------------------------
         - name: Install GitHub CLI & jq (Linux).
+          if: ${{ steps.detect.outputs.is_act != 'true' && runner.os == 'Linux' }}
           run: |
             set -euo pipefail
             sudo apt-get update
             sudo apt-get install -y jq
             if ! command -v gh >/dev/null 2>&1; then
+              # Install GitHub CLI via official apt repo if not already on image.
               type -p curl >/dev/null || sudo apt-get install -y curl
-              curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+              curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+                | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
               sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-              sudo apt-get update
-              sudo apt-get install -y gh
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+                | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+              apt-get update
+              apt-get install -y gh
             fi
+
+        - name: Install GitHub CLI & jq (Windows).
+          if: ${{ steps.detect.outputs.is_act != 'true' && runner.os == 'Windows' }}
+          shell: powershell
+          run: |
+            choco install gh jq -y --no-progress
+            refreshenv
+
+        - name: Install GitHub CLI & jq (macOS).
+          if: ${{ steps.detect.outputs.is_act != 'true' && runner.os == 'macOS' }}
+          run: |
+            brew update
+            brew install gh jq || true
+        # ----------------------------------------------------------------------
+
         - name: Prune caches for PlatformIO (Linux + Windows prefixes, keep newest N).
+          if: ${{ steps.detect.outputs.is_act != 'true' }}
           env:
+            GH_TOKEN: ${{ github.token }}
+            GITHUB_TOKEN: ${{ github.token }}
+            CI: true
+            GH_PROMPT_DISABLED: "1"
+            GH_PAGER: cat
+            GH_NO_UPDATE_NOTIFIER: "1"
             KEEP: "3" # Adjust as needed
           run: |
             set -euo pipefail
