@@ -514,7 +514,7 @@ bool MQTTStart(bool restart)
 #endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
-    MQTTclient.subscribe(TopicHAstatus); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
+    MQTTclient.subscribe(MQTT_TOPIC_HASTATUS); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
     MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "/set", ""));
     MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "/set", ""));
     MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "/set", ""));
@@ -531,7 +531,7 @@ bool MQTTStart(bool restart)
     Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicBreath);
     Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicPulse);
     Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicRainbow);
-    Serial.println(TopicHAstatus);
+    Serial.println(MQTT_TOPIC_HASTATUS);
 #endif // DEBUG_OUTPUT_MQTT
 #endif // MQTT_HOME_ASSISTANT
   }
@@ -617,7 +617,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
 #endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
-  if (strcmp(topic, TopicHAstatus) == 0) // Process "homeassistant/status" messages -> react if Home Assistant is online or offline
+  if (strcmp(topic, MQTT_TOPIC_HASTATUS) == 0) // Process "homeassistant/status" messages -> react if Home Assistant is online or offline
 
   {
     if (strcmp(message, "online") == 0)
@@ -974,7 +974,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicFront, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/light/", UniqueDeviceName, "/", TopicFront, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Back Light.
@@ -1006,7 +1006,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicBack, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/light/", UniqueDeviceName, "/", TopicBack, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Use Twelve Hours.
@@ -1035,7 +1035,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", Topic12hr, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/switch/", UniqueDeviceName, "/", Topic12hr, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Blank Zero Hours.
@@ -1064,7 +1064,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicBlank0, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/switch/", UniqueDeviceName, "/", TopicBlank0, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Pulses per minute.
