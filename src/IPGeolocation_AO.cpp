@@ -30,6 +30,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     const char *host = "ipgeolocation.abstractapi.com";
     const int httpsPort = 443;
     WiFiClientSecure httpsClient;
+
     httpsClient.setInsecure(); // Skip verification
     httpsClient.setTimeout(GEO_CONN_TIMEOUT_SEC * 1000);
 
@@ -62,21 +63,21 @@ bool IPGeolocation::updateStatus(IPGeo *I)
 
     DEBUGPRINT("Request sent, waiting for response...");
 
-    // DEBUGPRINT("headers:");
     uint32_t StartTime = millis();
     bool response_ok = false;
     while (httpsClient.connected())
     {
       _Response = httpsClient.readStringUntil('\n');
-      // DEBUGPRINT(_Response);
       if (_Response == "\r")
       {
-        DEBUGPRINT("headers received");
+        DEBUGPRINT("Headers received!");
+        // DEBUGPRINT(_Response); // Print response
         response_ok = true;
         break;
       }
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
+        Serial.printf("ERROR: Headers took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
         response_ok = false;
         break;
       }
@@ -92,11 +93,14 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     while (httpsClient.connected())
     {
       _Response = httpsClient.readString();
-      DEBUGPRINT(_Response); // Print response
       DEBUGPRINT("Response received!");
+      // DEBUGPRINT(_Response); // Print response
       response_ok = true;
+      break;
+
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
+        Serial.printf("ERROR: Response took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
         response_ok = false;
         break;
       }
