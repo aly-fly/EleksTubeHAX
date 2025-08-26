@@ -3,9 +3,7 @@
 
 #pragma once
 
-#include "Arduino.h"
-#include "_USER_DEFINES.h"
-
+#include <Arduino.h>
 #include <Udp.h>
 
 #define SEVENZYYEARS 2208988800UL

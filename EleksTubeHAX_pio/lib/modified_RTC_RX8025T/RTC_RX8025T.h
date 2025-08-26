@@ -18,7 +18,7 @@
 
 #include <TimeLib.h>
 #include <Wire.h>
-#include "../../src/_USER_DEFINES.h"
+#include "../../include/_USER_DEFINES.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>

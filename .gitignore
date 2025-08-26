@@ -1,1 +1,57 @@
+# Created by https://www.toptal.com/developers/gitignore/api/platformio,visualstudiocode
+# Edit at https://www.toptal.com/developers/gitignore?templates=platformio,visualstudiocode
+
+### PlatformIO ###
+**/.pioenvs
+**/.piolibdeps
+**/.clang_complete
+**/.gcc-flags.json
+**/.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+.pio
+
+### VisualStudioCode ###
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/tasks.json
+#!**/.vscode/launch.json
+!**/.vscode/extensions.json
+!**/.vscode/*.code-snippets
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+#!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+### Local History for Visual Studio Code ###
+**/.history/
+.history
+
+### Built Visual Studio Code Extensions ###
+**/*.vsix
+*.vsix
+
+### VisualStudioCode Patch ###
+**/.ionide
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/platformio,visualstudiocode
+
+# Exclude personal settings for the project (wifi credentials, etc.).
+**/include/_USER_DEFINES.h
+include/_USER_DEFINES.h
+
+# Ignore the auto-generated .gitignore file in the PIO folder.
+EleksTubeHax_pio/.gitignore
+
+# Ignore "act" files (GitHub Actions locally).
+**/.act_artifacts
+**/.actrc
+**/.act
 .act_artifacts
+.actrc
+.act

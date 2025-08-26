@@ -1,103 +1,216 @@
-name: EleksTubeHAX generate firmware files
+name: Build & publish combined EleksTubeHAX firmware binaries.
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'EleksTubeHAX_pio/**'
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write # Required to list/delete caches during pruning
+
+env:
+  PIO_DIR: EleksTubeHAX_pio # Set project base dir once here
+  GH_TOKEN: ${{ github.token }}
+  GITHUB_TOKEN: ${{ github.token }}
+  CI: true
+  GH_PROMPT_DISABLED: "1"
+  GH_PAGER: cat
+  GH_NO_UPDATE_NOTIFIER: "1"
+
 jobs:
-  build-firmware:
+  discover-envs:
+    runs-on: ubuntu-latest
+    outputs:
+      envs: ${{ steps.find.outputs.envs }}
+    steps:
+      - name: Checkout repo.
+        uses: actions/checkout@v4
+
+      - name: Find [env:*] sections in platformio.ini file.
+        id: find
+        shell: bash
+        working-directory: ${{ env.PIO_DIR }}
+        run: |
+          envs_json="$(
+            awk '
+              /^\[env:[^]]+\]/ {
+                match($0, /^\[env:([^]]+)\]/, m)
+                if (m[1] != "") envs[count++] = m[1]
+              }
+              END {
+                printf("[")
+                for (i=0; i<count; i++) printf("%s\"%s\"", (i>0?",":""), envs[i])
+                printf("]")
+              }
+            ' platformio.ini
+          )"
+          echo "envs=${envs_json}" >> "$GITHUB_OUTPUT"
+          echo "  🐞 Detected PIO environments: ${envs_json}."
+
+  build:
+    runs-on: ubuntu-latest
+    needs: discover-envs
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
-    runs-on: ubuntu-latest
-    env:
-      BUILD_NUMBER: ${{ github.run_number }}
+      matrix:
+        env: ${{ fromJson(needs.discover-envs.outputs.envs) }}
+
+    defaults:
+      run:
+        working-directory: ${{ env.PIO_DIR }}
+
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repo.
+        uses: actions/checkout@v4
 
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/pip
-          ~/.platformio/.cache
-        key: ${{ runner.os }}-pio
-      
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      # --- Cache pruning (keep only latest N ~/.platformio caches). ---------
+      - name: Install GitHub CLI & jq.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh jq
 
-    - name: Create _USER_DEFINES.h file
-      run: |
-        echo "Copy _USER_DEFINES - empty.h to _USER_DEFINES.h"
-        cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
+      - name: Prune old PlatformIO caches (gh api; non-interactive, guarded).
+        # Only run on branches in this repo (not PRs from forks with read-only token).
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          KEY_PREFIX: ${{ runner.os }}-platformio-
+          KEEP: "3" # Adjust as needed
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Update FIRMWARE_VERSION in GLOBAL_DEFINES.h
-      run: |
-        echo "Updating BUILDVER in platformio.ini"
-        echo "BUILD_NUMBER=$BUILD_NUMBER"
-        sed -E -i "s/(-D[[:space:]]*BUILDVER[[:space:]]*=[[:space:]]*[0-9]+\.[0-9]+\.)([0-9]+)/\1${BUILD_NUMBER}/" "./EleksTubeHAX_pio/platformio.ini"
-        # Debug output
-        echo "Modified platformio.ini content:"
-        cat "./EleksTubeHAX_pio/platformio.ini"
+          # If no token is available (e.g., running under `act` without providing one), skip pruning to avoid gh prompts.
+          if [ -z "${GH_TOKEN:-${GITHUB_TOKEN:-}}" ]; then
+            echo "  ⚠️ GH_TOKEN/GITHUB_TOKEN not set — skipping cache prune to avoid prompts."
+            exit 0
+          fi
 
-    - name: Install PlatformIO Core
-      run: pip install --upgrade platformio
+          repo="${{ github.repository }}"
+          echo "  🔧 Pruning caches with prefix: ${KEY_PREFIX} (keeping latest ${KEEP})."
 
-    - name: Install esptool
-      run: pip install --upgrade esptool
-    
-    - name: Uncomment CREATE_FIRMWAREFILE in platformio.ini
-      run: |
-        echo "Uncomment CREATE_FIRMWAREFILE in platformio.ini!"
-        sed -i 's/;\s*-D\s*CREATE_FIRMWAREFILE/-D CREATE_FIRMWAREFILE/' "./EleksTubeHAX_pio/platformio.ini"
-        # Debug output
-        echo "Modified platformio.ini content:"
-        cat "./EleksTubeHAX_pio/platformio.ini"
+          # List all cache pages, filter by prefix, sort by last access desc, drop the newest KEEP, delete the rest.
+          gh api --paginate -H "Accept: application/vnd.github+json" \
+            "/repos/${repo}/actions/caches?per_page=100" \
+          | jq -r --arg p "$KEY_PREFIX" --argjson k "$KEEP" '
+              .actions_caches? // empty
+              | map(select(.key | startswith($p)))
+              | sort_by(.last_accessed_at) | reverse
+              | .[$k:] | .[].id
+            ' \
+          | while read -r id; do
+              [ -z "$id" ] && continue
+              echo "  🔧 Deleting cache id '$id'."
+              gh api --method DELETE "/repos/${repo}/actions/caches/$id" || true
+            done
+      # ----------------------------------------------------------------------
 
-    - name: Build PlatformIO Project for original EleksTube IPS clocks with 4MB flash.
-      run: pio run --environment EleksTube_4MB
-      working-directory: ./EleksTubeHAX_pio
+      - name: Cache PlatformIO core (platforms/frameworks).
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('${{ env.PIO_DIR }}/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
 
-    - name: Build PlatformIO Project for original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip).
-      run: pio run --environment EleksTube_Gen2
-      working-directory: ./EleksTubeHAX_pio
+      - name: Setup Python.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Build PlatformIO Project for the Si Hai copy of the clock.
-      run: pio run --environment SI_HAI
-      working-directory: ./EleksTubeHAX_pio
+      - name: Install PlatformIO + IntelHex and esptool libraries.
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio intelhex esptool
 
-    - name: Build PlatformIO Project for the NovelLife clocks.
-      run: pio run --environment NovelLife
-      working-directory: ./EleksTubeHAX_pio
+      - name: Ensure default _USER_DEFINES.h file exists.
+        shell: bash
+        working-directory: ${{ env.PIO_DIR }}
+        run: |
+          set -euo pipefail
+          SRC="include/_USER_DEFINES - empty.h"
+          DST="include/_USER_DEFINES.h"
+          mkdir -p "$(dirname "$DST")"
+          if [[ ! -f "$DST" ]]; then
+            if [[ ! -f "$SRC" ]]; then
+              echo "  ❌ Source file not found: '$SRC'."
+              exit 1
+            fi
+            cp "$SRC" "$DST"
+            echo "  🔧 Copied: '$SRC' -> '$DST'."
+          else
+            echo "  ⚠️ Already present: '$DST'."
+          fi
 
-    - name: Build PlatformIO Project for the PunkCyber / RGB Glow tube / PCBway clocks.
-      run: pio run --environment PunkCyber
-      working-directory: ./EleksTubeHAX_pio
+      - name: Force CREATE_FIRMWAREFILE define in platformio.ini file.
+        run: |
+          if grep -qE '^\s*;\s*-D\s*CREATE_FIRMWAREFILE' platformio.ini; then
+            sed -i 's/^\s*;\s*-D\s*CREATE_FIRMWAREFILE/	-D CREATE_FIRMWAREFILE/' platformio.ini
+          fi
+          if ! grep -qE '^\s*-D\s*CREATE_FIRMWAREFILE' platformio.ini; then
+            awk '
+              BEGIN{added=0}
+              {print}
+              /^\s*build_flags\s*=\s*$/ {print "  -D CREATE_FIRMWAREFILE"; added=1}
+              END{ if (!added) print "\nbuild_flags =\n  -D CREATE_FIRMWAREFILE" }
+            ' platformio.ini > platformio.ini.new && mv platformio.ini.new platformio.ini
+          fi
+          echo "  🔧 CREATE_FIRMWAREFILE set."
 
-    - name: Build PlatformIO Project for all clocks with 8MB flash on PCB (like the IPSTube model H401 and H402).
-      run: pio run --environment IPSTube_8MB
-      working-directory: ./EleksTubeHAX_pio
+      - name: Build ${{ matrix.env }} environment.
+        run: pio run --environment "${{ matrix.env }}"
 
-    - name: Collect firmware bins (flatten)
-      run: |
-        set -euo pipefail
-        mkdir -p _artifact
-        shopt -s nullglob
-        # Copy each FW_*.bin to a flat staging dir.
-        for f in EleksTubeHAX_pio/.pio/build/*/FW_*.bin; do
-          env="$(basename "$(dirname "$f")")"
-          base="$(basename "$f")"
-          cp "$f" "_artifact/${base}"
-        done
+      - name: Stage combined firmware binaries (flat).
+        shell: bash
+        run: |
+          mkdir -p _artifact
+          BUILD_DIR=".pio/build/${{ matrix.env }}"
+          if [ -d "$BUILD_DIR" ]; then
+            # Copy and also fail if no FW_*.bin exists.
+            files=$(find "$BUILD_DIR" -maxdepth 1 -type f -name 'FW_*.bin')
+            if [ -z "$files" ]; then
+              echo "  ⛔ No FW_*.bin produced for environment '${{ matrix.env }}'."
+              exit 1
+            fi
+            echo "$files" | while read -r f; do
+              echo "  🐞 Found '$f'."
+              cp "$f" _artifact/
+            done
+          else
+            echo "  ⛔ Build directory $BUILD_DIR does not exist for environment '${{ matrix.env }}'."
+            exit 1
+          fi
 
-    - name: Upload artifact (flat)
-      uses: actions/upload-artifact@v4
-      with:
-        name: all-firmware
-        # Upload the files, not the directory, so they're at the artifact root.
-        path: _artifact/*.bin
-        if-no-files-found: error
+      - name: Upload partial artifact for ${{ matrix.env }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fw-${{ matrix.env }} # Unique per environment
+          path: ${{ env.PIO_DIR }}/_artifact/*.bin
+          if-no-files-found: error
+
+  bundle:
+    name: Bundle firmware (single upload)
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download all combined firmware artifacts (merged dir).
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fw-* # Grab every per-env artifact
+          merge-multiple: true # Flatten into one directory
+          path: merged_fw # Local dir with all .bin files
+
+      - name: Show what we merged
+        run: ls -al merged_fw
+
+      - name: Upload combined firmware bundle (once)
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-firmware # Single final artifact
+          path: merged_fw/**
+          if-no-files-found: error
