@@ -103,7 +103,6 @@ jobs:
         shell: powershell
         run: |
           choco install gh jq -y --no-progress
-          refreshenv
 
       - name: Install GitHub CLI & jq (macOS).
         if: runner.os == 'macOS'
