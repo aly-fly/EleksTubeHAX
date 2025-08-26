@@ -1,14 +1,11 @@
 #ifndef TFTS_H
 #define TFTS_H
 
-#include "GLOBAL_DEFINES.h"
-
-// Call up the SPIFFS FLASH filing system this is part of the ESP Core
 #define FS_NO_GLOBALS
 #include <FS.h>
-#include "SPIFFS.h" // For ESP32 only
-
+#include <SPIFFS.h>
 #include <TFT_eSPI.h>
+#include "GLOBAL_DEFINES.h"
 #include "ChipSelect.h"
 
 class TFTs : public TFT_eSPI

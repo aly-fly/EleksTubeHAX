@@ -35,6 +35,10 @@
 // #define GEOLOCATION_ENABLED // Enable after creating an account and copying Geolocation API below:
 #define GEOLOCATION_API_KEY "__enter_your_api_key_here__"
 
+// ************* NTP config  *************
+#define NTP_SERVER "pool.ntp.org"
+#define NTP_UPDATE_INTERVAL 60000
+
 // ************* MQTT plain mode config *************
 // #define MQTT_PLAIN_ENABLED // Enable MQTT support for an external provider
 
@@ -47,11 +51,11 @@
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
 
 #ifdef MQTT_PLAIN_ENABLED
-#define MQTT_BROKER "smartnest.cz"                   // Broker host
-#define MQTT_PORT 1883                               // Broker port
-#define MQTT_USERNAME "__enter_your_username_here__" // Username from Smartnest
-#define MQTT_PASSWORD "__enter_your_api_key_here__"  // Password from Smartnest or API key (under MY Account)
-#define MQTT_CLIENT "__enter_your_device_id_here__"  // Device Id from Smartnest
+#define MQTT_BROKER "smartnest.cz"                         // Broker host
+#define MQTT_PORT 1883                                     // Broker port
+#define MQTT_USERNAME "__enter_your_username_here__"       // Username from Smartnest
+#define MQTT_PASSWORD "__enter_your_api_key_here__"        // Password from Smartnest or API key (under MY Account)
+#define MQTT_CLIENT_PREFIX "__enter_your_device_id_here__" // Device Id from Smartnest
 #endif
 
 // ************* MQTT HomeAssistant config *************
@@ -64,12 +68,11 @@
 // See https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability for more information.
 // Retained messages can create ghost entities that keep coming back (i.e., if you change MQTT device name)! You need to delete them manually from the broker queue!
 
-#ifdef MQTT_HOME_ASSISTANT
-#define MQTT_HOME_ASSISTANT_DISCOVERY_DEVICE_MANUFACTURER "EleksMaker" // Name of the manufacturer shown in HA
-#define MQTT_HOME_ASSISTANT_DISCOVERY_DEVICE_MODEL "Elekstube IPS"     // Name of the model shown in HA
-#define MQTT_HOME_ASSISTANT_DISCOVERY_SW_VERSION "1.1"                 // Firmware version shown in HA
-#define MQTT_HOME_ASSISTANT_DISCOVERY_HW_VERSION "2.3.04"              // Hardware version shown in HA
-#endif
+// Note that the following ACL may need to be set in Mosquitto in order to let the device access and write the necessary topics:
+//   user <username>
+//   topic read homeassistant/status
+//   pattern readwrite homeassistant/+/%c/#
+//   pattern readwrite %c/#
 
 // --- MQTT broker settings ---
 // Fill in the data according to configuration of your local MQTT broker that is linked to HomeAssistant - for example Mosquitto.
@@ -78,7 +81,7 @@
 #define MQTT_PORT 1883                         // Broker port
 #define MQTT_USERNAME "_enter_MQTT_username_"  // Username
 #define MQTT_PASSWORD "_enter_MQTT_password_"  // Password
-#define MQTT_CLIENT "clock"                    // Device Id
+#define MQTT_CLIENT_PREFIX "clock"             // Device Id
 #endif
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received

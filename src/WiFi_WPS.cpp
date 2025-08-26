@@ -1,13 +1,13 @@
 #include <Arduino.h>
-#include <WiFi.h> // ESP32
+#include <esp_wps.h>
+#include <WiFi.h>
+#include "IPGeolocation_AO.h"
 #include "StoredConfig.h"
 #include "TFTs.h"
-#include "esp_wps.h"
 #include "WiFi_WPS.h"
 
-#include "IPGeolocation_AO.h"
-
 extern StoredConfig stored_config;
+extern char UniqueDeviceName[32];
 
 WifiState_t WifiState = disconnected;
 
@@ -18,7 +18,7 @@ double GeoLocTZoffset = 0;
 
 static esp_wps_config_t wps_config = WPS_CONFIG_INIT_DEFAULT(ESP_WPS_MODE); // Init with defaults
 
-// set alternative WPS config
+// Set alternative WPS config.
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/examples/WPS/WPS.ino
 void wpsInitConfig()
 {
@@ -27,7 +27,7 @@ void wpsInitConfig()
   strcpy(wps_config.factory_info.manufacturer, ESP_MANUFACTURER);
   strcpy(wps_config.factory_info.model_number, ESP_MODEL_NUMBER);
   strcpy(wps_config.factory_info.model_name, ESP_MODEL_NAME);
-  strcpy(wps_config.factory_info.device_name, DEVICE_NAME);
+  strcpy(wps_config.factory_info.device_name, UniqueDeviceName);
 }
 #endif
 
@@ -94,7 +94,7 @@ void WifiBegin()
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(DEVICE_NAME);
 
-#ifdef WIFI_USE_WPS // WPS code
+#ifdef WIFI_USE_WPS
   // no data is saved, start WPS imediatelly
   if (stored_config.config.wifi.WPS_connected != StoredConfig::valid)
   {
@@ -104,15 +104,15 @@ void WifiBegin()
   }
   else
   {
-    // data is saved, connect now
-    // WiFi credentials are known, connect
+    // Data is saved, connect now.
+    // WiFi credentials are known, connect.
     tfts.println("Joining WiFi");
     tfts.println(stored_config.config.wifi.ssid);
     Serial.print("Joining WiFi ");
     Serial.println(stored_config.config.wifi.ssid);
 
     // https://stackoverflow.com/questions/48024780/esp32-wps-reconnect-on-power-on
-    WiFi.begin(); // use internally saved data
+    WiFi.begin(); // Use internally saved data
     WiFi.onEvent(WiFiEvent);
 
     unsigned long StartTime = millis();
@@ -131,7 +131,7 @@ void WifiBegin()
       }
     }
   }
-#else // NO WPS -- Try using hard coded credentials
+#else // NO WPS -- Try using hard coded credentials.
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
   WiFi.onEvent(WiFiEvent);
@@ -148,7 +148,7 @@ void WifiBegin()
       tfts.setTextColor(TFT_WHITE, TFT_BLACK);
       Serial.println("\r\nWiFi connection timeout!");
       WifiState = disconnected;
-      return; // exit loop, exit procedure, continue clock startup
+      return; // Exit loop, exit procedure, continue clock startup
     }
   }
 
@@ -192,7 +192,7 @@ void WiFiStartWps()
   tfts.setTextColor(TFT_RED, TFT_BLACK);
   tfts.println("PRESS WPS BUTTON ON THE ROUTER");
 
-  // disconnect from wifi first if we were connected
+  // Disconnect from wifi first if we were connected.
   WiFi.disconnect(true, true);
 
   WifiState = wps_active;
@@ -205,7 +205,7 @@ void WiFiStartWps()
   esp_wifi_wps_enable(&wps_config);
   esp_wifi_wps_start(0);
 
-  // loop until connected
+  // Loop until connected.
   tfts.setTextColor(TFT_BLUE, TFT_BLACK);
   while (WifiState != connected)
   {
@@ -215,8 +215,8 @@ void WiFiStartWps()
   }
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
   snprintf(stored_config.config.wifi.ssid, sizeof(stored_config.config.wifi.ssid), "%s", WiFi.SSID().c_str()); // Copy the SSID into the stored configuration safely
-  memset(&stored_config.config.wifi.password, 0, sizeof(stored_config.config.wifi.password));                  // Since the password cannot be retrieved from WPS, overwrite it completly
-  stored_config.config.wifi.password[0] = '\0';                                                                // and set to an empty string
+  memset(&stored_config.config.wifi.password, 0, sizeof(stored_config.config.wifi.password));                  // Since the password cannot be retrieved from WPS, overwrite it completely
+  stored_config.config.wifi.password[0] = '\0';                                                                // ...and set to an empty string
   stored_config.config.wifi.WPS_connected = StoredConfig::valid;                                               // Mark the configuration as valid
   Serial.println();
   Serial.print("Saving config! Triggered from WPS success...");
@@ -225,14 +225,9 @@ void WiFiStartWps()
 }
 #endif
 
-// Get an API Key by registering on
-// https://ipgeolocation.io
-// OR
-
 bool GetGeoLocationTimeZoneOffset()
 {
-  Serial.println("Starting Geolocation query...");
-  // https://app.abstractapi.com/api/ip-geolocation/    // free for 5k loopkups per month.
+  Serial.println("\nStarting Geolocation API query...");
   IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACT");
   IPGeo IPG;
   if (location.updateStatus(&IPG))
