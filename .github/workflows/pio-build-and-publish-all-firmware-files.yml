@@ -100,22 +100,9 @@ jobs:
             echo "  ⚠️ Already present: '$DST'."
           fi
 
-      - name: Force CREATE_FIRMWAREFILE define in platformio.ini file.
-        run: |
-          if grep -qE '^\s*;\s*-D\s*CREATE_FIRMWAREFILE' platformio.ini; then
-            sed -i 's/^\s*;\s*-D\s*CREATE_FIRMWAREFILE/	-D CREATE_FIRMWAREFILE/' platformio.ini
-          fi
-          if ! grep -qE '^\s*-D\s*CREATE_FIRMWAREFILE' platformio.ini; then
-            awk '
-              BEGIN{added=0}
-              {print}
-              /^\s*build_flags\s*=\s*$/ {print "  -D CREATE_FIRMWAREFILE"; added=1}
-              END{ if (!added) print "\nbuild_flags =\n  -D CREATE_FIRMWAREFILE" }
-            ' platformio.ini > platformio.ini.new && mv platformio.ini.new platformio.ini
-          fi
-          echo "  🔧 CREATE_FIRMWAREFILE set."
-
       - name: Build ${{ matrix.env }} environment.
+        env:
+          PLATFORMIO_BUILD_FLAGS: "-D CREATE_FIRMWAREFILE"
         run: pio run --environment "${{ matrix.env }}"
 
       - name: Stage combined firmware binaries (flat).
@@ -231,7 +218,7 @@ jobs:
             GITHUB_TOKEN: ${{ github.token }}
             CI: true
             GH_PROMPT_DISABLED: "1"
-            GH_PAGER: cat
+            GH_PAGER: "cat"
             GH_NO_UPDATE_NOTIFIER: "1"
             KEEP: "3" # Adjust as needed
           run: |
