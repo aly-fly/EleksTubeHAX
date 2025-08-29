@@ -289,11 +289,13 @@ In short:
 
 ### 5.3 Open the project in Visual Studio Code/PlatformIO
 
-* Start Visual Studio Code (VSC) and select "Open Workspace from File".
+* Start Visual Studio Code (VSC) and select "Open Folder".
 
-* Select the `EleksTubeHAX.code-workspace` file from your location of the code of this project.
+* Select the project root `EleksTubeHAX` directory.
 
-* PlatformIO (PIO) will detect the `platformio.ini` file and open the project as an PlatformIO project automatically and will download all needed packages/libraries.
+* PlatformIO (PIO) will detect the platformio.ini file, open the PlatformIO project, and download all needed packages/libraries.
+
+* If this is not happening automatically, go to the PIO extension tab in VSC and select "Pick a Folder" and then select the `EleksTubeHAX` directory.
 
 #### 5.3.1 ESP32 platform support
 
@@ -482,9 +484,9 @@ The firmware file will be named like `FW_<CLOCKNAME>_v1.3.0.bin` (e.g., `FW_Elek
 
 This file can be flashed with the `esptool.exe` with the `write_flash` option.
 
-E.g. assuming you are using the `esptool.exe` in the pre-build-firmware subdirectory:
+E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and the clock is connected to COM5:
 
-`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 .pio\build\EleksTube\FW_EleksTube_v1.3.0.bin --erase-all`
+`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.0.bin --erase-all`
 
 ### 5.5.1 Helper script
 
@@ -532,7 +534,7 @@ Before supporting palettized Bitmaps, there was a special format used to store i
 
 To convert existing image files to CLK format:
 
-* Run the tool `\Prepare_images\Convert_BMP_to_CLK.exe` (Windows only)
+* Run the tool `\tools\Prepare_images\Convert_BMP_to_CLK.exe` (Windows only)
 
 * You can select all BMP files to be converted at once. It will create CLK files from it.
 

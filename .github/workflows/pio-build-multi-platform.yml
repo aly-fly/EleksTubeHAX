@@ -1,19 +1,23 @@
-name: Build & publish combined EleksTubeHAX firmware binaries.
+name: Create each PlatformIO EleksTubeHAX environment build on multiple OSes.
 
 on:
   push:
-    branches: [main]
+    branches: ["*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
-# Kill older runs for the same ref to save minutes
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
+  actions: write # Required to list/delete caches during pruning
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GITHUB_TOKEN: ${{ github.token }}
+  CI: true
+  GH_PROMPT_DISABLED: "1"
+  GH_PAGER: cat
+  GH_NO_UPDATE_NOTIFIER: "1"
 
 jobs:
   discover-envs:
@@ -46,14 +50,23 @@ jobs:
           echo "  🐞 Detected PIO environments: ${envs_json}."
 
   build:
-    name: Build ${{ matrix.env }} on ubuntu-latest.
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.env }} on ${{ matrix.os }}.
+    runs-on: ${{ matrix.os }}
+
     needs: discover-envs
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
-      matrix:
+
+      # Set up a matrix to run the following 2 configurations:
+      # 1. <Windows, Release, toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, toolchain on the default runner image, default generator>
+
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix:        
+        # os: [ubuntu-latest] # For local testing: act can’t run runs-on: windows-latest (or macos-latest)
+        os: [ubuntu-latest, windows-latest]
         env: ${{ fromJson(needs.discover-envs.outputs.envs) }}
 
     defaults:
@@ -93,58 +106,4 @@ jobs:
           fi
 
       - name: Build ${{ matrix.env }} environment.
-        env:
-          PLATFORMIO_BUILD_FLAGS: "-D CREATE_FIRMWAREFILE"
         run: pio run --environment "${{ matrix.env }}"
-
-      - name: Stage combined firmware binaries (flat).
-        shell: bash
-        run: |
-          mkdir -p _artifact
-          BUILD_DIR=".pio/build/${{ matrix.env }}"
-          if [ -d "$BUILD_DIR" ]; then
-            # Copy and also fail if no FW_*.bin exists.
-            files=$(find "$BUILD_DIR" -maxdepth 1 -type f -name 'FW_*.bin')
-            if [ -z "$files" ]; then
-              echo "  ⛔ No FW_*.bin produced for environment '${{ matrix.env }}'."
-              exit 1
-            fi
-            echo "$files" | while read -r f; do
-              echo "  🐞 Found '$f'."
-              cp "$f" _artifact/
-            done
-          else
-            echo "  ⛔ Build directory $BUILD_DIR does not exist for environment '${{ matrix.env }}'."
-            exit 1
-          fi
-
-      - name: Upload partial artifact for ${{ matrix.env }}.
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fw-${{ matrix.env }} # Unique per environment
-          path: _artifact/*.bin
-          if-no-files-found: error
-
-  bundle:
-    name: Bundle firmware (single upload).
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Download all combined firmware artifacts (merged dir).
-        uses: actions/download-artifact@v4
-        with:
-          pattern: fw-* # Grab every per-env artifact
-          merge-multiple: true # Flatten into one directory
-          path: merged_fw # Local dir with all .bin files
-
-      - name: Show what we merged.
-        run: ls -al merged_fw
-
-      - name: Upload combined firmware bundle (once).
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-firmware # Single final artifact
-          path: merged_fw/**
-          if-no-files-found: error
