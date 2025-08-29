@@ -403,7 +403,7 @@
 #define TFT_DC (GPIO_NUM_25)   // Data Command, aka Register Select or RS
 #define TFT_RST (GPIO_NUM_26)  // Connect reset to ensure display initialises
 #define SPI_FREQUENCY 40000000 // 40MHz SPI speed
-#define CGRAM_OFFSET // Library will add offsets required
+#define CGRAM_OFFSET           // Library will add offsets required
 
 // Fonts to load for TFT.
 // #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -503,5 +503,11 @@
  */
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_SI_HAI_CLOCK
+
+// ************ Helper macros *********************
+#define concat2(first, second) first second
+#define concat3(first, second, third) first second third
+#define concat4(first, second, third, fourth) first second third fourth
+#define concat5(first, second, third, fourth, fifth) first second third fourth fifth
 
 #endif /* GLOBAL_DEFINES_H_ */
