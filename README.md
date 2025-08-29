@@ -484,9 +484,9 @@ The firmware file will be named like `FW_<CLOCKNAME>_v1.3.0.bin` (e.g., `FW_Elek
 
 This file can be flashed with the `esptool.exe` with the `write_flash` option.
 
-E.g. assuming you are using the `esptool.exe` in the pre-build-firmware subdirectory:
+E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and the clock is connected to COM5:
 
-`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 .pio\build\EleksTube\FW_EleksTube_v1.3.0.bin --erase-all`
+`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.0.bin --erase-all`
 
 ### 5.5.1 Helper script
 
