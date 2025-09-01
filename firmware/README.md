@@ -4,7 +4,7 @@
 
 In this folder you can find pre-built firmware image files that you can directly upload/flash to your clock.
 
-These firmwares may have limited functionality compared to a self-built firmware, because not all available features are enabled or can be configured.
+These binaries may have limited functionality compared to a self-built firmware, because not all available features are enabled or can be configured.
 
 The image files (clock faces) are fixed and can't be changed without building your own firmware file with the development tools (see README.md)!
 
@@ -23,7 +23,7 @@ Disabled:
 
 General:
 
-- 6 different sets of clock faces present. See [data](https://github.com/aly-fly/EleksTubeHAX/tree/main/EleksTubeHAX_pio/data).
+- 6 different sets of clock faces present. See [data](https://github.com/aly-fly/EleksTubeHAX/tree/main/data).
 - BMP mode active for the given clock faces
 - CORE_DEBUG_LEVEL=5 - This produces diagnostic messages from the ESP32 "operating system" in case of an error over the serial interface.
 
@@ -31,15 +31,15 @@ General:
 
 **Always backup YOUR clock firmware version as first step!**
 
-Save your original firmware using the `_ESP32 save flash 4MB.cmd` (or 8MB version for the IPSTUBEs) by changing the COM port to the number, your clock uses.
+Save your original firmware using the `_ESP32 save flash 4MB.cmd` (or 8MB version for the IPSTube) by changing the COM port to the number your clock uses.
 
 Rename and store the `backup1.bin` on a save location.
 
-See also the section "Backup first" and following in the `README.MD` file in the root.
+See also the section "Backup first" and following in the `README.md` file in the root.
 
 ## 3. Available image files
 
-In this folder (```pre-build-firmwares```) you will find the flashable files.
+In this folder you will find the flashable files.
 They are updated from time to time in the repository, so version number may vary.
 
 | clock model | firmware image file |
@@ -63,10 +63,10 @@ Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions.
 
 The CMD file should look like this:
 
-```esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_Elekstube_HAX_1.0_Gen2-1.bin```
+`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_Elekstube_HAX_1.0_Gen2-1.bin`
 
 Note: Most clocks will go into to the "download mode" automatically when esptool is trying to write to it.
-Some clocks needs a button pressed while the powering phase (plugging the USB cable) to enter this mode, like the IPSTUBE ones. 
+Some clocks needs a button pressed while the powering phase (plugging the USB cable) to enter this mode, like the IPSTUBE ones.
 
 ## 5. Download the newest firmware files
 
@@ -76,15 +76,15 @@ All workflow runs of the GutHub action can be found under [EleksTubeHAX generate
 
 Should look like:
 
-![GitHub Actions Overview](../documentation/ImagesMD/GitHubActionsOverview.png)
+![GitHub Actions Overview](../docs/ImagesMD/GitHubActionsOverview.png)
 
 The first entry is always the newest.
 
-If you click on the workflow run, you will be able to donwload either all firmwares at once, by downloading the `all-firmware-vX.X.X`, or the file for your clock seperately. Where X.X.X is the actual version number.
+If you click on the workflow run, you will be able to donwload either all firmwares at once, by downloading the `all-firmware-vX.X.X`, or the file for your clock separately. Where X.X.X is the actual version number.
 
-![GitHub Actions Artifact view](../documentation/ImagesMD/GitHubActionsArtifactView.png)
+![GitHub Actions Artifact view](../docs/ImagesMD/GitHubActionsArtifactView.png)
 
-The downloaded firmware file can be flashed to the clock modifing the existing CMD file or using the esptool directly.
+The downloaded firmware file can be flashed to the clock modifying the existing CMD file or using the esptool directly.
 
 ## 6. There is no warranty of any type
 

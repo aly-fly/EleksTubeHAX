@@ -1,14 +1,59 @@
-name: EleksTubeHAX builds with PlatformIO on multiple platforms
+name: Create each PlatformIO EleksTubeHAX environment build on multiple OSes.
 
 on:
   push:
-    branches: [ "*" ]
+    branches: ["*"]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # Required to list/delete caches during pruning
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GITHUB_TOKEN: ${{ github.token }}
+  CI: true
+  GH_PROMPT_DISABLED: "1"
+  GH_PAGER: cat
+  GH_NO_UPDATE_NOTIFIER: "1"
 
 jobs:
+  discover-envs:
+    name: Discover PlatformIO environments.
+    runs-on: ubuntu-latest
+    outputs:
+      envs: ${{ steps.find.outputs.envs }}
+    steps:
+      - name: Checkout repo.
+        uses: actions/checkout@v4
+
+      - name: Find [env:*] sections in platformio.ini file.
+        id: find
+        shell: bash
+        run: |
+          envs_json="$(
+            awk '
+              /^\[env:[^]]+\]/ {
+                match($0, /^\[env:([^]]+)\]/, m)
+                if (m[1] != "") envs[count++] = m[1]
+              }
+              END {
+                printf("[")
+                for (i=0; i<count; i++) printf("%s\"%s\"", (i>0?",":""), envs[i])
+                printf("]")
+              }
+            ' platformio.ini
+          )"
+          echo "envs=${envs_json}" >> "$GITHUB_OUTPUT"
+          echo "  🐞 Detected PIO environments: ${envs_json}."
+
   build:
+    name: Build ${{ matrix.env }} on ${{ matrix.os }}.
     runs-on: ${{ matrix.os }}
+
+    needs: discover-envs
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
@@ -20,38 +65,45 @@ jobs:
 
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:        
+        # os: [ubuntu-latest] # For local testing: act can’t run runs-on: windows-latest (or macos-latest)
         os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
+        env: ${{ fromJson(needs.discover-envs.outputs.envs) }}
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/pip
-          ~/.platformio/.cache
-        key: ${{ runner.os }}-pio
-      
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-       
-    - name: Copy user_defines.h file on windows
-      run: copy "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
-      if: runner.os == 'Windows'
+      - name: Checkout repo.
+        uses: actions/checkout@v4
 
-    - name: Copy user_defines.h file on linux
-      run: cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
-      if: runner.os == 'Linux'
-      
-    - name: Install PlatformIO Core
-      run: pip install --upgrade platformio
+      - name: Setup Python.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Build PlatformIO Project for 4MB flash
-      run: pio run --environment EleksTubeHax
-      working-directory: ./EleksTubeHAX_pio
+      - name: Install PlatformIO + IntelHex and esptool libraries.
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio intelhex esptool
 
-    - name: Build PlatformIO Project for 8MB flash
-      run: pio run --environment EleksTubeHax8MB
-      working-directory: ./EleksTubeHAX_pio
+      - name: Ensure default _USER_DEFINES.h file exists.
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="include/_USER_DEFINES - empty.h"
+          DST="include/_USER_DEFINES.h"
+          mkdir -p "$(dirname "$DST")"
+          if [[ ! -f "$DST" ]]; then
+            if [[ ! -f "$SRC" ]]; then
+              echo "  ❌ Source file not found: '$SRC'."
+              exit 1
+            fi
+            cp "$SRC" "$DST"
+            echo "  🔧 Copied: '$SRC' -> '$DST'."
+          else
+            echo "  ⚠️ Already present: '$DST'."
+          fi
+
+      - name: Build ${{ matrix.env }} environment.
+        run: pio run --environment "${{ matrix.env }}"

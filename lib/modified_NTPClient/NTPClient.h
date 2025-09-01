@@ -3,9 +3,7 @@
 
 #pragma once
 
-#include "Arduino.h"
-#include "_USER_DEFINES.h" // User defines (automatically found via library.json build flags)
-
+#include <Arduino.h>
 #include <Udp.h>
 
 #define SEVENZYYEARS 2208988800UL

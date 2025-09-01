@@ -1,158 +1,150 @@
-name: EleksTubeHAX generate firmware files
+name: Build & publish combined EleksTubeHAX firmware binaries.
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'EleksTubeHAX_pio/**'
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# Kill older runs for the same ref to save minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  set-version:
+  discover-envs:
+    name: Discover PlatformIO environments.
     runs-on: ubuntu-latest
     outputs:
-      VERSION: ${{ steps.set_version.outputs.VERSION }}
+      envs: ${{ steps.find.outputs.envs }}
     steps:
-      - name: Set version number
-        id: set_version
+      - name: Checkout repo.
+        uses: actions/checkout@v4
+
+      - name: Find [env:*] sections in platformio.ini file.
+        id: find
+        shell: bash
         run: |
-          MAJOR_VERSION=1
-          MINOR_VERSION=0
-          BUILD_NUMBER=${{ github.run_number }}
-          VERSION="${MAJOR_VERSION}.${MINOR_VERSION}.${BUILD_NUMBER}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          envs_json="$(
+            awk '
+              /^\[env:[^]]+\]/ {
+                match($0, /^\[env:([^]]+)\]/, m)
+                if (m[1] != "") envs[count++] = m[1]
+              }
+              END {
+                printf("[")
+                for (i=0; i<count; i++) printf("%s\"%s\"", (i>0?",":""), envs[i])
+                printf("]")
+              }
+            ' platformio.ini
+          )"
+          echo "envs=${envs_json}" >> "$GITHUB_OUTPUT"
+          echo "  🐞 Detected PIO environments: ${envs_json}."
 
-  build-firmware:
-    needs: set-version
+  build:
+    name: Build ${{ matrix.env }} on ubuntu-latest.
+    runs-on: ubuntu-latest
+    needs: discover-envs
+
     strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
       matrix:
-        hardware: ['Elekstube_CLOCK', 'Elekstube_CLOCK_Gen2', 'SI_HAI_CLOCK', 'NovelLife_SE_CLOCK', 'PunkCyber_CLOCK', 'IPSTUBE_CLOCK']
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.set-version.outputs.VERSION }}
+        env: ${{ fromJson(needs.discover-envs.outputs.envs) }}
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repo.
+        uses: actions/checkout@v4
 
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/pip
-          ~/.platformio/.cache
-        key: ${{ runner.os }}-pio
-      
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Modify _USER_DEFINES.h file
-      run: |
-        echo "Copy _USER_DEFINES - empty.h to _USER_DEFINES.h"
-        cp "./EleksTubeHAX_pio/src/_USER_DEFINES - empty.h" "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
-        echo "Modify _USER_DEFINES.h for hardware: ${{ matrix.hardware }}"
-        python3 ./EleksTubeHAX_pio/script_modify_user_defines.py "${{ matrix.hardware }}"
-        echo "Modified _USER_DEFINES.h content:"
-        cat "./EleksTubeHAX_pio/src/_USER_DEFINES.h"
-
-    - name: Update FIRMWARE_VERSION in GLOBAL_DEFINES.h
-      run: |
-        echo "Updating FIRMWARE_VERSION in GLOBAL_DEFINES.h"
-        echo "Version: $VERSION"
-        sed -i "s|^\(#define FIRMWARE_VERSION\s*\"\)\([^\"\n]*\)\"|\1V$VERSION - \2\"|" "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
-        echo "Modified FIRMWARE_VERSION:"
-        grep '^#define FIRMWARE_VERSION' "./EleksTubeHAX_pio/src/GLOBAL_DEFINES.h"
-
-    - name: Install PlatformIO Core
-      run: pip install --upgrade platformio
-    
-    - name: Uncomment CREATE_FIRMWAREFILE in platformio.ini
-      run: |
-        echo "Uncomment CREATE_FIRMWAREFILE in platformio.ini!"
-        sed -i 's/; -D CREATE_FIRMWAREFILE/-D CREATE_FIRMWAREFILE/' "./EleksTubeHAX_pio/platformio.ini"
-        # Debug output
-        echo "Modified platformio.ini content:"
-        cat "./EleksTubeHAX_pio/platformio.ini"
-
-    - name: Build PlatformIO Project (for devices with 8MB flash)
-      if: ${{ matrix.hardware == 'IPSTUBE_CLOCK' }}
-      run: pio run --environment EleksTubeHax8MB
-      working-directory: ./EleksTubeHAX_pio
-
-    - name: Build PlatformIO Project (for devices with 4MB flash)
-      if: ${{ matrix.hardware != 'IPSTUBE_CLOCK' }}
-      run: pio run --environment EleksTubeHax
-      working-directory: ./EleksTubeHAX_pio
-
-    - name: Rename firmware files
-      run: |        
-        echo "Rename firmware files!"
-        if [ "${{ matrix.hardware }}" = "Elekstube_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_Elekstube_HAX_${{ env.VERSION }}_original.bin"
-          mv *_combined.bin "FW_Elekstube_HAX_${{ env.VERSION }}_original.bin"
-        elif [ "${{ matrix.hardware }}" = "Elekstube_CLOCK_Gen2" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_Elekstube_HAX_${{ env.VERSION }}_Gen2-1.bin"
-          mv *_combined.bin "FW_Elekstube_HAX_${{ env.VERSION }}_Gen2-1.bin"
-        elif [ "${{ matrix.hardware }}" = "SI_HAI_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_SI_HAI_CLOCK_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_SI_HAI_CLOCK_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "NovelLife_SE_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_NovelLife_SE_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_NovelLife_SE_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "PunkCyber_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax
-          echo "move *_combined.bin to FW_PunkCyber_Glow_PCBway_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_PunkCyber_Glow_PCBway_HAX_${{ env.VERSION }}.bin"
-        elif [ "${{ matrix.hardware }}" = "IPSTUBE_CLOCK" ]; then
-          cd EleksTubeHAX_pio/.pio/build/EleksTubeHax8MB
-          echo "move *_combined.bin to FW_IPSTUBE_HAX_${{ env.VERSION }}.bin"
-          mv *_combined.bin "FW_IPSTUBE_HAX_${{ env.VERSION }}.bin"
-        else
-          echo "Unknown hardware: ${{ matrix.hardware }}"
-          exit 1
-        fi
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      if: ${{ matrix.hardware == 'IPSTUBE_CLOCK' }}
-      with:
-        name: firmware-${{ matrix.hardware }}        
-        path: |
-          EleksTubeHAX_pio/.pio/build/EleksTubeHax8MB/FW_*.bin
-        if-no-files-found: error
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      if: ${{ matrix.hardware != 'IPSTUBE_CLOCK' }}
-      with:
-        name: firmware-${{ matrix.hardware }}        
-        path: |
-          EleksTubeHAX_pio/.pio/build/EleksTubeHax/FW_*.bin
-        if-no-files-found: error
-
-  combine-artifacts:
-    needs: [set-version, build-firmware]
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.set-version.outputs.VERSION }}
-    steps:
-      - name: Check VERSION
-        run: |        
-          echo "VERSION=$VERSION"
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Setup Python.
+        uses: actions/setup-python@v5
         with:
-          path: all-firmware
-          pattern: firmware-*
-          merge-multiple: true
+          python-version: '3.x'
 
-      - name: Upload combined artifact
+      - name: Install PlatformIO + IntelHex and esptool libraries.
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio intelhex esptool
+
+      - name: Ensure default _USER_DEFINES.h file exists.
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="include/_USER_DEFINES - empty.h"
+          DST="include/_USER_DEFINES.h"
+          mkdir -p "$(dirname "$DST")"
+          if [[ ! -f "$DST" ]]; then
+            if [[ ! -f "$SRC" ]]; then
+              echo "  ❌ Source file not found: '$SRC'."
+              exit 1
+            fi
+            cp "$SRC" "$DST"
+            echo "  🔧 Copied: '$SRC' -> '$DST'."
+          else
+            echo "  ⚠️ Already present: '$DST'."
+          fi
+
+      - name: Build ${{ matrix.env }} environment.
+        env:
+          PLATFORMIO_BUILD_FLAGS: "-D CREATE_FIRMWAREFILE"
+        run: pio run --environment "${{ matrix.env }}"
+
+      - name: Stage combined firmware binaries (flat).
+        shell: bash
+        run: |
+          mkdir -p _artifact
+          BUILD_DIR=".pio/build/${{ matrix.env }}"
+          if [ -d "$BUILD_DIR" ]; then
+            # Copy and also fail if no FW_*.bin exists.
+            files=$(find "$BUILD_DIR" -maxdepth 1 -type f -name 'FW_*.bin')
+            if [ -z "$files" ]; then
+              echo "  ⛔ No FW_*.bin produced for environment '${{ matrix.env }}'."
+              exit 1
+            fi
+            echo "$files" | while read -r f; do
+              echo "  🐞 Found '$f'."
+              cp "$f" _artifact/
+            done
+          else
+            echo "  ⛔ Build directory $BUILD_DIR does not exist for environment '${{ matrix.env }}'."
+            exit 1
+          fi
+
+      - name: Upload partial artifact for ${{ matrix.env }}.
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: all-firmware-v${{ env.VERSION }}
-          path: all-firmware/**/*.bin
+          name: fw-${{ matrix.env }} # Unique per environment
+          path: _artifact/*.bin
+          if-no-files-found: error
+
+  bundle:
+    name: Bundle firmware (single upload).
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download all combined firmware artifacts (merged dir).
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fw-* # Grab every per-env artifact
+          merge-multiple: true # Flatten into one directory
+          path: merged_fw # Local dir with all .bin files
+
+      - name: Show what we merged.
+        run: ls -al merged_fw
+
+      - name: Upload combined firmware bundle (once).
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-firmware # Single final artifact
+          path: merged_fw/**
           if-no-files-found: error
