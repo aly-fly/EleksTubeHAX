@@ -1,9 +1,9 @@
 #ifndef STORED_CONFIG_H
 #define STORED_CONFIG_H
 
+#include <Preferences.h>
 #include "GLOBAL_DEFINES.h"
 
-#include <Preferences.h>
 /*
  * TODO: This was originally written for the EEPROM library where all this logic was needed.
  * But Preferences.h does a lot of this itself.  It might make sense to just use Preferences

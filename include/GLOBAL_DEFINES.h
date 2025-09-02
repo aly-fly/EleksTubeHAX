@@ -504,10 +504,4 @@
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_SI_HAI_CLOCK
 
-// ************ Helper macros *********************
-#define concat2(first, second) first second
-#define concat3(first, second, third) first second third
-#define concat4(first, second, third, fourth) first second third fourth
-#define concat5(first, second, third, fourth, fifth) first second third fourth fifth
-
 #endif /* GLOBAL_DEFINES_H_ */

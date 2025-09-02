@@ -4,7 +4,8 @@
 //-----------------------------------------------------------------------------------------------
 // begin RTC chip stuff
 //-----------------------------------------------------------------------------------------------
-#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // for Clocks with DS1302 chip (SI HAI or IPSTUBE)
+
+#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // For Clocks with DS1302 chip (Si Hai or IPSTube)
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 ThreeWire myWire(DS1302_IO, DS1302_SCLK, DS1302_CE); // IO, SCLK, CE
@@ -67,8 +68,8 @@ void RtcSet(uint32_t tt)
 #endif
   RTC.SetDateTime(temptime);
 }
-#elif defined(HARDWARE_NovelLife_SE_CLOCK) // for NovelLife_SE clone with R8025T RTC chip
-#include <RTC_RX8025T.h>                   // This header will now use Wire1 for I2C operations.
+#elif defined(HARDWARE_NOVELLIFE_CLOCK) // For NovelLife_SE clone with R8025T RTC chip
+#include <RTC_RX8025T.h>                // This header will now use Wire1 for I2C operations
 
 RX8025T RTC;
 
@@ -120,7 +121,7 @@ uint32_t RtcGet()
 #endif
   return returnvalue;
 }
-#else // for Elekstube and all other clocks with DS3231 RTC chip or DS1307/PCF8523
+#else // For EleksTube and all other clocks with DS3231 RTC chip or DS1307/PCF8523.
 #include <RTClib.h>
 
 RTC_DS3231 RTC; // DS3231, works also with DS1307 or PCF8523
@@ -141,9 +142,9 @@ void RtcBegin()
     Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC found!");
     Serial.printf("Square Wave output status: 0x%x\r\n", RTC.readSqwPinMode());
     Serial.printf("32KHz output status: %s\r\n", RTC.isEnabled32K() ? "Enabled" : "Disabled");
-    // manually read the control and status registers of the DS3231
+    // Manually read the control and status registers of the DS3231.
     Wire.beginTransmission(0x68);
-    Wire.write(0x0E); // address of the control register, 0x0E
+    Wire.write(0x0E); // Address of the control register
     Wire.endTransmission();
     RegReadSuccess = Wire.requestFrom(0x68, 2);
     Serial.printf("Read from control and status registers: %s\r\n", RegReadSuccess ? "Success" : "Failed!");
@@ -166,7 +167,7 @@ void RtcBegin()
     Wire.write(0x0E);
     Wire.write(0x3C); // Set CONV=1, set RS2,RS1,INTCN = 1
     Wire.endTransmission();
-    delay(5); // allow some time for BSY to be set
+    delay(5); // Allow some time for BSY to be set
 
     Wire.beginTransmission(0x68);
     Wire.write(0x0F);
@@ -188,13 +189,13 @@ void RtcBegin()
   }
 #endif
 
-  // check if the RTC chip reports a power failure
+  // Check if the RTC chip reports a power failure.
   bool bPowerLost = 0;
   bPowerLost = RTC.lostPower();
   if (bPowerLost)
   {
     Serial.println("DS3231/DS1307 RTC reports power was lost! Setting time to default value.");
-    RTC.adjust(DateTime(2023, 1, 1, 0, 0, 0)); // set the RTC time to a default value
+    RTC.adjust(DateTime(2023, 1, 1, 0, 0, 0)); // Set the RTC time to a default value
   }
   else
   {
@@ -206,7 +207,7 @@ void RtcBegin()
 
 uint32_t RtcGet()
 {
-  DateTime now = RTC.now(); // convert to unix time
+  DateTime now = RTC.now(); // Convert to Unix time
   uint32_t returnvalue = now.unixtime();
 #ifdef DEBUG_OUTPUT_RTC
   Serial.print("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC now.unixtime() returned: ");
@@ -222,13 +223,13 @@ void RtcSet(uint32_t tt)
   Serial.println(tt);
 #endif
 
-  DateTime timetoset(tt); // convert to unix time
-  RTC.adjust(timetoset);  // set the RTC time
+  DateTime timetoset(tt); // Convert to Unix time
+  RTC.adjust(timetoset);  // Set the RTC time
 #ifdef DEBUG_OUTPUT
   Serial.println("DEBUG_OUTPUT_RTC: DS3231/DS1307 RTC time updated.");
 #endif
 }
-#endif // end of RTC chip selection
+#endif // End of RTC chip selection
 
 //-----------------------------------------------------------------------------------------------
 // end of RTC chip stuff
@@ -241,7 +242,7 @@ void RtcSet(uint32_t tt)
 // Global variables for clock/NTP client
 uint32_t Clock::millis_last_ntp = 0;
 WiFiUDP Clock::ntpUDP;
-NTPClient Clock::ntpTimeClient(ntpUDP);
+NTPClient Clock::ntpTimeClient(ntpUDP, NTP_SERVER, 0, NTP_UPDATE_INTERVAL);
 
 // Adaptive NTP sync variables
 uint32_t Clock::current_ntp_interval_ms = Clock::ntp_interval_initial_ms;
@@ -264,19 +265,11 @@ void Clock::begin(StoredConfig::Config::Clock *config_)
     config->is_valid = StoredConfig::valid;
   }
 
-  // Initialize the RTC chip
-  RtcBegin();
-  // Initialize the NTP client
-  ntpTimeClient.begin();
+  RtcBegin();            // Initialize the RTC chip
+  ntpTimeClient.begin(); // Initialize the NTP client
 
   // Don't update the NTP time immediately here!!! Wait for the first loop() call!
   // Or the update interval will be too short and the initial call in the loop() will fail.
-  //-----------------
-  //  ntpTimeClient.update();
-  //  Serial.print("NTP time = ");
-  //  // millis_last_ntp = millis();
-  //  Serial.println(ntpTimeClient.getFormattedTime());
-  //-----------------
 
   // Set the sync provider for TimeLib to our syncProvider method
   setSyncProvider(&Clock::syncProvider);
@@ -332,10 +325,10 @@ time_t Clock::syncProvider()
   // check if we need to update from the NTP time
   if (millis() - millis_last_ntp > current_ntp_interval_ms || millis_last_ntp == 0) // Adaptive interval timing
   {                                                                                 // It's time to get a new NTP sync
-    Serial.println("\nTime to update from NTP Server!");
+    Serial.println("\nTime to update from NTP Server...");
     if (WifiState == connected)
     { // We have WiFi, so try to get NTP time.
-      Serial.print("Try to get the actual time from NTP server by calling ntpTimeClient.update()!\n");
+      Serial.print("Try to get the actual time from NTP server by calling ntpTimeClient.update()...\n");
       if (ntpTimeClient.update())
       {
         Serial.println("NTP update query was successful!");

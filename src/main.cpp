@@ -166,7 +166,7 @@ void UpdateDstEveryNight(void);
 void setup()
 {
   Serial.begin(115200);
-  delay(1000); // Wait for serial monitor to catch up
+  delay(1500); // Wait for serial monitor to catch up
 
   Serial.println("\nSystem starting...\n");
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
