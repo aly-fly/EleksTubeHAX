@@ -112,7 +112,7 @@ void WifiBegin()
     Serial.println(stored_config.config.wifi.ssid);
 
     // https://stackoverflow.com/questions/48024780/esp32-wps-reconnect-on-power-on
-    WiFi.begin(); // Use internally saved data
+    WiFi.begin(); // Use internally-saved data
     WiFi.onEvent(WiFiEvent);
 
     unsigned long StartTime = millis();
@@ -131,8 +131,7 @@ void WifiBegin()
       }
     }
   }
-#else // NO WPS -- Try using hard coded credentials.
-
+#else // NO WPS -- Try using hardcoded credentials.
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
   WiFi.onEvent(WiFiEvent);
   unsigned long StartTime = millis();

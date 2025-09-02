@@ -12,6 +12,7 @@
 #include <WiFiClientSecure.h>
 #include "IPGeolocation_AO.h"
 
+
 IPGeolocation::IPGeolocation(String Key, String API)
 {
   _Key = Key;
@@ -36,6 +37,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
 
     DEBUGPRINT("HTTPS Connecting...");
     int r = 0; // Retry counter
+
     while ((!httpsClient.connect(host, httpsPort)) && (r < 10))
     {
       delay(200);
@@ -45,6 +47,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     if (!httpsClient.connected())
     {
       DEBUGPRINT("Connection unsuccessful!");
+
       return false;
     }
     else
@@ -56,6 +59,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
 
     DEBUGPRINT("requesting URL: ");
     DEBUGPRINT(String("Requesting URL: GET ") + Link + " HTTP/1.0");
+
     httpsClient.println(String("GET ") + Link + " HTTP/1.1");
     httpsClient.println(String("Host: ") + host);
     httpsClient.println(String("Connection: close"));
@@ -72,12 +76,14 @@ bool IPGeolocation::updateStatus(IPGeo *I)
       {
         DEBUGPRINT("Headers received!");
         // DEBUGPRINT(_Response); // Print response
+
         response_ok = true;
         break;
       }
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
         Serial.printf("ERROR: Headers took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
+
         response_ok = false;
         break;
       }
@@ -87,6 +93,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
       DEBUGPRINT("ERROR: Error reading header data from server!");
       return false;
     }
+
 
     StartTime = millis();
     response_ok = false;
@@ -101,6 +108,7 @@ bool IPGeolocation::updateStatus(IPGeo *I)
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
         Serial.printf("ERROR: Response took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
+
         response_ok = false;
         break;
       }
