@@ -4,3 +4,12 @@
 - Temperature sensor readout in a single block.
 - Limit IP Geolocation to every Sunday (copy code from the fork)
 - Add static time zone data if IP Geo is disabled  (copy code from the fork)
+
+- Store the night mode dimming values and dimming times in the NVS partition to keep the last dimming value and not use the hard coded values,
+  make the times and values adjustable in the menu and/or via MQTT for both main and backlight dimming.
+
+- Fix that the backlight brightness is not adjustable in the night time mode
+- Fix that the LCD brightness is switching back to the hard coded values every full hour in the night time mode
+- Keep manual changed brightness values while in the night time mode till next day time mode
+
+- Make LED blink "direction" changeable/fix it -> different depending on the clock model in the moment.

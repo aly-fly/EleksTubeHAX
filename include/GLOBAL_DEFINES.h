@@ -167,7 +167,7 @@
  * EleksTube IPS Gen 2  *
  ************************/
 #ifdef HARDWARE_ELEKSTUBE_GEN2_CLOCK
-#define DEVICE_NAME "EleksTubeGen2"
+#define DEVICE_NAME "EleksTubeG2"
 #define DEVICE_MANUFACTURER "EleksMaker"
 #define DEVICE_MODEL "EleksTube IPS Tube Clock - Gen2"
 #define DEVICE_HW_VERSION "Gen2"
@@ -242,9 +242,13 @@
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (GPIO_NUM_5) // pin 35 is GPIO5
 
-// ATTENTION: SOME IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT! Define the number of LEDs here!
-// #define NUM_BACKLIGHT_LEDS  (34) // 6 LEDs on the bottom of every LCD. For IPSTube clock with LED stripe: 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD. For IPSTube clock without LED stripe.
+// ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT! 
+// Define HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE in platformio.ini if present!
+#ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
+  #define NUM_BACKLIGHT_LEDS  (34) // 6 LEDs on the bottom of every LCD. 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
+#else
+  #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD. For IPSTube clock without LED stripe.
+#endif // #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
 
 // Only one Button on IPSTube clocks!
 #define ONE_BUTTON_ONLY_MENU
@@ -295,7 +299,8 @@
 // If you notice, that the night time dimming or manual dimming does not work, you will have a clock without the Q1 transistor.
 // and you can/should comment the following line out to get back to the software dimming!
 
-// Comment the next line out, to DISABLE hardware dimming with GPIO4 pin (TFT_ENABLE_PIN) for a IPSTube clock.
+// Comment the next line out, to DISABLE hardware dimming with TFT_ENABLE_PIN. 
+// For older IPStube devices (<06/2024) only
 #define DIM_WITH_ENABLE_PIN_PWM
 
 // NOTE: If NIGTHTIME_DIMMING is enabled:

@@ -570,9 +570,9 @@ Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so tha
 
 #### 5.6.5.1 Home Assistant
 
-##### 5.6.5.1.1 Setup
+#### 5.6.5.1.1 Setup
 
-Migration note (important): Prior firmware versions used slash separators in `unique_id` / `object_id` (e.g. `myclock123/front`). Home Assistant treats a changed `unique_id` as a brand‑new entity; the old one will remain in the entity registry until manually removed. If you previously had entities with the old format, you can safely delete the obsolete entries in Home Assistant (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) after the new ones appear. You should also delete the old, retained discovery messages from the MQTT broker queue or the device will "come back as a ghost".
+Note: A lot of changes has been made on the HA integration with V1.3.x. User action is requiered to 'migrate' the devices. Detailed information can be found in the section 5.6.5.1.2 "Migration Notes (Home Assistant)".
 
 If you want to integrate the clock into your Home Assistant, you need to make sure, that Home Assistant and the clock uses the same MQTT broker.
 
@@ -595,6 +595,45 @@ No manual `MQTT_CLIENT` define is needed. The firmware now auto‑generates a st
 Note: For using smartnest.cz, define `MQTT_CLIENT_ID_FOR_SMARTNEST` (previously referred to as `MQTT_CLIENT`) to match the external service's required fixed device ID. This becomes the root of the published topics expected by that service.
 
 Note: If you want to use an internet-based broker, you can use HiveMQ. You will need to create an account there and set it up in HA and in here. 'MQTT\_USE\_TLS' must be defined, because HiveMQ only supports encrypted connections. The HiveMQ TLS cert is based on the root CA of Let's Encrypt, so you also need to copy the 'mqtt-ca-root.pem' file from the `data/other graphics` subdirectory into the `data` subdirectory of the PIO project and upload the data partition (file system) with the changed app partition. Other brokers or your locally used cert for your MQTT broker may need another root CA to be set. See: [Connect HA to HiveMQ](https://www.hivemq.com/blog/connect-home-assistant-to-hivemq-cloud/).
+
+#### 5.6.5.1.2 Migration Notes (Home Assistant)
+
+This section centralizes all earlier inline migration notes previously shown in other subsections.
+
+Summary:
+
+| Change | What Changed | Action Needed | Impact If Ignored |
+| ------ | ------------ | ------------- | ----------------- |
+| New device ID | `device.identifiers`, `unique_id`, and related values are now constructed from the device model plus the last three tuples of the MAC address | Delete old entities and retained discovery topics. Adjust all HA references (Dashboards, Automations, etc.) to the new IDs | Old entities remain orphaned; dashboards show invalid cards; automations may fail |
+| New topics for status messages | All runtime status topics are namespaced under `elekstubehax/` with per‑device subtopics using the lower‑case `device_id` | Delete old retained status topics if present (to avoid confusion) | You may see stale/unused topics alongside the new ones |
+| New topics for discovery messages | Exactly one discovery config per device and HA domain (light, number, switch) using the lower‑case `device_id` path | Delete old ghost entities and their retained discovery topics | Old entities remain orphaned and can reappear from retained configs |
+| Optional device name suffix | Plain `Model Name` vs. `Model Name (ABCDEF)` when `ENABLE_HA_DEVICE_NAME_SUFFIX` defined | None (opt‑in). To see new/removed suffix immediately, clear retained discovery topics | HA may show old cached name until refresh |
+
+Details:
+
+1. New device ID format and separator change:
+  The firmware now constructs a stable `device_id` from the model name plus the last three MAC‑address bytes (example: `elekstube-1a2b3c`). Discovery `unique_id`/`object_id` use underscores instead of slashes (e.g., `myclock123_front` instead of `myclock123/front`). Home Assistant treats changed `unique_id` values as new entities. After flashing a version with this scheme, delete obsolete entities in HA (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) and remove their retained discovery config topics so they do not reappear.
+
+2. New topics for status messages:
+  All runtime (non‑discovery) topics are published under the root `elekstubehax/<device_id>/...` using the lower‑case `device_id`. This yields unique, per‑device status and command channels (for example: `elekstubehax/elekstube-1a2b3c/front` and `/front/set`). If you previously subscribed to older topic paths, update any external scripts/dashboards. Consider deleting old retained status topics to avoid confusion when browsing.
+
+3. New topics for discovery messages:
+  Each device now publishes exactly one discovery config per HA domain (light, number, switch) under the path `homeassistant/<domain>/elekstubehax/<device_id>/<entity>/config`. Paths include the lower‑case `device_id`. If retained configs from older paths exist, delete them to prevent ghost entities from reappearing in HA after restarts.
+
+4. Optional device name suffix (cosmetic):
+  By default the firmware publishes the plain hardware model in `device.name` (e.g., `EleksTube IPS Tube Clock`). Defining `ENABLE_HA_DEVICE_NAME_SUFFIX` appends a short identifier `(XXYYZZ)` built from the last three MAC bytes, e.g., `EleksTube IPS Tube Clock (3A4FBC)`. `device.identifiers` and all entity `unique_id` values remain unchanged. Use the suffix only if you run several identical clocks and want quick visual disambiguation.
+
+5. Cached device.name after toggling the suffix:
+  HA may cache the previous device name until it processes an updated retained discovery message. If you add or remove the suffix flag and want the UI updated immediately, follow the refresh procedure below.
+
+6. General refresh procedure:
+  a. Power off / disconnect MQTT for the clock.
+  b. Delete all (old) retained discovery config topics for that device:
+    like `homeassistant/light/<device_id>/main/config` or `homeassistant/light/<device_id>_main`, `.../back/config` or `..._back/config`, corresponding `homeassistant/switch/...` and `homeassistant/number/...` topics.  
+  c. Flash the Firmware with the new MQTT implementation (>1.2.x)
+  d. Power the device back on; it publishes the discovery.
+  e. Verify in HA device list.
+  f. Delete the references to the old device in HA or change them to the new ones.
 
 ##### 5.6.4.1.2 Used integrations
 
@@ -640,125 +679,128 @@ The settings for the LED modes and the general clock settings can only be set fr
 
 #### 5.6.4.1.4 MQTT Discovery, Topic Layout and Naming Conventions
 
-  This firmware supports automated entity creation in Home Assistant via the MQTT Discovery mechanism. All topics follow a consistent, lower‑case namespace to avoid duplication caused by case changes and to simplify manual scripting.
+This firmware supports automated entity creation in Home Assistant via the MQTT Discovery mechanism. All topics follow a consistent, lower‑case namespace to avoid duplication caused by case changes and to simplify manual scripting.
 
-  Key principles:
+Key principles:
 
-  * Root namespace for all runtime state and commands: `elekstubehax`
-  * Per‑device path segment: lower‑cased unique device name – referred to as `device_id`. Format: `<model>-<XXYYZZ>` where `<model>` is the compile‑time `DEVICE_NAME` (e.g. `elekstube`, `elekstubegen2`, `iptstube`, `novellife`, `punkcyber`, `sihai`) and `<XXYYZZ>` are the last three bytes of the ESP32 MAC address in hexadecimal (bytes 3–5 of the canonical MAC). Example: `elekstube-1a2b3c`. This keeps IDs short while remaining sufficiently unique for typical home deployments.
-  * Entity channel/topic keyword ("front", "back", "12hr", "blank0", "pulse", "breath", "rainbow") – referred to as `entity_id`
-  * Discovery identifiers (`unique_id` and `object_id`) now use underscore separators: `<device_id>_<entity_id>` (no slashes)
-  * All state, attribute and command topics are JSON where applicable (schema `json` for lights) or key/value JSON for switches and numbers
+- Root namespace for all runtime state and commands: `elekstubehax`
+- Per‑device path segment: lower‑cased unique device name – referred to as `device_id`. Format: `<model>-<XXYYZZ>` where `<model>` is the compile‑time `DEVICE_NAME` (e.g., `elekstube`, `elekstubegen2`, `ipstube`, `novellife`, `punkcyber`, `sihai`) and `<XXYYZZ>` are the last three bytes of the ESP32 MAC address in hexadecimal (bytes 3–5 of the canonical MAC). Example: `elekstube-1a2b3c`. This keeps IDs short while remaining sufficiently unique for typical home deployments.
+- Entity channel/topic keyword ("main", "back", "use_twelve_hours", "blank_zero_hours", "pulse_bpm", "breath_bpm", "rainbow_duration") – referred to as `entity_id`
+- Discovery identifiers (`unique_id` and `object_id`) now use underscore separators: `<device_id>_<entity_id>` (no slashes)
+- All state, attribute and command topics are JSON where applicable (schema `json` for lights) or key/value JSON for switches and numbers
 
-  Topic patterns (runtime):
+Topic patterns (runtime):
 
-  ```text
-  Availability:        elektstubehax/<device_id>/alive
-  Light (front) state: elektstubehax/<device_id>/front
-  Light (front) cmd:   elektstubehax/<device_id>/front/set
-  Light (back) state:  elektstubehax/<device_id>/back
-  Light (back) cmd:    elektstubehax/<device_id>/back/set
-  Switch 12h state:    elektstubehax/<device_id>/12hr
-  Switch 12h cmd:      elektstubehax/<device_id>/12hr/set
-  Switch blank0 state: elektstubehax/<device_id>/blank0
-  Switch blank0 cmd:   elektstubehax/<device_id>/blank0/set
-  Number pulse state:  elektstubehax/<device_id>/pulse
-  Number pulse cmd:    elektstubehax/<device_id>/pulse/set
-  Number breath state: elektstubehax/<device_id>/breath
-  Number breath cmd:   elektstubehax/<device_id>/breath/set
-  Number rainbow state: elektstubehax/<device_id>/rainbow
-  Number rainbow cmd:   elektstubehax/<device_id>/rainbow/set
-  ```
+```text
+Availability:         elektstubehax/<device_id>/alive
+Light (main) state:   elektstubehax/<device_id>/main
+Light (main) cmd:     elektstubehax/<device_id>/main/set
+Light (back) state:   elektstubehax/<device_id>/back
+Light (back) cmd:     elektstubehax/<device_id>/back/set
+Switch 12h state:     elektstubehax/<device_id>/use_twelve_hours
+Switch 12h cmd:       elektstubehax/<device_id>/use_twelve_hours/set
+Switch blank0 state:  elektstubehax/<device_id>/blank_zero_hours
+Switch blank0 cmd:    elektstubehax/<device_id>/blank_zero_hours/set
+Number pulse state:   elektstubehax/<device_id>/pulse_bpm
+Number pulse cmd:     elektstubehax/<device_id>/pulse_bpm/set
+Number breath state:  elektstubehax/<device_id>/breath_bpm
+Number breath cmd:    elektstubehax/<device_id>/breath_bpm/set
+Number rainbow state: elektstubehax/<device_id>/rainbow_duration
+Number rainbow cmd:   elektstubehax/<device_id>/rainbow_duration/set
+```
 
-  Discovery topics (published once per entity or after HA restart):
+Discovery topics (published once per entity or after HA restart):
 
-  ```text
-  homeassistant/light/elekstubehax/<device_id>/front/config
-  homeassistant/light/elekstubehax/<device_id>/back/config
-  homeassistant/switch/elekstubehax/<device_id>/12hr/config
-  homeassistant/switch/elekstubehax/<device_id>/blank0/config
-  homeassistant/number/elekstubehax/<device_id>/pulse/config
-  homeassistant/number/elekstubehax/<device_id>/breath/config
-  homeassistant/number/elekstubehax/<device_id>/rainbow/config
-  ```
+```text
+homeassistant/light/<device_id>/main/config
+homeassistant/light/<device_id>/back/config
+homeassistant/switch/<device_id>/use_twelve_hours/config
+homeassistant/switch/<device_id>/blank_zero_hours/config
+homeassistant/number/<device_id>/pulse_bpm/config
+homeassistant/number/<device_id>/breath_bpm/config
+homeassistant/number/<device_id>/rainbow_duration/config
+```
 
-  Example discovery payload (front light) – abbreviated:
+Example discovery payload (front light) – abbreviated:
 
-  ```json
-  {
-    "unique_id": "myclock123_front",
-    "object_id": "myclock123_front",
-    "name": "Main",
-    "schema": "json",
-    "availability_topic": "elekstubehax/myclock123/alive",
-    "state_topic": "elekstubehax/myclock123/front",
-    "json_attributes_topic": "elekstubehax/myclock123/front",
-    "command_topic": "elekstubehax/myclock123/front/set",
-    "supported_color_modes": ["brightness"],
-    "brightness": true,
-    "effect": true,
-    "effect_list": ["ClockFace1", "ClockFace2", "…"],
-    "device": {
-      "identifiers": ["EleksTubeHAX-ABCDEF"],
-      "manufacturer": "EleksTubeHAX",
-      "model": "IPS Clock",
-      "sw_version": "<firmware-version>"
-    }
+```json
+{
+  "unique_id": "elekstube-1a2b3c_main",
+  "object_id": "elekstube-1a2b3c_main",
+  "name": "Main",
+  "schema": "json",
+  "availability_topic": "elekstubehax/elekstube-1a2b3c/alive",
+  "state_topic": "elekstubehax/elekstube-1a2b3c/main",
+  "json_attributes_topic": "elekstubehax/elekstube-1a2b3c/main",
+  "command_topic": "elekstubehax/elekstube-1a2b3c/main/set",
+  "supported_color_modes": ["brightness"],
+  "brightness": true,
+  "effect": true,
+  "effect_list": ["ClockFace1", "ClockFace2", "…"],
+  "device": {
+  "identifiers": ["EleksTube-1A2B3C"],
+    "manufacturer": "EleksTubeHAX",
+    "model": "IPS Clock",
+    "sw_version": "<firmware-version>"
   }
-  ```json
+}
+```
 
-  Switch command payload examples:
+Switch command payload examples:
 
-  ```json
-  {"state":"ON"}
-  {"state":"OFF"}
-  ```json
+```json
+{"state":"ON"}
+```
 
-  Number command payload example (pulse speed 75):
+```json
+{"state":"OFF"}
+```
 
-  ```json
-  {"state":75}
-  ```
+Number command payload example (pulse speed 75):
 
-  Light (front/back) command payload examples (subset):
+```json
+{"state":75}
+```
 
-  ```
-  // Turn front display off
-  {"state":"OFF"}
+Light (front/back) command payload examples (subset):
 
-  // Set brightness (0..255 for front, 0..255 for back) and effect
-  {"state":"ON","brightness":180,"effect":"Rainbow"}
+```jsonc
+// Turn front display off
+{"state":"OFF"}
 
-  // Set static backlight color (hs mode) + brightness
-  {"state":"ON","color":{"h":210,"s":100},"brightness":150,"effect":"Constant"}
-  ```
+// Set brightness (0..255 for front, 0..255 for back) and effect
+{"state":"ON","brightness":180,"effect":"Rainbow"}
 
-  Effects:
+// Set static backlight color (hs mode) + brightness
+{"state":"ON","color":{"h":210,"s":100},"brightness":150,"effect":"Constant"}
+```
 
-  * Front light: effect list equals available clock faces.
-  * Back light: effect list equals firmware‑defined patterns (Dark/Test/Constant/Pulse/Breath/Rainbow etc.).
+Effects:
 
-  Entity summary:
+- Front light: effect list equals available clock faces.
+- Back light: effect list equals firmware‑defined patterns (Dark/Test/Constant/Pulse/Breath/Rainbow etc.).
 
-  | Entity | HA Domain | Purpose |
-  | ------ | --------- | ------- |
-  | front  | light     | LCD tubes (brightness + clock face as effect) |
-  | back   | light     | Ambient LEDs (brightness, color HS, effects) |
-  | 12hr   | switch    | 12/24 hour mode toggle |
-  | blank0 | switch    | Blank leading zero of hour |
-  | pulse  | number    | Pulse effect BPM (20–120) |
-  | breath | number    | Breath effect BPM (5–60) |
-  | rainbow| number    | Rainbow cycle duration seconds (0.2–10) |
+Entity summary:
 
-  Migration note (important): Prior firmware versions used slash separators in `unique_id` / `object_id` (e.g. `myclock123/front`). Home Assistant treats a changed `unique_id` as a brand‑new entity; the old one will remain in the entity registry until manually removed. If you previously had entities with the old format, you can safely delete the obsolete entries in Home Assistant (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) after the new ones appear.
+| Entity | HA Domain | Purpose |
+| ------ | --------- | ------- |
+| front  | light     | LCD tubes (brightness + clock face as effect) |
+| back   | light     | Ambient LEDs (brightness, color HS, effects) |
+| 12hr   | switch    | 12/24 hour mode toggle |
+| blank0 | switch    | Blank leading zero of hour |
+| pulse  | number    | Pulse effect BPM (20–120) |
+| breath | number    | Breath effect BPM (5–60) |
+| rainbow| number    | Rainbow cycle duration seconds (0.2–10) |
 
-  Automation tips:
+Migration note (important): Prior firmware versions used slash separators in `unique_id` / `object_id` (e.g., `myclock123/front`). Home Assistant treats a changed `unique_id` as a brand‑new entity; the old one will remain in the entity registry until manually removed. If you previously had entities with the old format, you can safely delete the obsolete entries in Home Assistant (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) after the new ones appear.
 
-  * Use `availability_topic` to gate automations (`state == 'online'`).
-  * Prefer referencing entities via their entity_id instead of hardcoding MQTT topics when working inside Home Assistant.
-  * For external scripts, build topics exactly as documented to avoid mismatches after firmware updates.
+Automation tips:
 
-  If you disable Home Assistant support (`MQTT_HOME_ASSISTANT` not defined), discovery messages are not sent, but plain MQTT state/command topics stay available (if `MQTT_PLAIN_ENABLED` is defined). See also next chapter.
+- Use `availability_topic` to gate automations (`state == 'online'`).
+- Prefer referencing entities via their entity_id instead of hardcoding MQTT topics when working inside Home Assistant.
+- For external scripts, build topics exactly as documented to avoid mismatches after firmware updates.
+
+If you disable Home Assistant support (`MQTT_HOME_ASSISTANT` not defined), discovery messages are not sent, but plain MQTT state/command topics stay available (if `MQTT_PLAIN_ENABLED` is defined). See also next chapter.
 
 #### 5.6.5.2 MQTT without Home Assistant
 

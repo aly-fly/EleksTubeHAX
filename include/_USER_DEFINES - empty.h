@@ -85,6 +85,9 @@
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received
 
+// Uncomment to append short MAC suffix to device name in Home Assistant for disambiguation when multiple identical models exist
+#define ENABLE_HA_DEVICE_NAME_SUFFIX
+
 // #define MQTT_USE_TLS // Use TLS for MQTT connection. Setting a root CA certificate is needed!
 // Don't forget to copy the correct certificate file into the 'data' folder and rename it to mqtt-ca-root.pem!
 // Example CA cert (Let's Encrypt CA cert) can be found in the 'data - other graphics' subfolder in the root of this repo

@@ -963,12 +963,30 @@ bool MQTTReportDiscovery()
 {
   JsonDocument discovery;
 
+  // Build human readable device name. Default = plain model name.
+  // Define ENABLE_HA_DEVICE_NAME_SUFFIX to append short MAC suffix for disambiguation when multiple identical models exist.
+  char DeviceNameForHA[96];
+#ifdef ENABLE_HA_DEVICE_NAME_SUFFIX
+  const char *dash = strrchr(UniqueDeviceName, '-');
+  if (dash && *(dash + 1) != '\0')
+  {
+    // Use everything after last '-' of UniqueDeviceName as short id (already hex upper-case)
+    snprintf(DeviceNameForHA, sizeof(DeviceNameForHA), "%s (%s)", DEVICE_MODEL, dash + 1);
+  }
+  else
+  {
+    snprintf(DeviceNameForHA, sizeof(DeviceNameForHA), "%s", DEVICE_MODEL);
+  }
+#else
+  snprintf(DeviceNameForHA, sizeof(DeviceNameForHA), "%s", DEVICE_MODEL);
+#endif  // ENABLE_HA_DEVICE_NAME_SUFFIX
+
   // Main Light.
   discovery.clear();
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1000,7 +1018,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1032,7 +1050,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1061,7 +1079,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1090,7 +1108,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1121,7 +1139,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
@@ -1152,7 +1170,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["identifiers"][0] = UniqueDeviceName;
   discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
   discovery["device"]["model"] = DEVICE_MODEL;
-  discovery["device"]["name"] = DEVICE_MODEL;
+  discovery["device"]["name"] = DeviceNameForHA;
   discovery["device"]["sw_version"] = FIRMWARE_VERSION;
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
