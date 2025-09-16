@@ -42,6 +42,7 @@ WiFiClient espClient;
 #endif
 
 extern char UniqueDeviceName[32];
+extern char UniqueDeviceNameLower[32];
 
 // Initialize the MQTT client.
 PubSubClient MQTTclient(espClient);
@@ -71,7 +72,9 @@ bool endsWith(const char *str, const char *suffix);
 #ifdef MQTT_USE_TLS
 bool loadCARootCert();
 #endif
-#define concat5_into(buf, first, second, third, fourth, fifth) (snprintf((buf), sizeof(buf), "%s%s%s%s%s", (first), (second), (third), (fourth), (fifth)), (buf))
+#define concat7_into(buf, first, second, third, fourth, fifth, sixth, seventh) (snprintf((buf), sizeof(buf), "%s%s%s%s%s%s%s", (first), (second), (third), (fourth), (fifth), (sixth), (seventh)), (buf))
+
+#define MQTT_ROOT_TOPIC "elekstubehax"
 
 // Variables
 char outbuf[64];
@@ -304,7 +307,7 @@ void MQTTReportState(bool forceUpdateEverything)
     state["effect"] = tfts.clockFaceToName(MQTTStatusMainGraphic);
     state["color_mode"] = "brightness";
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentMainPowerState = MQTTStatusMainPower;
@@ -325,7 +328,7 @@ void MQTTReportState(bool forceUpdateEverything)
     state["beath_bpm"] = MQTTStatusBreathBpm;
     state["rainbow_sec"] = round1(MQTTStatusRainbowSec);
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentBackPowerState = MQTTStatusBackPower;
@@ -340,7 +343,7 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusUseTwelveHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentUseTwelveHours = MQTTStatusUseTwelveHours;
@@ -351,7 +354,7 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusBlankZeroHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentBlankZeroHours = MQTTStatusBlankZeroHours;
@@ -362,7 +365,7 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusPulseBpm;
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentPulseBpm = MQTTStatusPulseBpm;
@@ -373,7 +376,7 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusBreathBpm;
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentBreathBpm = MQTTStatusBreathBpm;
@@ -385,7 +388,7 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = round1(MQTTStatusRainbowSec);
 
-    if (!MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
       return;
 
     LastSentRainbowSec = MQTTStatusRainbowSec;
@@ -473,13 +476,16 @@ bool MQTTStart(bool restart)
     }
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message if the connection get lost.
-    if (MQTTclient.connect(UniqueDeviceName,                                                      // MQTT client id
-                           MQTT_USERNAME,                                                         // MQTT username
-                           MQTT_PASSWORD,                                                         // MQTT password
-                           concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic
-                           0,                                                                     // Last will QoS
-                           MQTT_RETAIN_ALIVE_MESSAGES,                                            // Retain message
-                           MQTT_ALIVE_MSG_OFFLINE))                                               // Last will message
+    if (MQTTclient.connect( UniqueDeviceName,                                                      // MQTT client id
+                            MQTT_USERNAME,                                                         // MQTT username
+                            MQTT_PASSWORD                                                         // MQTT password
+#ifndef MQTT_CLIENT_ID_FOR_SMARTNEST
+                            , concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic (rooted for HA/plain unified mode) because smartnest.cz broker does not interpret this
+                            0,                                                                     // Last will QoS
+                            MQTT_RETAIN_ALIVE_MESSAGES,                                            // Retain message
+                            MQTT_ALIVE_MSG_OFFLINE                                               // Last will message
+#endif
+                            ))
     {
       Serial.println("MQTT connected");
       MQTTConnected = true;
@@ -498,7 +504,7 @@ bool MQTTStart(bool restart)
 #endif
 
 #ifdef MQTT_PLAIN_ENABLED
-    bool ok = MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/directive/#", "", "", "")); // Subscribes only to messages send to the device
+  bool ok = MQTTclient.subscribe(concat7_into(outbuf, UniqueDeviceNameLower, "/directive/#", "", "", "", "", "")); // Subscribes only to messages send to the device
     if (!ok)
       Serial.println("Error subscribing to /directive messages!");
 #ifdef DEBUG_OUTPUT_MQTT
@@ -507,30 +513,30 @@ bool MQTTStart(bool restart)
 #endif
     // Send initial status messages.
     MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                                                        // Reports that the device is online
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/firmware", "", "", ""), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/ip", "", "", ""), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/network", "", "", ""), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
+  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/firmware", "", "", "", "", ""), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
+  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/ip", "", "", "", "", ""), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
+  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/network", "", "", "", "", ""), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
     MQTTReportWiFiSignal();
 #endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
     MQTTclient.subscribe(MQTT_TOPIC_HASTATUS); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "/set", ""));
-    MQTTclient.subscribe(concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "/set", ""));
+  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "/set", ""));
 #ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: subscribed to topics: ");
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicFront);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicBack);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, Topic12hr);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicBlank0);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicBreath);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicPulse);
-    Serial.printf("%s/%s/set\n", UniqueDeviceName, TopicRainbow);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicFront);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBack);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, Topic12hr);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBlank0);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBreath);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicPulse);
+  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicRainbow);
     Serial.println(MQTT_TOPIC_HASTATUS);
 #endif // DEBUG_OUTPUT_MQTT
 #endif // MQTT_HOME_ASSISTANT
@@ -648,7 +654,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
   else // Process all other MQTT messages.
   {
-    if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "/set", "")) == 0) // Process "<UniqueDeviceName>/main/set"
+  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", "")) == 0) // Process "<root>/<device>/main/set"
     {                                                                                            // Process JSON for main set command
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
@@ -676,7 +682,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
     }
     else
     {
-      if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "/set", "")) == 0) // Process "<UniqueDeviceName>/back/set"
+  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", "")) == 0) // Process back/set
       {
         JsonDocument doc;
         DeserializationError err = deserializeJson(doc, payload, length);
@@ -710,7 +716,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       }
       else
       {
-        if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "/set", "")) == 0) // Process "<UniqueDeviceName>/use_twelve_hours/set"
+  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", "")) == 0) // Process 12hr/set
         {
           JsonDocument doc;
           DeserializationError err = deserializeJson(doc, payload, length);
@@ -728,7 +734,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
         }
         else
         {
-          if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "/set", "")) == 0) // Process "<UniqueDeviceName>/blank_zero_hours/set"
+          if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "/set", "")) == 0) // Process blank0/set
           {
             JsonDocument doc;
             DeserializationError err = deserializeJson(doc, payload, length);
@@ -746,7 +752,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
           }
           else
           {
-            if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "/set", "")) == 0) // Process "<UniqueDeviceName>/pulse_bpm/set"
+            if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "/set", "")) == 0) // Process pulse/set
             {
               JsonDocument doc;
               DeserializationError err = deserializeJson(doc, payload, length);
@@ -764,7 +770,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
             }
             else
             {
-              if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "/set", "")) == 0) // Process "<UniqueDeviceName>/breath_bpm/set"
+              if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "/set", "")) == 0) // Process breath/set
               {
                 JsonDocument doc;
                 DeserializationError err = deserializeJson(doc, payload, length);
@@ -782,7 +788,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
               }
               else
               {
-                if (strcmp(topic, concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "/set", "")) == 0) // Process "<UniqueDeviceName>/rainbow_duration/set"
+                if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "/set", "")) == 0) // Process rainbow/set
                 {
                   JsonDocument doc;
                   DeserializationError err = deserializeJson(doc, payload, length);
@@ -836,7 +842,11 @@ void MQTTReportStatus(bool forceUpdate)
   {
     char message[5];
     snprintf(message, sizeof(message), "%d", MQTTStatusState);
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/setpoint", "", "", ""), message, MQTT_RETAIN_STATE_MESSAGES);
+#ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceName, "/report/state", "", "", "", "", ""), message, MQTT_RETAIN_STATE_MESSAGES);
+#else
+    MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/setpoint", "", "", ""), message, MQTT_RETAIN_STATE_MESSAGES);
+#endif // MQTT_CLIENT_ID_FOR_SMARTNEST
     LastSentStatus = MQTTStatusState;
   }
 }
@@ -845,7 +855,11 @@ void MQTTReportPowerState(bool forceUpdate)
 {
   if ((MQTTStatusMainPower != LastSentMainPowerState) || forceUpdate)
   {
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/powerState", "", "", ""), MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON, MQTT_RETAIN_STATE_MESSAGES);
+#ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceName, "/report/powerState", "", "", "", "", ""), MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON, MQTT_RETAIN_STATE_MESSAGES);
+#else
+    MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/powerState", "", "", ""), MQTTStatusMainPower == 0 ? MQTT_STATE_OFF : MQTT_STATE_ON, MQTT_RETAIN_STATE_MESSAGES);
+#endif // MQTT_CLIENT_ID_FOR_SMARTNEST
     LastSentMainPowerState = MQTTStatusMainPower;
   }
 }
@@ -858,7 +872,11 @@ void MQTTReportWiFiSignal()
   if (abs(SignalLevel - LastSentSignalLevel) > 2)
   {
     snprintf(signal, sizeof(signal), "%d", SignalLevel);
-    MQTTPublish(concat5_into(outbuf, UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+#ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceName, "/report/signal", "", "", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES);
+#else
+  MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+#endif // MQTT_CLIENT_ID_FOR_SMARTNEST
     LastSentSignalLevel = SignalLevel;
   }
 }
@@ -955,15 +973,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "_", TopicFront, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "_", TopicFront, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicFront, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicFront, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["name"] = "Main";
   discovery["icon"] = "mdi:clock-digital";
   discovery["schema"] = "json";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicFront, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", "");
   discovery["supported_color_modes"][0] = "brightness";
   discovery["brightness"] = true;
   discovery["brightness_scale"] = MQTT_BRIGHTNESS_MAIN_MAX;
@@ -974,7 +992,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/light/", UniqueDeviceName, "/", TopicFront, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicFront, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Back Light.
@@ -987,15 +1005,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBack, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBack, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["name"] = "Back";
   discovery["icon"] = "mdi:television-ambient-light";
   discovery["schema"] = "json";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBack, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", "");
   discovery["brightness"] = true;
   discovery["brightness_scale"] = MQTT_BRIGHTNESS_BACK_MAX;
   discovery["supported_color_modes"][0] = "hs";
@@ -1006,7 +1024,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/light/", UniqueDeviceName, "/", TopicBack, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicBack, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Use Twelve Hours.
@@ -1019,15 +1037,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", Topic12hr, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", Topic12hr, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["entity_category"] = "config";
   discovery["name"] = "Use Twelve Hours";
   discovery["icon"] = "mdi:timeline-clock";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", Topic12hr, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", "");
   discovery["value_template"] = "{{ value_json.state }}";
   discovery["state_on"] = "ON";
   discovery["state_off"] = "OFF";
@@ -1035,7 +1053,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/switch/", UniqueDeviceName, "/", Topic12hr, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", Topic12hr, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Blank Zero Hours.
@@ -1048,15 +1066,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBlank0, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBlank0, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["entity_category"] = "config";
   discovery["name"] = "Blank Zero Hours";
   discovery["icon"] = "mdi:keyboard-space";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBlank0, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "/set", "");
   discovery["value_template"] = "{{ value_json.state }}";
   discovery["state_on"] = "ON";
   discovery["state_off"] = "OFF";
@@ -1064,7 +1082,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/switch/", UniqueDeviceName, "/", TopicBlank0, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", TopicBlank0, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Pulses per minute.
@@ -1078,15 +1096,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
   discovery["device_class"] = "speed";
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicPulse, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicPulse, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["entity_category"] = "config";
   discovery["name"] = "Pulse, bpm";
   discovery["icon"] = "mdi:led-on";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicPulse, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "/set", "");
   discovery["command_template"] = "{\"state\":{{value}}}";
   discovery["step"] = 1;
   discovery["min"] = 20;
@@ -1095,7 +1113,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicPulse, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicPulse, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Breaths per minute.
@@ -1109,15 +1127,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
   discovery["device_class"] = "frequency";
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBreath, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicBreath, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["entity_category"] = "config";
   discovery["name"] = "Breath, bpm";
   discovery["icon"] = "mdi:cloud";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicBreath, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "/set", "");
   discovery["command_template"] = "{\"state\":{{value}}}";
   discovery["step"] = 1;
   discovery["min"] = 5;
@@ -1126,7 +1144,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicBreath, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicBreath, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Rainbow duration.
@@ -1140,15 +1158,15 @@ bool MQTTReportDiscovery()
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
   discovery["device_class"] = "duration";
-  discovery["unique_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "", "");
-  discovery["object_id"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "", "");
-  discovery["availability_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+  discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicRainbow, "", "", "", "");
+  discovery["object_id"] = concat7_into(outbuf, UniqueDeviceNameLower, "_", TopicRainbow, "", "", "", "");
+  discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "");
   discovery["entity_category"] = "config";
   discovery["name"] = "Rainbow, sec";
   discovery["icon"] = "mdi:looks";
-  discovery["state_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "", "");
-  discovery["json_attributes_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "", "");
-  discovery["command_topic"] = concat5_into(outbuf, UniqueDeviceName, "/", TopicRainbow, "/set", "");
+  discovery["state_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "", "");
+  discovery["json_attributes_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "", "");
+  discovery["command_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "/set", "");
   discovery["command_template"] = "{\"state\":{{value}}}";
   discovery["step"] = 0.1;
   discovery["min"] = 0.2;
@@ -1157,7 +1175,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat5_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicRainbow, "/config"), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicRainbow, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   discovery.clear();
@@ -1170,10 +1188,14 @@ bool MQTTReportDiscovery()
 
 bool MQTTReportAvailability(const char *status)
 {
-  availabilityReported = MQTTclient.publish(concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
+#ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+    availabilityReported = MQTTclient.publish(concat7_into(outbuf, UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "", "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
+#else
+    availabilityReported = MQTTclient.publish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true}
+#endif // MQTT_CLIENT_ID_FOR_SMARTNEST
 #ifdef DEBUG_OUTPUT_MQTT
   Serial.print("DEBUG: Sent availability: ");
-  Serial.print(concat5_into(outbuf, UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""));
+  Serial.print(concat7_into(outbuf, UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "", "", ""));
   Serial.print(" ");
   Serial.println(status);
 #endif

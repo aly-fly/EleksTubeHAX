@@ -92,7 +92,7 @@ void WifiBegin()
 
   WiFi.mode(WIFI_STA);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
-  WiFi.setHostname(DEVICE_NAME);
+  WiFi.setHostname(UniqueDeviceName); // Set the hostname for DHCP
 
 #ifdef WIFI_USE_WPS
   // no data is saved, start WPS imediatelly

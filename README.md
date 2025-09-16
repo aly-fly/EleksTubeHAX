@@ -572,6 +572,8 @@ Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so tha
 
 ##### 5.6.5.1.1 Setup
 
+Migration note (important): Prior firmware versions used slash separators in `unique_id` / `object_id` (e.g. `myclock123/front`). Home Assistant treats a changed `unique_id` as a brand‑new entity; the old one will remain in the entity registry until manually removed. If you previously had entities with the old format, you can safely delete the obsolete entries in Home Assistant (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) after the new ones appear. You should also delete the old, retained discovery messages from the MQTT broker queue or the device will "come back as a ghost".
+
 If you want to integrate the clock into your Home Assistant, you need to make sure, that Home Assistant and the clock uses the same MQTT broker.
 
 Normally you will already have a MQTT broker running locally, which supports the HA discovery and communication messages, like Mosquitto. If not done already, you can set it up easily via an Add-On in HA. See: [Home Assistant MQTT Integration](https://www.home-assistant.io/integrations/mqtt/).
@@ -588,7 +590,9 @@ If the connection was successful the clock sends the discovery messages for HA a
 
 Note: If you change your used clock faces in the `data` subdirectory, the `clockfaces.txt` in the `data` subdirectory needs to be changed too. This is, because the shown names in HA for the clock faces under "Main light" are hard coded and read from there.
 
-Note: `#define MQTT_CLIENT` is used as a unique device name (i.e. it should be different if you have several IPS clocks) and is the "root" part of the topic for all entities that will be interacted with via MQTT.
+No manual `MQTT_CLIENT` define is needed. The firmware now auto‑generates a stable, lower‑case device identifier from hardware data (MAC/model) and uses the namespace pattern `elekstubehax/<device_id>/...`. Ignore older documentation references instructing you to set `MQTT_CLIENT`.
+
+Note: For using smartnest.cz, define `MQTT_CLIENT_ID_FOR_SMARTNEST` (previously referred to as `MQTT_CLIENT`) to match the external service's required fixed device ID. This becomes the root of the published topics expected by that service.
 
 Note: If you want to use an internet-based broker, you can use HiveMQ. You will need to create an account there and set it up in HA and in here. 'MQTT\_USE\_TLS' must be defined, because HiveMQ only supports encrypted connections. The HiveMQ TLS cert is based on the root CA of Let's Encrypt, so you also need to copy the 'mqtt-ca-root.pem' file from the `data/other graphics` subdirectory into the `data` subdirectory of the PIO project and upload the data partition (file system) with the changed app partition. Other brokers or your locally used cert for your MQTT broker may need another root CA to be set. See: [Connect HA to HiveMQ](https://www.hivemq.com/blog/connect-home-assistant-to-hivemq-cloud/).
 
@@ -612,7 +616,7 @@ See the HA MQTT documentation for details of the used MQTT integrations:
 
 ##### 5.6.4.1.3 Usage
 
-After a successful auto discovery, you will find a new device under "Setting -> Devices and Services -> MQTT -> XX devices", named like your `MQTT_CLIENT` define.
+After a successful auto discovery, you will find a new device under "Setting -> Devices and Services -> MQTT -> XX devices", named after the auto‑generated device id (the same lower‑case identifier visible in the MQTT topic paths). A manual `MQTT_CLIENT` define is NOT required for Home Assistant integration.
 
 ![HA MQTT Integration Overview](/docs/ImagesMD/HAMQTTIntegrationOverview.png)
 
@@ -634,6 +638,128 @@ For the 'back light', the LED colour and mode can be set.
 
 The settings for the LED modes and the general clock settings can only be set from the "Configuration" entity.
 
+#### 5.6.4.1.4 MQTT Discovery, Topic Layout and Naming Conventions
+
+  This firmware supports automated entity creation in Home Assistant via the MQTT Discovery mechanism. All topics follow a consistent, lower‑case namespace to avoid duplication caused by case changes and to simplify manual scripting.
+
+  Key principles:
+
+  * Root namespace for all runtime state and commands: `elekstubehax`
+  * Per‑device path segment: lower‑cased unique device name – referred to as `device_id`. Format: `<model>-<XXYYZZ>` where `<model>` is the compile‑time `DEVICE_NAME` (e.g. `elekstube`, `elekstubegen2`, `iptstube`, `novellife`, `punkcyber`, `sihai`) and `<XXYYZZ>` are the last three bytes of the ESP32 MAC address in hexadecimal (bytes 3–5 of the canonical MAC). Example: `elekstube-1a2b3c`. This keeps IDs short while remaining sufficiently unique for typical home deployments.
+  * Entity channel/topic keyword ("front", "back", "12hr", "blank0", "pulse", "breath", "rainbow") – referred to as `entity_id`
+  * Discovery identifiers (`unique_id` and `object_id`) now use underscore separators: `<device_id>_<entity_id>` (no slashes)
+  * All state, attribute and command topics are JSON where applicable (schema `json` for lights) or key/value JSON for switches and numbers
+
+  Topic patterns (runtime):
+
+  ```text
+  Availability:        elektstubehax/<device_id>/alive
+  Light (front) state: elektstubehax/<device_id>/front
+  Light (front) cmd:   elektstubehax/<device_id>/front/set
+  Light (back) state:  elektstubehax/<device_id>/back
+  Light (back) cmd:    elektstubehax/<device_id>/back/set
+  Switch 12h state:    elektstubehax/<device_id>/12hr
+  Switch 12h cmd:      elektstubehax/<device_id>/12hr/set
+  Switch blank0 state: elektstubehax/<device_id>/blank0
+  Switch blank0 cmd:   elektstubehax/<device_id>/blank0/set
+  Number pulse state:  elektstubehax/<device_id>/pulse
+  Number pulse cmd:    elektstubehax/<device_id>/pulse/set
+  Number breath state: elektstubehax/<device_id>/breath
+  Number breath cmd:   elektstubehax/<device_id>/breath/set
+  Number rainbow state: elektstubehax/<device_id>/rainbow
+  Number rainbow cmd:   elektstubehax/<device_id>/rainbow/set
+  ```
+
+  Discovery topics (published once per entity or after HA restart):
+
+  ```text
+  homeassistant/light/elekstubehax/<device_id>/front/config
+  homeassistant/light/elekstubehax/<device_id>/back/config
+  homeassistant/switch/elekstubehax/<device_id>/12hr/config
+  homeassistant/switch/elekstubehax/<device_id>/blank0/config
+  homeassistant/number/elekstubehax/<device_id>/pulse/config
+  homeassistant/number/elekstubehax/<device_id>/breath/config
+  homeassistant/number/elekstubehax/<device_id>/rainbow/config
+  ```
+
+  Example discovery payload (front light) – abbreviated:
+
+  ```json
+  {
+    "unique_id": "myclock123_front",
+    "object_id": "myclock123_front",
+    "name": "Main",
+    "schema": "json",
+    "availability_topic": "elekstubehax/myclock123/alive",
+    "state_topic": "elekstubehax/myclock123/front",
+    "json_attributes_topic": "elekstubehax/myclock123/front",
+    "command_topic": "elekstubehax/myclock123/front/set",
+    "supported_color_modes": ["brightness"],
+    "brightness": true,
+    "effect": true,
+    "effect_list": ["ClockFace1", "ClockFace2", "…"],
+    "device": {
+      "identifiers": ["EleksTubeHAX-ABCDEF"],
+      "manufacturer": "EleksTubeHAX",
+      "model": "IPS Clock",
+      "sw_version": "<firmware-version>"
+    }
+  }
+  ```json
+
+  Switch command payload examples:
+
+  ```json
+  {"state":"ON"}
+  {"state":"OFF"}
+  ```json
+
+  Number command payload example (pulse speed 75):
+
+  ```json
+  {"state":75}
+  ```
+
+  Light (front/back) command payload examples (subset):
+
+  ```
+  // Turn front display off
+  {"state":"OFF"}
+
+  // Set brightness (0..255 for front, 0..255 for back) and effect
+  {"state":"ON","brightness":180,"effect":"Rainbow"}
+
+  // Set static backlight color (hs mode) + brightness
+  {"state":"ON","color":{"h":210,"s":100},"brightness":150,"effect":"Constant"}
+  ```
+
+  Effects:
+
+  * Front light: effect list equals available clock faces.
+  * Back light: effect list equals firmware‑defined patterns (Dark/Test/Constant/Pulse/Breath/Rainbow etc.).
+
+  Entity summary:
+
+  | Entity | HA Domain | Purpose |
+  | ------ | --------- | ------- |
+  | front  | light     | LCD tubes (brightness + clock face as effect) |
+  | back   | light     | Ambient LEDs (brightness, color HS, effects) |
+  | 12hr   | switch    | 12/24 hour mode toggle |
+  | blank0 | switch    | Blank leading zero of hour |
+  | pulse  | number    | Pulse effect BPM (20–120) |
+  | breath | number    | Breath effect BPM (5–60) |
+  | rainbow| number    | Rainbow cycle duration seconds (0.2–10) |
+
+  Migration note (important): Prior firmware versions used slash separators in `unique_id` / `object_id` (e.g. `myclock123/front`). Home Assistant treats a changed `unique_id` as a brand‑new entity; the old one will remain in the entity registry until manually removed. If you previously had entities with the old format, you can safely delete the obsolete entries in Home Assistant (Settings → Devices & Services → MQTT → device → three‑dot menu → Delete) after the new ones appear.
+
+  Automation tips:
+
+  * Use `availability_topic` to gate automations (`state == 'online'`).
+  * Prefer referencing entities via their entity_id instead of hardcoding MQTT topics when working inside Home Assistant.
+  * For external scripts, build topics exactly as documented to avoid mismatches after firmware updates.
+
+  If you disable Home Assistant support (`MQTT_HOME_ASSISTANT` not defined), discovery messages are not sent, but plain MQTT state/command topics stay available (if `MQTT_PLAIN_ENABLED` is defined). See also next chapter.
+
 #### 5.6.5.2 MQTT without Home Assistant
 
 ##### 5.6.5.2.1 Setup
@@ -642,7 +768,9 @@ If the `MQTT_HOME_ASSISTANT` is not enabled, but `MQTT_PLAIN_ENABLED` is, the MQ
 
 The actual MQTT implementation is reacting to control commands of an emulated temperature controller, so you can use the temperature setpoint to change clock faces and on/off function to control the clock.
 
-You will need to create an account, set up the device there and get the ID; and fill in the data into the matching `MQTT_*` defines in your `_USER_DEFINES.h` (MQTT config section).
+You will need to create an account, set up the device there and get the ID of it; and fill in the data into the matching `MQTT_*` defines in your `_USER_DEFINES.h` (MQTT config section).
+
+Important: Uncomment and define `MQTT_CLIENT_ID_FOR_SMARTNEST` or the topic is not correct for smartnest.cz.
 
 Note: If you want to use encrypted connection to your broker, you need to enable 'MQTT\_USE\_TLS' and copy a valid root CA cert file to the `data` subdirectory. See the notes under the HA section for HiveMQ above.
 

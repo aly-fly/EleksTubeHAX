@@ -21,6 +21,7 @@
 
 // ************* Type of the clock hardware  *************
 // Do not uncomment, set by platform.ini file.
+// Only usefull for local builds to see the active #ifdef code parts highlighted.
 // #define HARDWARE_ELEKSTUBE_CLOCK      // Original EleksTube IPS clocks with 4MB flash
 // #define HARDWARE_ELEKSTUBE_GEN2_CLOCK // Original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip)
 // #define HARDWARE_SI_HAI_CLOCK         // Si Hai copy of the clock
@@ -35,7 +36,6 @@
 
 // ************* Version Infomation  *************
 #define FIRMWARE_VERSION TO_LITERAL(BUILDVER)
-#define DEVICE_NAME "EleksTubeHAX"
 #define SAVED_CONFIG_NAMESPACE "configs"
 
 // ************ WiFi advanced config *********************
@@ -100,8 +100,9 @@
  *    EleksTube IPS     *
  ************************/
 #ifdef HARDWARE_ELEKSTUBE_CLOCK
+#define DEVICE_NAME "EleksTube"
 #define DEVICE_MANUFACTURER "EleksMaker"
-#define DEVICE_MODEL "EleksTube IPS"
+#define DEVICE_MODEL "EleksTube IPS Tube Clock"
 #define DEVICE_HW_VERSION "6.1.11"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
@@ -166,8 +167,9 @@
  * EleksTube IPS Gen 2  *
  ************************/
 #ifdef HARDWARE_ELEKSTUBE_GEN2_CLOCK
+#define DEVICE_NAME "EleksTubeGen2"
 #define DEVICE_MANUFACTURER "EleksMaker"
-#define DEVICE_MODEL "EleksTube IPS Gen2"
+#define DEVICE_MODEL "EleksTube IPS Tube Clock - Gen2"
 #define DEVICE_HW_VERSION "Gen2"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
@@ -232,8 +234,9 @@
  *    IPSTube Clone     *
  ************************/
 #ifdef HARDWARE_IPSTUBE_CLOCK
+#define DEVICE_NAME "IPSTube"
 #define DEVICE_MANUFACTURER "IPSTube"
-#define DEVICE_MODEL "IPS Tube"
+#define DEVICE_MODEL "IPSTube Tube Clock"
 #define DEVICE_HW_VERSION "H401/H402"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
@@ -353,8 +356,9 @@
  *   NovelLife Clone    *
  ************************/
 #ifdef HARDWARE_NOVELLIFE_CLOCK
+#define DEVICE_NAME "NovelLife"
 #define DEVICE_MANUFACTURER "NovelLife"
-#define DEVICE_MODEL "Tube Clock SE"
+#define DEVICE_MODEL "NovelLife SE Tube Clock"
 #define DEVICE_HW_VERSION "1.0"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
@@ -428,12 +432,14 @@
  *   PunkCyber Clone    *
  ************************/
 #ifdef HARDWARE_PUNKCYBER_CLOCK
+#undef DEVICE_NAME
 #undef DEVICE_MANUFACTURER
 #undef DEVICE_MODEL
 #undef DEVICE_HW_VERSION
 
+#define DEVICE_NAME "PunkCyber"
 #define DEVICE_MANUFACTURER "PunkCyber"
-#define DEVICE_MODEL "IPS Clock"
+#define DEVICE_MODEL "PunkCyber IPS Tube Clock"
 #define DEVICE_HW_VERSION "1.0"
 #endif // #ifdef HARDWARE_PUNKCYBER_CLOCK
 
@@ -441,8 +447,9 @@
  *     Si Hai Clone     *
  ************************/
 #ifdef HARDWARE_SI_HAI_CLOCK
+#define DEVICE_NAME "SiHai"
 #define DEVICE_MANUFACTURER "Si Hai"
-#define DEVICE_MODEL "IPS Clock"
+#define DEVICE_MODEL "Si Hai IPS Tube Clock"
 #define DEVICE_HW_VERSION "1.0"
 
 // #define ONE_WIRE_BUS_PIN (xx)  // DS18B20 connected to GPIOxx; comment this line if sensor is not connected
