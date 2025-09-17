@@ -1,6 +1,6 @@
+#include "MQTT_client_ips.h"
 #include "TFTs.h"
 #include "WiFi_WPS.h"
-#include "MQTT_client_ips.h"
 
 void TFTs::begin()
 {
@@ -67,11 +67,11 @@ void TFTs::loadClockFacesNames()
 {
   int8_t i = 0;
   const char *filename = "/clockfaces.txt";
-  Serial.println("Load clock face's names");
+  Serial.println("Loading clock face names...");
   fs::File f = SPIFFS.open(filename);
   if (!f)
   {
-    Serial.println("SPIFFS clockfaces.txt not found.");
+    Serial.println("ERROR: SPIFFS clockfaces.txt not found.");
     return;
   }
   while (f.available() && i < 9)
@@ -90,7 +90,7 @@ void TFTs::showNoWifiStatus()
   setTextColor(TFT_RED, TFT_BLACK);
   fillRect(0, TFT_HEIGHT - 27, TFT_WIDTH, 27, TFT_BLACK);
   setCursor(5, TFT_HEIGHT - 27, 4); // Font 4. 26 pixel high
-  print("NO WIFI !");
+  print("NO WiFi!");
 }
 
 void TFTs::showNoMqttStatus()
@@ -99,7 +99,7 @@ void TFTs::showNoMqttStatus()
   setTextColor(TFT_RED, TFT_BLACK);
   fillRect(0, TFT_HEIGHT - 27, TFT_WIDTH, 27, TFT_BLACK);
   setCursor(5, TFT_HEIGHT - 27, 4);
-  print("NO MQTT !");
+  print("NO MQTT!");
 }
 
 void TFTs::enableAllDisplays()

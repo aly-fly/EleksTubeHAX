@@ -8,6 +8,8 @@
 #ifndef IPGeolocation_h
 #define IPGeolocation_h
 
+#include <Arduino.h>
+
 #define DEBUG
 #define GEO_CONN_TIMEOUT_SEC 15
 
@@ -18,8 +20,6 @@
 #define DEBUGPRINT(x)
 #endif
 #endif
-
-#include "Arduino.h"
 
 struct IPGeo
 {

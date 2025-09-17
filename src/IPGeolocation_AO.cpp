@@ -6,17 +6,13 @@
  * - configured for use on ESP32
  */
 
-#include "Arduino.h"
-#include <WiFi.h> // ESP32
-#include <WiFiClientSecure.h>
+#include <Arduino.h>
 #include <ArduinoJson.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include "IPGeolocation_AO.h"
 
-IPGeolocation::IPGeolocation(String Key)
-{
-  _Key = Key;
-  _API = "IPG";
-}
+
 IPGeolocation::IPGeolocation(String Key, String API)
 {
   _Key = Key;
@@ -32,17 +28,16 @@ bool IPGeolocation::updateStatus(IPGeo *I)
 {
   if (_API == "ABSTRACT")
   {
-
-    // https://ipgeolocation.abstractapi.com/v1/?api_key=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
     const char *host = "ipgeolocation.abstractapi.com";
-    const int httpsPort = 443; // HTTPS= 443 and HTTP = 80
+    const int httpsPort = 443;
     WiFiClientSecure httpsClient;
-    httpsClient.setInsecure();                           // skip verification
-    httpsClient.setTimeout(GEO_CONN_TIMEOUT_SEC * 1000); // 15 Seconds
 
-    DEBUGPRINT("HTTPS Connecting");
-    int r = 0; // retry counter
+    httpsClient.setInsecure(); // Skip verification
+    httpsClient.setTimeout(GEO_CONN_TIMEOUT_SEC * 1000);
+
+    DEBUGPRINT("HTTPS Connecting...");
+    int r = 0; // Retry counter
+
     while ((!httpsClient.connect(host, httpsPort)) && (r < 10))
     {
       delay(200);
@@ -51,7 +46,8 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     }
     if (!httpsClient.connected())
     {
-      DEBUGPRINT("Connection unsucessful!");
+      DEBUGPRINT("Connection unsuccessful!");
+
       return false;
     }
     else
@@ -62,121 +58,75 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     String Link = String("https://") + host + "/v1/?api_key=" + _Key;
 
     DEBUGPRINT("requesting URL: ");
-    DEBUGPRINT(String("GET ") + Link + " HTTP/1.0");
+    DEBUGPRINT(String("Requesting URL: GET ") + Link + " HTTP/1.0");
+
     httpsClient.println(String("GET ") + Link + " HTTP/1.1");
     httpsClient.println(String("Host: ") + host);
     httpsClient.println(String("Connection: close"));
     httpsClient.println();
 
-    DEBUGPRINT("Request sent, waiting for response");
+    DEBUGPRINT("Request sent, waiting for response...");
 
-    //    DEBUGPRINT("headers:");
     uint32_t StartTime = millis();
     bool response_ok = false;
-    //    String _Response; // use private var
     while (httpsClient.connected())
     {
       _Response = httpsClient.readStringUntil('\n');
-      //      DEBUGPRINT(_Response);
       if (_Response == "\r")
       {
-        DEBUGPRINT("headers received");
+        DEBUGPRINT("Headers received!");
+        // DEBUGPRINT(_Response); // Print response
+
         response_ok = true;
         break;
       }
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
+        Serial.printf("ERROR: Headers took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
+
         response_ok = false;
         break;
       }
     }
     if (!response_ok)
     {
-      DEBUGPRINT("Error reading header data from server.");
+      DEBUGPRINT("ERROR: Error reading header data from server!");
       return false;
     }
 
-    DEBUGPRINT("reply:");
+
     StartTime = millis();
     response_ok = false;
     while (httpsClient.connected())
     {
       _Response = httpsClient.readString();
-      DEBUGPRINT(_Response); // Print response
+      DEBUGPRINT("Response received!");
+      // DEBUGPRINT(_Response); // Print response
       response_ok = true;
-      //      break;
+      break;
+
       if (millis() - StartTime > GEO_CONN_TIMEOUT_SEC * 1000)
       {
+        Serial.printf("ERROR: Response took too long (now %lu, was %lu, difference: %lu)!\n", millis(), StartTime, millis() - StartTime);
+
         response_ok = false;
         break;
       }
     }
     if (!response_ok)
     {
-      DEBUGPRINT("Error reading json data from server.");
+      DEBUGPRINT("ERROR: Error reading json data from server!");
       return false;
     }
 
     JsonDocument doc;
     deserializeJson(doc, _Response);
 
-    // catch errors:
     if (_Response.indexOf("error") > 0)
     {
-      DEBUGPRINT("IP Geoloc ERROR!");
+      DEBUGPRINT("ERROR: IP Geolocation failed!");
       return false;
     }
-
-    /* SAMPLES:
-    failure:
-    {"error":{"message":"Invalid API key provided.","code":"unauthorized","details":null}}
-
-    winter time:
-    {"ip_address":"93.103.xxx.xxx",
-    "city":"Kranj",
-    "city_geoname_id":3197378,
-    "region":"Kranj",
-    "region_iso_code":"052",
-    "region_geoname_id":3197377,
-    "postal_code":"4000",
-    "country":"Slovenia",
-    "country_code":"SI",
-    "country_geoname_id":3190538,
-    "country_is_eu":true,
-    "continent":"Europe",
-    "continent_code":"EU",
-    "continent_geoname_id":6255148,
-    "longitude":14.3556,
-    "latitude":46.2389,
-    "security":{"is_vpn":false},
-    "timezone":{"name":"Europe/Ljubljana","abbreviation":"CET","gmt_offset":1,"current_time":"17:58:18","is_dst":false},
-    "flag":{"emoji":"đź‡¸đź‡®","unicode":"U+1F1F8 U+1F1EE","png":"https://static.abstractapi.com/country-flags/SI_flag.png","svg":"https://static.abstractapi.com/country-flags/SI_flag.svg"},
-    "currency":{"currency_name":"Euros","currency_code":"EUR"},
-    "connection":{"autonomous_system_number":34779,"autonomous_system_organization":"xxxxxxxx","connection_type":"Cellular","isp_name":"xxxxxxxxxx","organization_name":null}}
-
-    summer time:
-    {"ip_address":"93.103.xxx.xxx",
-    "city":"Kranj",
-    "city_geoname_id":3197378,
-    "region":"Kranj",
-    "region_iso_code":"052",
-    "region_geoname_id":3197377,
-    "postal_code":"4000",
-    "country":"Slovenia",
-    "country_code":"SI",
-    "country_geoname_id":3190538,
-    "country_is_eu":true,
-    "continent":"Europe",
-    "continent_code":"EU",
-    "continent_geoname_id":6255148,
-    "longitude":14.3556,
-    "latitude":46.2389,
-    "security":{"is_vpn":false},
-    "timezone":{"name":"Europe/Ljubljana","abbreviation":"CEST","gmt_offset":2,"current_time":"23:39:52","is_dst":true},
-    "flag":{"emoji":"đź‡¸đź‡®","unicode":"U+1F1F8 U+1F1EE","png":"https://static.abstractapi.com/country-flags/SI_flag.png","svg":"https://static.abstractapi.com/country-flags/SI_flag.svg"},
-    "currency":{"currency_name":"Euros","currency_code":"EUR"},
-    "connection":{"autonomous_system_number":34779,"autonomous_system_organization":"xxxx","connection_type":"Cellular","isp_name":"xxxxx","organization_name":null}}
-    */
 
     JsonObject timezone = doc["timezone"];
 
@@ -190,10 +140,8 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     I->latitude = doc["latitude"];
     I->longitude = doc["longitude"];
 
-    DEBUGPRINT("Geo Time Zone: ");
-    DEBUGPRINT(I->tz);
-    DEBUGPRINT("Geo Current Time: ");
-    DEBUGPRINT(I->current_time);
+    // DEBUGPRINT(String("Geo Time Zone: ") + I->tz);
+    // DEBUGPRINT(String("Geo Current Time: ") + I->current_time);
     return true;
   }
   else
