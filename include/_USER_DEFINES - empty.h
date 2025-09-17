@@ -85,6 +85,7 @@
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received
 
+
 // Uncomment to append short MAC suffix to device name in Home Assistant for disambiguation when multiple identical models exist
 #define ENABLE_HA_DEVICE_NAME_SUFFIX
 

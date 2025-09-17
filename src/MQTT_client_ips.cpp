@@ -72,6 +72,7 @@ bool endsWith(const char *str, const char *suffix);
 #ifdef MQTT_USE_TLS
 bool loadCARootCert();
 #endif
+
 #define concat7_into(buf, first, second, third, fourth, fifth, sixth, seventh) (snprintf((buf), sizeof(buf), "%s%s%s%s%s%s%s", (first), (second), (third), (fourth), (fifth), (sixth), (seventh)), (buf))
 
 #define MQTT_ROOT_TOPIC "elekstubehax"
@@ -307,9 +308,8 @@ void MQTTReportState(bool forceUpdateEverything)
     state["effect"] = tfts.clockFaceToName(MQTTStatusMainGraphic);
     state["color_mode"] = "brightness";
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
 
+  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
     LastSentMainPowerState = MQTTStatusMainPower;
     LastSentMainBrightness = MQTTStatusMainBrightness;
     LastSentMainGraphic = MQTTStatusMainGraphic;
@@ -512,31 +512,31 @@ bool MQTTStart(bool restart)
     Serial.println("DEBUG: Sending initial status messages...");
 #endif
     // Send initial status messages.
-    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                                                        // Reports that the device is online
-  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/firmware", "", "", "", "", ""), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
-  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/ip", "", "", "", "", ""), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
-  MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/network", "", "", "", "", ""), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
+    MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE);                                                                                                                     // Reports that the device is online
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/firmware", "", "", "", "", ""), FIRMWARE_VERSION, MQTT_RETAIN_STATE_MESSAGES);                    // Reports the firmware version
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/ip", "", "", "", "", ""), (char *)WiFi.localIP().toString().c_str(), MQTT_RETAIN_STATE_MESSAGES); // Reports the ip
+    MQTTPublish(concat7_into(outbuf, UniqueDeviceNameLower, "/report/network", "", "", "", "", ""), (char *)WiFi.SSID().c_str(), MQTT_RETAIN_STATE_MESSAGES);          // Reports the network name
     MQTTReportWiFiSignal();
 #endif // MQTT_PLAIN_ENABLED
 
 #ifdef MQTT_HOME_ASSISTANT
     MQTTclient.subscribe(MQTT_TOPIC_HASTATUS); // Subscribe to homeassistant/status for receiving LWT and Birth messages from Home Assistant
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "/set", ""));
-  MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "/set", ""));
+    MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "/set", ""));
 #ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: subscribed to topics: ");
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicFront);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBack);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, Topic12hr);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBlank0);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBreath);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicPulse);
-  Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicRainbow);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicFront);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBack);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, Topic12hr);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBlank0);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicBreath);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicPulse);
+    Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceNameLower, TopicRainbow);
     Serial.println(MQTT_TOPIC_HASTATUS);
 #endif // DEBUG_OUTPUT_MQTT
 #endif // MQTT_HOME_ASSISTANT
@@ -654,7 +654,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
   else // Process all other MQTT messages.
   {
-  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", "")) == 0) // Process "<root>/<device>/main/set"
+    if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", "")) == 0) // Process "<root>/<device>/main/set"
     {                                                                                            // Process JSON for main set command
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
@@ -682,7 +682,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
     }
     else
     {
-  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", "")) == 0) // Process back/set
+      if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "/set", "")) == 0) // Process back/set
       {
         JsonDocument doc;
         DeserializationError err = deserializeJson(doc, payload, length);
@@ -716,7 +716,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
       }
       else
       {
-  if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", "")) == 0) // Process 12hr/set
+        if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "/set", "")) == 0) // Process 12hr/set
         {
           JsonDocument doc;
           DeserializationError err = deserializeJson(doc, payload, length);
