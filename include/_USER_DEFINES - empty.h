@@ -51,11 +51,11 @@
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
 
 #ifdef MQTT_PLAIN_ENABLED
-#define MQTT_BROKER "smartnest.cz"                         // Broker host
-#define MQTT_PORT 1883                                     // Broker port
-#define MQTT_USERNAME "__enter_your_username_here__"       // Username from Smartnest
-#define MQTT_PASSWORD "__enter_your_api_key_here__"        // Password from Smartnest or API key (under MY Account)
-#define MQTT_CLIENT_PREFIX "__enter_your_device_id_here__" // Device Id from Smartnest
+#define MQTT_BROKER "smartnest.cz"                                       // Broker host
+#define MQTT_PORT 1883                                                   // Broker port
+#define MQTT_USERNAME "__enter_your_username_here__"                     // Username from Smartnest
+#define MQTT_PASSWORD "__enter_your_api_key_here__"                      // Password from Smartnest or API key (under MY Account)
+// #define MQTT_CLIENT_ID_FOR_SMARTNEST "__enter_your_device_id_here__"     // Device ID from Smartnest
 #endif
 
 // ************* MQTT HomeAssistant config *************
@@ -81,10 +81,13 @@
 #define MQTT_PORT 1883                         // Broker port
 #define MQTT_USERNAME "_enter_MQTT_username_"  // Username
 #define MQTT_PASSWORD "_enter_MQTT_password_"  // Password
-#define MQTT_CLIENT_PREFIX "clock"             // Device Id
 #endif
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received
+
+
+// Uncomment to append short MAC suffix to device name in Home Assistant for disambiguation when multiple identical models exist
+#define ENABLE_HA_DEVICE_NAME_SUFFIX
 
 // #define MQTT_USE_TLS // Use TLS for MQTT connection. Setting a root CA certificate is needed!
 // Don't forget to copy the correct certificate file into the 'data' folder and rename it to mqtt-ca-root.pem!

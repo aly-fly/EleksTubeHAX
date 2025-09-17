@@ -133,7 +133,8 @@ void HandleGesture()
 }
 #endif // #ifdef HARDWARE_NOVELLIFE_CLOCK
 
-char UniqueDeviceName[32]; // Enough space for "EleksTubeHAK-" + 4 hex chars + null
+char UniqueDeviceName[32]; // Enough space for <DeviceName> + 6 hex chars + null
+char UniqueDeviceNameLower[32]; // Lowercase variant used for MQTT topics
 
 Backlights backlights;
 Buttons buttons;
@@ -172,9 +173,34 @@ void setup()
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
   Serial.printf("Firmware version: v%s.\n", FIRMWARE_VERSION);
 
-  uint64_t chipid = ESP.getEfuseMac(); // Get unique 48-bit chip ID
-  snprintf(UniqueDeviceName, sizeof(UniqueDeviceName), "%s-%04X", DEVICE_NAME, (uint16_t)(chipid & 0xFFFF));
-  Serial.printf("Set device name: \"%s\".\n", UniqueDeviceName);
+  // Prepare unique device name
+#ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+  snprintf(UniqueDeviceName, sizeof(UniqueDeviceName), "%s", MQTT_CLIENT_ID_FOR_SMARTNEST); // Use fixed ID for smartnest.cz
+#else
+{
+    // Generate unique ID for other cases
+    // ESP.getEfuseMac() returns the 48-bit MAC address in the lower bits of the value (little-endian byte order when viewed as an integer).
+    // We extract all 6 bytes and store them in the canonical MAC order (MSB first).
+    uint64_t rawmac = ESP.getEfuseMac() & 0xFFFFFFFFFFFFULL; // Keep only lower 48 bits, comes in reverse order
+    uint8_t mac_bytes[6];
+    for (int i = 0; i < 6; i++)
+    {
+        mac_bytes[i] = (rawmac >> (8 * i)) & 0xFF; // LSB first
+    }
+    // Generate a unique device name using the last 3 bytes of the MAC address to make the name shorter but still unique enough to avoid collisions
+    snprintf(UniqueDeviceName, sizeof(UniqueDeviceName), "%s-%02X%02X%02X", DEVICE_NAME,
+             mac_bytes[3], mac_bytes[4], mac_bytes[5]);
+}
+#endif // #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
+  // Prepare lowercase variant for MQTT topic usage
+  for (size_t i = 0; i < sizeof(UniqueDeviceName); ++i)
+  {
+    char c = UniqueDeviceName[i];
+    UniqueDeviceNameLower[i] = (char)tolower((int)c);
+    if (c == '\0')
+      break;
+  }
+  Serial.printf("Set device name: \"%s\" (lowercase: %s).\n", UniqueDeviceName, UniqueDeviceNameLower);
 
   Serial.print("Init NVS flash partition usage...");
   esp_err_t ret = nvs_flash_init(); // Initialize NVS

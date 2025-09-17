@@ -30,6 +30,8 @@
     "maximum_ram_size": 327680,
     "maximum_size": 8388608,
     "require_upload_port": true,
+    "before_reset": "no_reset",
+    "after_reset": "no_reset",
     "speed": 460800
   },
   "url": "https://en.wikipedia.org/wiki/ESP32",
