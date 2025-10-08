@@ -20,6 +20,16 @@ void ChipSelect::begin()
   pinMode(CSSR_DATA_PIN, OUTPUT);
   pinMode(CSSR_CLOCK_PIN, OUTPUT);
 
+#ifdef HARDWARE_XUNFENG_CLOCK
+  // Xunfeng clock shift register seems to need some pins to be set to LOW or HIGH at the beginning, otherwise it will not work correctly
+  // Initialize the shift register pins
+  pinMode(GPIO_NUM_14, OUTPUT);
+  pinMode(GPIO_NUM_17, OUTPUT);
+
+  digitalWrite(GPIO_NUM_14, LOW); // Set this pin to LOW
+  digitalWrite(GPIO_NUM_17, HIGH); // Set this latch pin to HIGH
+#endif // HARDWARE_XUNFENG_CLOCK
+
   digitalWrite(CSSR_DATA_PIN, LOW);
   digitalWrite(CSSR_CLOCK_PIN, LOW);
   digitalWrite(CSSR_LATCH_PIN, LOW);

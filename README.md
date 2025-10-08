@@ -18,6 +18,8 @@
 
 * **SI HAI IPS Clock**
 
+* **Xunfeng IPS Clock**
+
 * **NovelLife SE Clock**
 
   * With gesture sensor
@@ -56,7 +58,7 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 
 ## 2\. Mainboard/PCB views
 
-EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
+EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
 
 For detailed pictures for most of the clocks see the `docs` subdirectory.
 
@@ -332,7 +334,7 @@ All external libraries in use (for details, see the `platformio.ini` file) are a
 
 * Standard libraries from the frameworks (espressif32 + arduino) are not explicitly listed.
 
-##### 5.3.3.1 Verified Working Versions (as of 2025-05-18)
+##### 5.3.3.1 Verified Working Versions (as of 2025-09-28)
 
 The project compiles and runs correctly with the library versions listed below. Newer (and possibly older) versions should also work.
 
@@ -342,12 +344,12 @@ If you encounter issues with automatic installation, refer to the comments in `p
 
 | Library | Author | Version | Source Code Link |
 | --- | --- | --- | --- |
-| adafruit/Adafruit NeoPixel | Adafruit | 1.12.5 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
+| adafruit/Adafruit NeoPixel | Adafruit | 1.15.1 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
 | adafruit/RTClib | Adafruit | 2.1.4 | [https://github.com/adafruit/RTClib](https://github.com/adafruit/RTClib) |
 | paulstoffregen/Time | Paul Stoffregen | 1.6.1 | [https://github.com/PaulStoffregen/Time](https://github.com/PaulStoffregen/Time) |
 | bodmer/TFT\_eSPI | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
 | knolleary/PubSubClient | Nick O'Leary | 2.8.0 | [https://www.arduinolibraries.info/libraries/pub-sub-client](https://www.arduinolibraries.info/libraries/pub-sub-client) |
-| bblanchon/ArduinoJson | Benoit Blanchon | 7.4.1 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
+| bblanchon/ArduinoJson | Benoit Blanchon | 7.4.2 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
 | makuna/RTC | Michael C.Miller | 2.5.0 | [https://github.com/Makuna/Rtc/wiki](https://github.com/Makuna/Rtc/wiki) |
 
 **Notes**:
@@ -355,13 +357,12 @@ If you encounter issues with automatic installation, refer to the comments in `p
 
 ##### 5.3.3.3 Library Code Used
 
-Code from `dushyantahuja/IPGeolocation` and `arduino-libraries/NTPClient` libraries were copied into the project and heavily updated (mostly bug fixes and error-catching).
+Code from `dushyantahuja/IPGeolocation` library is copied into the project and heavily updated (mostly bug fixes and error-catching).
 
 Original libraries:
 
 | Library | Author | Latest version | Source Code Link |
 | --- | --- | --- | --- |
-| arduino-libraries/NTPClient | Arduino Libraries | 3.2.1 | [https://github.com/arduino-libraries/NTPClient](https://github.com/arduino-libraries/NTPClient) |
 | dushyantahuja/IPGeolocation | Dushyant Ahuja | 3.0.0 | [https://github.com/dushyantahuja/IPGeolocation](https://github.com/dushyantahuja/IPGeolocation) |
 
 ##### 5.3.3.4 Modified Libraries
@@ -373,6 +374,7 @@ The modified versions are stored in the `lib` subdirectory.
 | --- | --- | --- | --- |
 | sparkfun/SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
 | (not listed in PIO registry) | Marcin Saj | 1.0.7 | [https://github.com/marcinsaj/RTC_RX8025T](https://github.com/marcinsaj/RTC_RX8025T) |
+| arduino-libraries/NTPClient | Arduino Libraries | 3.2.1 | [https://github.com/arduino-libraries/NTPClient](https://github.com/arduino-libraries/NTPClient) |
 
 **Note:** The modified version of the `SparkFun APDS-9960` library is only required for the NovelLife SE clock (which includes a gesture sensor). It is always compiled **but not linked** for other clock variants.
 
@@ -381,10 +383,6 @@ The modified versions are stored in the `lib` subdirectory.
 The supplied `script_configure_tft_lib.py` automatically takes care of the library configuration. It copies two files (`_USER_DEFINES.h` and `GLOBAL_DEFINES.h`) into the `TFT_eSPI` library subdirectory before building. This makes sure, that the TFT\_eSPI library is initialized with the correct values for each clock type.
 
 If you have issues with the scripts, copy the files manually every time the `TFT_eSPI` library is updated.
-
-#### 5.3.5 Configure the `APDS9960` library (for NovelLife SE)
-
-The supplied `script_adjust_gesture_sensor_lib.py` modifies some files of the APDS9960 library before building. It adds the support for the ID of the used (cloned) gesture chip (needed for NovelLife SE with gesture sensor only).
 
 ### 5.4 Configure, Build and Upload new firmware
 
@@ -480,13 +478,13 @@ If you now build the project in PlatformIO via the "Build" command, the normal b
 
 The output file is written to the default output dir of the build. Usually the subdirectory `.pio\build\<environment name>` in the project directory.
 
-The firmware file will be named like `FW_<CLOCKNAME>_v1.3.0.bin` (e.g., `FW_EleksTube_v1.3.0.bin`).
+The firmware file will be named like `FW_<CLOCKNAME>_v1.3.1.bin` (e.g., `FW_EleksTube_v1.3.1.bin`).
 
 This file can be flashed with the `esptool.exe` with the `write_flash` option.
 
 E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and the clock is connected to COM5:
 
-`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.0.bin --erase-all`
+`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.1.bin --erase-all`
 
 ### 5.5.1 Helper script
 
@@ -826,7 +824,7 @@ You need to connect to the same MQTT broker like the clock and then will be able
 
 All MQTT messages from and to the clock are also traced out via the serial interface. So using a serial monitor while using the clock, gives also debug information. Make sure you enable the `DEBUG_OUTPUT_MQTT` before compilation and upload.
 
-## 6\. Known problems/limitations
+## 6\. Known problems/limitations, Notes
 
 ##### 6.1 No RTC backup battery for SI HAI IPS Clock
 
@@ -896,6 +894,10 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 * All models have a 3-pin socket on the board, so theoretically, the strip can be retrofitted using any WS2812B-based LED strip with some modifications. However, the recess in the metal cover is missing, preventing the light from shining through.
 
 * By default, only six LEDs are set. To enable the full LED strip, change the value of `NUM_BACKLIGHT_LEDS` to `34` in `GLOBAL_DEFINES.h`.
+
+#### 6.6 Xunfeng clocks
+
+* The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
 
 ## 7\. Development Process/History
 
