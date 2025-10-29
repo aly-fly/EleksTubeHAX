@@ -8,6 +8,7 @@
 
 #include <nvs_flash.h>
 #include <stdint.h>
+#include <math.h>
 #include "GLOBAL_DEFINES.h"
 #include "Backlights.h"
 #include "Buttons.h"
@@ -950,7 +951,41 @@ bool GetGeoLocationTimeZoneOffset()
     Serial.println(String("Geo Time Zone: ") + String(ipg.tz));
     Serial.println(String("Geo TZ Offset: ") + String(ipg.offset));          // primary value of interest
     Serial.println(String("Geo Current Time: ") + String(ipg.current_time)); // currently unused but handy for debugging
-    GeoLocTZoffset = ipg.offset;
+    const double rawOffsetHours = ipg.offset;
+    const int32_t newOffsetSeconds = static_cast<int32_t>(lround(rawOffsetHours * 3600.0));
+
+    if ((newOffsetSeconds % (15 * 60)) != 0)
+    {
+      Serial.print("GeoLoc rejected offset not aligned to 15 min grid (seconds): ");
+      Serial.println(newOffsetSeconds);
+      return false;
+    }
+
+    const bool hasValidStoredOffset = stored_config.config.uclock.is_valid == StoredConfig::valid;
+    const int32_t previousOffsetSeconds = static_cast<int32_t>(stored_config.config.uclock.time_zone_offset);
+    const int32_t defaultOffsetSeconds = 1 * 3600;
+
+    if (hasValidStoredOffset && previousOffsetSeconds != 0 && previousOffsetSeconds != defaultOffsetSeconds)
+    {
+      int32_t diff = newOffsetSeconds - previousOffsetSeconds;
+      if (diff < 0)
+      {
+        diff = -diff;
+      }
+
+      if (diff > (2 * 3600))
+      {
+        Serial.print("GeoLoc offset deviates by more than 2h from stored value (prev: ");
+        Serial.print(previousOffsetSeconds);
+        Serial.print("s, new: ");
+        Serial.print(newOffsetSeconds);
+        Serial.println("s). Ignoring update.");
+        return false;
+      }
+    }
+
+    GeoLocTZoffset = static_cast<double>(newOffsetSeconds) / 3600.0;
+    Serial.println(String("Geo TZ Offset (applied): ") + String(GeoLocTZoffset));
     return true;
   }
 
