@@ -17,6 +17,10 @@
 #include "TFTs.h"
 #include "WiFi_WPS.h"
 
+#ifdef GEOLOCATION_ENABLED
+#include "IPGeolocation_AO.h"
+#endif
+
 #if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
 #include "MQTT_client_ips.h"
 #endif
@@ -142,6 +146,11 @@ TFTs tfts;
 Clock uclock;
 Menu menu;
 StoredConfig stored_config;
+
+#ifdef GEOLOCATION_ENABLED
+double GeoLocTZoffset = 0;
+bool GetGeoLocationTimeZoneOffset();
+#endif
 
 #ifdef DIMMING
 bool isDimmingNeeded = false;
@@ -847,6 +856,7 @@ void loop()
 #if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
       MQTTLoopInFreeTime();
 #endif
+#ifdef GEOLOCATION_ENABLED
       // run once a day (= 744 times per month which is below the limit of 5k for free account)
       if (DstNeedsUpdate)
       { // Daylight savings time changes at 3 in the morning
@@ -856,6 +866,7 @@ void loop()
           DstNeedsUpdate = false; // done for this night; retry if not sucessfull
         }
       }
+#endif
       // Sleep for up to 20ms, less if we've spent time doing stuff above.
       time_in_loop = millis() - millis_at_top;
       if (time_in_loop < 20)
@@ -927,6 +938,26 @@ void checkDimmingNeeded()
   }
 }
 #endif // DIMMING
+
+#ifdef GEOLOCATION_ENABLED
+bool GetGeoLocationTimeZoneOffset()
+{
+  Serial.println("\nStarting Geolocation API query...");
+  IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACT");
+  IPGeo ipg;
+  if (location.updateStatus(&ipg))
+  {
+    Serial.println(String("Geo Time Zone: ") + String(ipg.tz));
+    Serial.println(String("Geo TZ Offset: ") + String(ipg.offset));          // primary value of interest
+    Serial.println(String("Geo Current Time: ") + String(ipg.current_time)); // currently unused but handy for debugging
+    GeoLocTZoffset = ipg.offset;
+    return true;
+  }
+
+  Serial.println("Geolocation failed.");
+  return false;
+}
+#endif
 
 void UpdateDstEveryNight()
 {
