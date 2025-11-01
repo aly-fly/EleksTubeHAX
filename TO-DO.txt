@@ -1,15 +1,37 @@
 
 - Access point or config via serial terminal.
 - MQTT transmissions in a single block.
-- Temperature sensor readout in a single block.
+
 - Limit IP Geolocation to every Sunday (copy code from the fork)
+
 - Add static time zone data if IP Geo is disabled  (copy code from the fork)
 
 - Store the night mode dimming values and dimming times in the NVS partition to keep the last dimming value and not use the hard coded values,
   make the times and values adjustable in the menu and/or via MQTT for both main and backlight dimming.
-
 - Fix that the backlight brightness is not adjustable in the night time mode
 - Fix that the LCD brightness is switching back to the hard coded values every full hour in the night time mode
 - Keep manual changed brightness values while in the night time mode till next day time mode
 
 - Make LED blink "direction" changeable/fix it -> different depending on the clock model in the moment.
+
+- four digit mode (00:00_ or _00:00, with and without blinking double points) (or 0000AM, 0000PM) (or 0000_X, where X is something else to display) 
+
+- Show date and month -> switchable via buttons? Time-varying display on the screens? Reducing Time to four digits and using smaller digits for date on the other two?
+
+- Showing weather and other infos on one of the digit LCDs
+
+- Alarmclock with buzzer function -> show also on display, that alarm is set -  "Light Alarm" for clocks without buzzer.
+
+- Countdown mode, showing time left to a given point in time (xmas, newyear, birthday...), Time-varying display with normal clock display?
+
+- Add Marvel Tube support
+
+- Integrate a better one button menu (use Button2 lib or others)
+
+- Over-the-air updates
+
+- Website with newest precompiled firmware files to flash (from the browser)
+
+- Tiny http server and web interface to control all the functions of the clock and upload pictures
+
+- Mobile phone App to control the clock (via REST calls over bluetooth and/or WiFi) -> problem will be to 'officially' publish it...
