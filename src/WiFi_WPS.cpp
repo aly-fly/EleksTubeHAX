@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <esp_wps.h>
 #include <WiFi.h>
-#include "IPGeolocation_AO.h"
 #include "StoredConfig.h"
 #include "TFTs.h"
 #include "WiFi_WPS.h"
@@ -12,7 +11,6 @@ extern char UniqueDeviceName[32];
 WifiState_t WifiState = disconnected;
 
 uint32_t TimeOfWifiReconnectAttempt = 0;
-double GeoLocTZoffset = 0;
 
 #ifdef WIFI_USE_WPS // WPS code
 
@@ -224,23 +222,3 @@ void WiFiStartWps()
 }
 #endif
 
-bool GetGeoLocationTimeZoneOffset()
-{
-  Serial.println("\nStarting Geolocation API query...");
-  IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACT");
-  IPGeo IPG;
-  if (location.updateStatus(&IPG))
-  {
-
-    Serial.println(String("Geo Time Zone: ") + String(IPG.tz));
-    Serial.println(String("Geo TZ Offset: ") + String(IPG.offset));          // we are interested in this one, type = double
-    Serial.println(String("Geo Current Time: ") + String(IPG.current_time)); // currently not used
-    GeoLocTZoffset = IPG.offset;
-    return true;
-  }
-  else
-  {
-    Serial.println("Geolocation failed.");
-    return false;
-  }
-}

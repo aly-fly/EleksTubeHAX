@@ -18,7 +18,4 @@ void WifiReconnect();
 
 extern WifiState_t WifiState;
 
-bool GetGeoLocationTimeZoneOffset();
-extern double GeoLocTZoffset;
-
 #endif // WIFI_WPS_H
