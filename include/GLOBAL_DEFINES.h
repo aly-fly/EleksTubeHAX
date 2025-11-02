@@ -300,9 +300,11 @@
 // If you notice, that the night time dimming or manual dimming does not work, you will have a clock without the Q1 transistor.
 // and you can/should comment the following line out to get back to the software dimming!
 
-// Comment the next line out, to DISABLE hardware dimming with TFT_ENABLE_PIN. 
+#ifndef HARDWAREMOD_IPSTUBE_CLOCK_WITHOUT_DIMMING_TRANSISTOR
+// Comment the next line out, to DISABLE hardware dimming with TFT_ENABLE_PIN.
 // For older IPStube devices (<06/2024) only
 #define DIM_WITH_ENABLE_PIN_PWM
+#endif
 
 // NOTE: If NIGTHTIME_DIMMING is enabled:
 //  For the main LCDs: The dimming will be set to the hard coded value TFT_DIMMED_INTENSITY in the given time period EVERY HOUR beginning at NIGHT_TIME
