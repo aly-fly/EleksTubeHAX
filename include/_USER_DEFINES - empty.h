@@ -31,7 +31,8 @@
 #define WIFI_PASSWD "__enter_your_wifi_password_here__" // Not needed if WPS is used. Caution - Hard coded password is stored as clear text in BIN file
 
 //  *************  Geolocation  *************
-// Get your API Key on https://www.abstractapi.com/ (login) --> https://app.abstractapi.com/api/ip-geolocation/tester (key) *************
+// Get your API Key on https://www.abstractapi.com/ (login) --> https://app.abstractapi.com/api/ip-geolocation/tester (key)
+// ATTENTION: Free tier of abstractapi.com has a 1000 requests limit! AT ALL, per account! No per-month reset! Be careful to not exceed this limit!!!
 // #define GEOLOCATION_ENABLED // Enable after creating an account and copying Geolocation API below:
 #define GEOLOCATION_API_KEY "__enter_your_api_key_here__"
 

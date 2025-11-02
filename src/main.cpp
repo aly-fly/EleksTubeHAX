@@ -945,6 +945,7 @@ void checkDimmingNeeded()
 bool GetGeoLocationTimeZoneOffset()
 {
   Serial.println("\nStarting Geolocation API query...");
+  // Use Abstract API -> ATTENTION: Free tier has a 1000 requests limit! AT ALL, per account! No per-month reset! Be careful to not exceed this limit!!!
   IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACT");
   IPGeo ipg;
   if (location.updateStatus(&ipg))
@@ -999,10 +1000,13 @@ bool GetGeoLocationTimeZoneOffset()
 void checkUpdateGeoLocNeeded()
 {
   uint8_t currentDay = uclock.getDay(); // Get current day of month
+  const uint8_t currentWeekday = weekday(uclock.loop_time);
+  const bool isSunday = (currentWeekday == 1); // TimeLib defines Sunday as weekday 1
 
+  // Only on Sundays, and only if the day has changed since last successful update
   // `isGeoLocWindow` is set to true between 03:00:05 and 03:00:59, because daylight saving time changes usually happen at 03:00 local time.
   // GeoLoc update mechanism in the main 'loop free time slot' is then triggered, because `GeoLocNeedsUpdate` is set to true here.
-  const bool isGeoLocWindow = (currentDay != yesterday) && (uclock.getHour24() == 3) && (uclock.getMinute() == 0) && (uclock.getSecond() > 5);
+  const bool isGeoLocWindow = isSunday && (currentDay != yesterday) && (uclock.getHour24() == 3) && (uclock.getMinute() == 0) && (uclock.getSecond() > 5);
 
   if (!GeoLocNeedsUpdate && isGeoLocWindow)
   {
