@@ -47,7 +47,13 @@ bool IPGeolocation::updateStatus(IPGeo *I)
     if (!httpsClient.connected())
     {
       DEBUGPRINT("Connection unsuccessful!");
-
+      char ssl_error[128] = {0};
+      int last_error = httpsClient.lastError(ssl_error, sizeof(ssl_error));
+      DEBUGPRINT(String("lastError code: ") + last_error);
+      if (last_error != 0 && ssl_error[0] != '\0')
+      {
+        DEBUGPRINT(String("lastError detail: ") + ssl_error);
+      }
       return false;
     }
     else

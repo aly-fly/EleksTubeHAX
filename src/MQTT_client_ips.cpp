@@ -290,13 +290,16 @@ void MQTTReportState(bool forceUpdateEverything)
 {
 #ifdef MQTT_HOME_ASSISTANT
   if (!MQTTclient.connected())
+  {
     return;
-
+  }
   // Send availability message.
   if (forceUpdateEverything || !availabilityReported)
   {
     if (!MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE))
+    {
       return;
+    }
     availabilityReported = true;
   }
 
@@ -308,11 +311,12 @@ void MQTTReportState(bool forceUpdateEverything)
     state["effect"] = tfts.clockFaceToName(MQTTStatusMainGraphic);
     state["color_mode"] = "brightness";
 
-
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-    LastSentMainPowerState = MQTTStatusMainPower;
-    LastSentMainBrightness = MQTTStatusMainBrightness;
-    LastSentMainGraphic = MQTTStatusMainGraphic;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentMainPowerState = MQTTStatusMainPower;
+      LastSentMainBrightness = MQTTStatusMainBrightness;
+      LastSentMainGraphic = MQTTStatusMainGraphic;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusBackPower != LastSentBackPowerState || MQTTStatusBackBrightness != LastSentBackBrightness || strcmp(MQTTStatusBackPattern, LastSentBackPattern) != 0 || MQTTStatusBackColorPhase != LastSentBackColorPhase || MQTTStatusPulseBpm != LastSentPulseBpm || MQTTStatusBreathBpm != LastSentBreathBpm || MQTTStatusRainbowSec != LastSentRainbowSec)
@@ -328,14 +332,14 @@ void MQTTReportState(bool forceUpdateEverything)
     state["beath_bpm"] = MQTTStatusBreathBpm;
     state["rainbow_sec"] = round1(MQTTStatusRainbowSec);
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentBackPowerState = MQTTStatusBackPower;
-    LastSentBackBrightness = MQTTStatusBackBrightness;
-    strncpy(LastSentBackPattern, MQTTStatusBackPattern, sizeof(LastSentBackPattern) - 1);
-    LastSentBackPattern[sizeof(LastSentBackPattern) - 1] = '\0';
-    LastSentBackColorPhase = MQTTStatusBackColorPhase;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBack, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentBackPowerState = MQTTStatusBackPower;
+      LastSentBackBrightness = MQTTStatusBackBrightness;
+      strncpy(LastSentBackPattern, MQTTStatusBackPattern, sizeof(LastSentBackPattern) - 1);
+      LastSentBackPattern[sizeof(LastSentBackPattern) - 1] = '\0';
+      LastSentBackColorPhase = MQTTStatusBackColorPhase;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusUseTwelveHours != LastSentUseTwelveHours)
@@ -343,10 +347,10 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusUseTwelveHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentUseTwelveHours = MQTTStatusUseTwelveHours;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", Topic12hr, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentUseTwelveHours = MQTTStatusUseTwelveHours;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusBlankZeroHours != LastSentBlankZeroHours)
@@ -354,10 +358,10 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusBlankZeroHours ? MQTT_STATE_ON : MQTT_STATE_OFF;
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentBlankZeroHours = MQTTStatusBlankZeroHours;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBlank0, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentBlankZeroHours = MQTTStatusBlankZeroHours;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusPulseBpm != LastSentPulseBpm)
@@ -365,10 +369,10 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusPulseBpm;
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentPulseBpm = MQTTStatusPulseBpm;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicPulse, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentPulseBpm = MQTTStatusPulseBpm;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusBreathBpm != LastSentBreathBpm)
@@ -376,10 +380,10 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = MQTTStatusBreathBpm;
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentBreathBpm = MQTTStatusBreathBpm;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicBreath, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentBreathBpm = MQTTStatusBreathBpm;
+    }
   }
 
   if (forceUpdateEverything || MQTTStatusRainbowSec != LastSentRainbowSec)
@@ -388,10 +392,10 @@ void MQTTReportState(bool forceUpdateEverything)
     JsonDocument state;
     state["state"] = round1(MQTTStatusRainbowSec);
 
-  if (!MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
-      return;
-
-    LastSentRainbowSec = MQTTStatusRainbowSec;
+    if (MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicRainbow, "", ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      LastSentRainbowSec = MQTTStatusRainbowSec;
+    }
   }
 #endif
 }
