@@ -76,9 +76,11 @@ For detailed pictures for most of the clocks see the `docs` subdirectory.
 
 * Supports either WPS connection or hardcoded WiFi credentials (from code)
 
-* Manual time zone adjustment in 1 h and 15 minute slots
+* Automatic time zone and Daylight Saving adjustment using IP-based geolocation APIs (supports multiple providers)
 
-* Optional automatic time zone and Daylight Saving adjustment over the Geolocation API
+* Optional manual time zone adjustment in 1 h and 15 minute slots (if IP Geolocation is disabled or fails)
+
+### 3.2 Other Main Features
 
 * RGB backlights (wall lights) for nice ambient light with multiple modes ("Off", "Test", "Constant", "Rainbow", "Pulse" and "Breath")
 
@@ -303,20 +305,20 @@ In short:
 
 The EspressIF 32 development platform for PlatformIO is required to support the ESP32 microcontroller. It will be installed automatically when this project is opened in VSCode/PlatformIO or if the first build is triggered. It will take a while - observe status messages in the bottom right corner.
 
-Tested on version 6.0.10 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
+Tested on version 6.0.12 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
 
-It is possible that the project also works with ESP32 platform modules from other sources (like Tasmota), but it is not recommended!
+It is possible that the project also works with ESP32 platform modules from other sources (like Tasmota or PIOArduino), but it is not recommended!
 
 #### 5.3.2 PIO build environment
 
-The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named esp32dev8MB.
+The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder. The Xunfeng clock needs also its own board definition "esp32devS2" in the `boards` folder
 
 Flash partition size settings are already configured in the following files.
 
 | filename | environment | flash size | app part size | data part size |
 | --- | --- | --- | --- | --- |
-| `partition_4MB.csv` | EleksTubeHax | 4.0 MB | 1.2 MB | 2.8 MB |
-| `partition_8MB.csv` | EleksTubeHax8MB | 8.0 MB | 1.2 MB | 6.8 MB |
+| `partition_4MB.csv` | All clocks with 4MB flash | 4.0 MB | 1.2 MB | 2.8 MB |
+| `partition_8MB.csv` | IPSTube | 8.0 MB | 1.2 MB | 6.8 MB |
 
 No OTA partition, one app partition, one data partition as SPIFFS to store the images of the clock faces.
 
@@ -334,7 +336,7 @@ All external libraries in use (for details, see the `platformio.ini` file) are a
 
 * Standard libraries from the frameworks (espressif32 + arduino) are not explicitly listed.
 
-##### 5.3.3.1 Verified Working Versions (as of 2025-09-28)
+##### 5.3.3.1 Verified Working Versions (as of 2025-11-03)
 
 The project compiles and runs correctly with the library versions listed below. Newer (and possibly older) versions should also work.
 
@@ -344,7 +346,7 @@ If you encounter issues with automatic installation, refer to the comments in `p
 
 | Library | Author | Version | Source Code Link |
 | --- | --- | --- | --- |
-| adafruit/Adafruit NeoPixel | Adafruit | 1.15.1 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
+| adafruit/Adafruit NeoPixel | Adafruit | 1.15.2 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
 | adafruit/RTClib | Adafruit | 2.1.4 | [https://github.com/adafruit/RTClib](https://github.com/adafruit/RTClib) |
 | paulstoffregen/Time | Paul Stoffregen | 1.6.1 | [https://github.com/PaulStoffregen/Time](https://github.com/PaulStoffregen/Time) |
 | bodmer/TFT\_eSPI | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
@@ -357,7 +359,11 @@ If you encounter issues with automatic installation, refer to the comments in `p
 
 ##### 5.3.3.3 Library Code Used
 
-Code from `dushyantahuja/IPGeolocation` library is copied into the project and heavily updated (mostly bug fixes and error-catching).
+Code from `dushyantahuja/IPGeolocation` library is copied into the project and heavily updated with bug fixes, error-catching, and support for multiple geolocation providers:
+
+* **IP-API.com** (free, no API key required, 45 req/min limit)
+* **Abstract API** (requires API key, 1,000 requests total limit)  
+* **IPGeolocation.io** (requires API key, 1,000 requests/month limit)
 
 Original libraries:
 
@@ -402,9 +408,42 @@ Optionally:
 
 * Enable Home Assistant (HA) support by uncomment `#define MQTT_HOME_ASSISTANT` and the following block of comments for Auto-Discovery in HA (local MQTT Broker is required).
 
-* NOTE: Only one MQTT service can be used at once.
+* *NOTE*:
+  * Only one MQTT service can be used at once.
 
-* Use IP-based geolocation by Abstract (uncomment `#define GEOLOCATION_ENABLED` and enter your geolocation API key: Register on [Abstract API](https://www.abstractapi.com/), select Geolocation API and copy your API key.
+* Disable/Change IP-based automatic timezone detection:
+
+  This automatically sets your timezone offset when the clock starts and also detects Daylight Saving time switches.
+  `#define GEOLOCATION_ENABLED` is active and IP-API.com is selected as default provider.
+
+  Option 1:
+  * IP-API.com (Recommended - No API key required)*
+  * Free tier: 45 requests per minute, unlimited total usage
+  * No registration required
+  * Default provider when `GEOLOCATION_ENABLED` is uncommented
+  * Use: `#define GEOLOCATION_PROVIDER_IPAPI` (enabled by default)
+  * Leave `GEOLOCATION_API_KEY` empty or use placeholder value
+
+  Option 2:
+  * Abstract API (Alternative with API key)
+  * Free tier: 1,000 requests total per account (no reset!)
+  * Registration required at [Abstract API](https://www.abstractapi.com/)
+  * Use: `#define GEOLOCATION_PROVIDER_ABSTRACTAPI`
+  * Enter your API key in `GEOLOCATION_API_KEY`
+  * **Warning**: Be careful not to exceed the 1,000 request limit!
+
+  Option 3:
+  * IPGeolocation.io (Alternative with API key)
+  * Free tier: 1,000 requests per month
+  * Registration required at [IPGeolocation.io](https://ipgeolocation.io/)
+  * Use: `#define GEOLOCATION_PROVIDER_IPGEOLOCATION`
+  * Enter your API key in `GEOLOCATION_API_KEY`
+  
+  *Important Notes:*
+  * Only enable ONE provider at a time
+  * The clock checks timezone on sunday at 3:00 AM (with retry protection)
+  * Failed requests are limited to 4 attempts per day with 5-minute backoff
+  * Timezone changes are validated (max 2-hour difference from stored value)
 
 Connect the clock to your computer via a USB cable. You'll see, that a new serial port is detected and showing up in the device configuration. If not, check the section "Install the USB Serial Port Device Driver".
 
@@ -562,7 +601,7 @@ If you have your own clock face that'll work and want it listed here, please fil
 
 * Without WPS: Add your WiFi credentials into `_USER_DEFINES.h` file before building the firmware.
 
-Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so that your personal credentials will not be pushed to a git repo by default, if you are using a forked git repo.
+Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so that your personal credentials will not be pushed to a git repo by default, if you are using a forked git repo. But note, that the credentials can be found as strings in the firmware .BIN file.
 
 ### 5.6.5 MQTT and Home Assistant
 
@@ -570,7 +609,7 @@ Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so tha
 
 #### 5.6.5.1.1 Setup
 
-Note: A lot of changes has been made on the HA integration with V1.3.x. User action is requiered to 'migrate' the devices. Detailed information can be found in the section 5.6.5.1.2 "Migration Notes (Home Assistant)".
+Note: A lot of changes has been made on the HA integration with V1.3.0. User action is requiered to 'migrate' the devices. Detailed information can be found in the section 5.6.5.1.2 "Migration Notes (Home Assistant)".
 
 If you want to integrate the clock into your Home Assistant, you need to make sure, that Home Assistant and the clock uses the same MQTT broker.
 
@@ -682,7 +721,7 @@ This firmware supports automated entity creation in Home Assistant via the MQTT 
 Key principles:
 
 - Root namespace for all runtime state and commands: `elekstubehax`
-- Per‑device path segment: lower‑cased unique device name – referred to as `device_id`. Format: `<model>-<XXYYZZ>` where `<model>` is the compile‑time `DEVICE_NAME` (e.g., `elekstube`, `elekstubegen2`, `ipstube`, `novellife`, `punkcyber`, `sihai`) and `<XXYYZZ>` are the last three bytes of the ESP32 MAC address in hexadecimal (bytes 3–5 of the canonical MAC). Example: `elekstube-1a2b3c`. This keeps IDs short while remaining sufficiently unique for typical home deployments.
+- Per‑device path segment: lower‑cased unique device name – referred to as `device_id`. Format: `<model>-<XXYYZZ>` where `<model>` is the compile‑time `DEVICE_NAME` (e.g., `elekstube`, `elekstubegen2`, `ipstube`, `novellife`, `punkcyber`, `sihai`, `xunfeng`) and `<XXYYZZ>` are the last three bytes of the ESP32 MAC address in hexadecimal (bytes 3–5 of the canonical MAC). Example: `elekstube-1a2b3c`. This keeps IDs short while remaining sufficiently unique for typical home deployments.
 - Entity channel/topic keyword ("main", "back", "use_twelve_hours", "blank_zero_hours", "pulse_bpm", "breath_bpm", "rainbow_duration") – referred to as `entity_id`
 - Discovery identifiers (`unique_id` and `object_id`) now use underscore separators: `<device_id>_<entity_id>` (no slashes)
 - All state, attribute and command topics are JSON where applicable (schema `json` for lights) or key/value JSON for switches and numbers
@@ -828,7 +867,7 @@ All MQTT messages from and to the clock are also traced out via the serial inter
 
 ##### 6.1 No RTC backup battery for SI HAI IPS Clock
 
-There is no battery on the SI HAI IPS clock, so the clock will loose the time, if powered off.
+There is no battery on the SI HAI IPS clock, so the clock will loose the time, if powered off and needs WiFi at start-up to show the correct time via NTP request.
 
 ##### 6.2 Precision of the gesture sensor (NovelLife SE)
 
@@ -879,11 +918,17 @@ It seems that only the early versions of the clocks lack the transistor. All ver
 
 By default, the code assumes that the transistor is present and that the displays are dimmable. This will not damage your clock, even if the transistor is missing, but display dimming will be completely disabled!
 
-If the dimming is not working with your clock, you need to comment the line `#define DIM_WITH_ENABLE_PIN_PWM` in the `GLOBAL_DEFINES.h` and rebuild and upload the firmware.
+If the dimming is not working with your clock, you need to uncomment `-D HARDWAREMOD_IPSTUBE_CLOCK_WITHOUT_DIMMING_TRANSISTOR` in `platformio.ini` and rebuild and upload the firmware.
 
 See also the code comments for more info in the `GLOBAL_DEFINES.h` for the IPSTubes.
 
-#### 6.5 LED strip on the bottom for some IPSTube clocks
+##### 6.5 Slow digit refresh times for IPSTube clocks
+
+IPSTube clocks use slower Winbond flash chips that require conservative SPI settings (DIO mode at 40 MHz instead of QIO at 80 MHz). These slower flash chips provide only half the throughput of standard ESP32 flash memory, which results in slower loading times for the high-quality digit images and therefore slower display refresh rates compared to other clock models. Additionally, attempting to use QIO mode (quad I/O with four data lines which ARE connected on the PCB) or higher frequencies like 80 MHz (DIO or QIO) causes system instability with these chips.
+
+In normal operation this is barely noticeable, but becomes very apparent when multiple different digits need to be drawn simultaneously (cold load without prefetch).
+
+##### 6.6 LED strip on the bottom for some IPSTube clocks
 
 Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on the bottom.
 
@@ -893,9 +938,9 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 
 * All models have a 3-pin socket on the board, so theoretically, the strip can be retrofitted using any WS2812B-based LED strip with some modifications. However, the recess in the metal cover is missing, preventing the light from shining through.
 
-* By default, only six LEDs are set. To enable the full LED strip, change the value of `NUM_BACKLIGHT_LEDS` to `34` in `GLOBAL_DEFINES.h`.
+* By default, only six LEDs are set. To enable the full LED strip, uncomment `-D HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE` in `platformio.ini` and rebuild and upload the firmware.
 
-#### 6.6 Xunfeng clocks
+##### 6.7 Xunfeng clocks
 
 * The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
 

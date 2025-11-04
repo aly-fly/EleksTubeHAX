@@ -58,6 +58,56 @@ def run_esptool(args):
     cmd = [PYTHON, "-m", "esptool"] + [str(x) for x in args]
     run(cmd)
 
+def run_esptool_with_fallback(args):
+    """
+    Run esptool with compatibility handling for parameter syntax changes.
+    Tries new syntax (merge-bin) first, falls back to old syntax (merge_bin) if needed.
+    """
+    # Try new syntax first (esptool v5.x+)
+    try:
+        cmd = [PYTHON, "-m", "esptool"] + [str(x) for x in args]
+        print("[unified]", " ".join(shlex.quote(x) for x in cmd))
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        print(proc.stdout)
+        if proc.returncode == 0:
+            return
+        # Check if error is related to unknown command (parameter syntax)
+        error_output = proc.stdout.lower()
+        if ("invalid choice: 'merge-bin'" in error_output or 
+            "no such option" in error_output or 
+            "unknown command" in error_output):
+            print("[unified] New syntax failed, trying old syntax...")
+        else:
+            # Different error, don't try fallback
+            print(f"[unified] Command failed with non-syntax error, exit code: {proc.returncode}")
+            sys.exit(proc.returncode)
+    except Exception as e:
+        print(f"[unified] Exception with new syntax: {e}")
+    
+    # Fallback to old syntax (esptool v4.x and earlier)
+    # Convert merge-bin to merge_bin and --flash-xyz to --flash_xyz
+    old_args = []
+    for arg in args:
+        arg_str = str(arg)
+        if arg_str == "merge-bin":
+            old_args.append("merge_bin")
+        elif arg_str == "--flash-mode":
+            old_args.append("--flash_mode")
+        elif arg_str == "--flash-freq":
+            old_args.append("--flash_freq")
+        elif arg_str == "--flash-size":
+            old_args.append("--flash_size")
+        else:
+            old_args.append(arg_str)
+    
+    cmd = [PYTHON, "-m", "esptool"] + old_args
+    print("[unified] Fallback:", " ".join(shlex.quote(x) for x in cmd))
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    print(proc.stdout)
+    if proc.returncode != 0:
+        print(f"[unified] Fallback also failed with exit code: {proc.returncode}")
+        sys.exit(proc.returncode)
+
 def _read_partitions_csv():
     parts_rel = BOARD_CFG.get("build.partitions")
     if not parts_rel:
@@ -244,7 +294,7 @@ def esp32_create_combined_bin(target, source, env):
     for off, f in sections:
         args += [str(off), str(f)]
 
-    run_esptool(args)
+    run_esptool_with_fallback(args)
     print(f"[unified] Combined image written: {output_path}")
 
 # --- Register post-build ------------------------------------------------------

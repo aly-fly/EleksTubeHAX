@@ -14,18 +14,21 @@ Enabled:
 
 - WiFi connectivity via WPS (While clock is in boot phase, press WPS button on your router for WiFi setup).
 - Night time dimming enabled - from 22:00h (10 pm) in the evening to 07:00h (7 am) in the morning.
+- IP-based geolocation enabled - time zone & DST comes from IP-API.com.
 
 Disabled:
 
-- IP-based geolocation disabled - time zone & DST must be set manually via the menu.
 - MQTT disabled - no 'remote control'. Because of this, also no Home Assistant support!
 - Debug Outputs via serial interface is disabled
+- For IPSTube clock:
+  - LED stripe disabled
+  - Hardware dimming enabled
 
 General:
 
 - 6 different sets of clock faces present. See [data](https://github.com/aly-fly/EleksTubeHAX/tree/main/data).
 - BMP mode active for the given clock faces
-- CORE_DEBUG_LEVEL=5 - This produces diagnostic messages from the ESP32 "operating system" in case of an error over the serial interface.
+- CORE_DEBUG_LEVEL=0 - No ESP32 core messages via serial interface.
 
 ## 2. Backup your original firmware
 
@@ -41,6 +44,8 @@ See also the section "Backup first" and following in the `README.md` file in the
 
 In this folder you will find the flashable files.
 They are updated from time to time in the repository, so version number may vary.
+
+Last Update: 2025-11-04 to Version 1.3.3
 
 | clock model | firmware image file |
 |--|--|  
