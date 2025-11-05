@@ -48,13 +48,14 @@ They are updated from time to time in the repository, so version number may vary
 Last Update: 2025-11-04 to Version 1.3.3
 
 | clock model | firmware image file |
-|--|--|  
-| EleksTube IPS - Orginal Version | `FW_Elekstube_Original_HAX_1.0.0.bin` |
-| EleksTube IPS - Gen2 models | `FW_Elekstube_Gen2_HAX_1.0.0.bin` |
-| SI HAI IPS | `FW_SI_HAI_CLOCK_HAX_1.0.0.bin` |
-| NovelLife SE version | `FW_NovelLife_SE_HAX_1.0.0.bin` |
-| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_HAX_1.0.0.bin` |
-| IPSTUBE - Model H401 and H402| `FW_IPSTUBE_HAX_1.0.0.bin` |
+|--|--|
+| EleksTube IPS - Orginal Version | `FW_EleksTube_v1.3.3.bin` |
+| EleksTube IPS - Gen2 models | `FW_EleksTube_Gen2_v1.3.3.bin` |
+| SI HAI IPS | `FW_SI_HAI_v1.3.3.bin` |
+| Xunfeng IPS | `FW_Xunfeng_v1.3.3.bin` |
+| NovelLife SE version | `FW_NovelLife_v1.3.3.bin` |
+| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_v1.3.3.bin` |
+| IPSTUBE - Model H401 and H402| `FW_IPSTube_v1.3.3.bin` |
 
 Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions. See [Note on EleksTube website](https://elekstube.com/blogs/news/instructions-on-elekstube-clock-for-gen2-systems). But always check the PCB version of your clock!
 
@@ -68,7 +69,7 @@ Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions.
 
 The CMD file should look like this:
 
-`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_Elekstube_HAX_1.0_Gen2-1.bin`
+`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_EleksTube_v1.3.3.bin`
 
 Note: Most clocks will go into to the "download mode" automatically when esptool is trying to write to it.
 Some clocks needs a button pressed while the powering phase (plugging the USB cable) to enter this mode, like the IPSTUBE ones.
