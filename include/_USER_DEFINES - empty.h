@@ -8,10 +8,11 @@
 #ifndef USER_DEFINES_H_
 #define USER_DEFINES_H_
 
-// #define DEBUG_OUTPUT        // Uncomment for Debug printing via serial interface
+// #define DEBUG_OUTPUT        // Uncomment for general Debug printing via serial interface
 // #define DEBUG_OUTPUT_IMAGES // Uncomment for Debug printing of image loading and drawing
 // #define DEBUG_OUTPUT_MQTT   // Uncomment for Debug printing of MQTT messages
 // #define DEBUG_OUTPUT_RTC    // Uncomment for Debug printing of RTC chip initialization and time setting
+// #define DEBUG_OUTPUT_GEO    // Uncomment for Debug printing of Geolocation info
 
 // ************* Clock font file type selection (.clk or .bmp)  *************
 // #define USE_CLK_FILES   // Select between .CLK and .BMP images
@@ -31,9 +32,16 @@
 #define WIFI_PASSWD "__enter_your_wifi_password_here__" // Not needed if WPS is used. Caution - Hard coded password is stored as clear text in BIN file
 
 //  *************  Geolocation  *************
-// Get your API Key on https://www.abstractapi.com/ (login) --> https://app.abstractapi.com/api/ip-geolocation/tester (key)
-// ATTENTION: Free tier of abstractapi.com has a 1000 requests limit! AT ALL, per account! No per-month reset! Be careful to not exceed this limit!!!
-// #define GEOLOCATION_ENABLED // Enable after creating an account and copying Geolocation API below:
+// new in V1.3.3 -> Geolocation enabled by default with free provider, to get timezone and DST info
+// Check is done on startup and every sunday at 3am
+#define GEOLOCATION_ENABLED // Enabled by default with IP-API.com as provider -> free usage
+
+// Choose your geolocation provider here:
+#define GEOLOCATION_PROVIDER_IPAPI // default provider - IP-API.com -> no API key needed! free tier has a 45 requests per minute limit!
+// #define GEOLOCATION_PROVIDER_ABSTRACTAPI // alternative provider 1 -> needs an API key! free tier has 1,000 requests AT ALL per account! No reset! Be careful to not exceed this limit!!!
+// #define GEOLOCATION_PROVIDER_IPGEOLOCATION // alternative provider 2 -> needs an API key! free tier has 1,000 requests per month limit!
+
+// enter your API key for the selected geolocation provider here: Leave empty for IP-API.com
 #define GEOLOCATION_API_KEY "__enter_your_api_key_here__"
 
 // ************* NTP config  *************
@@ -52,11 +60,11 @@
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
 
 #ifdef MQTT_PLAIN_ENABLED
-#define MQTT_BROKER "smartnest.cz"                                       // Broker host
-#define MQTT_PORT 1883                                                   // Broker port
-#define MQTT_USERNAME "__enter_your_username_here__"                     // Username from Smartnest
-#define MQTT_PASSWORD "__enter_your_api_key_here__"                      // Password from Smartnest or API key (under MY Account)
-// #define MQTT_CLIENT_ID_FOR_SMARTNEST "__enter_your_device_id_here__"     // Device ID from Smartnest
+#define MQTT_BROKER "smartnest.cz"                        // Broker host
+#define MQTT_PORT 1883                                    // Broker port
+#define MQTT_USERNAME "__enter_your_mqtt_username_here__" // Username from Smartnest
+#define MQTT_PASSWORD "__enter_your_mqtt_password_here__" // Password from Smartnest or API key (under MY Account)
+// #define MQTT_CLIENT_ID_FOR_SMARTNEST "__enter_your_device_id_here__"  // Device ID from Smartnest
 #endif
 
 // ************* MQTT HomeAssistant config *************
@@ -78,14 +86,13 @@
 // --- MQTT broker settings ---
 // Fill in the data according to configuration of your local MQTT broker that is linked to HomeAssistant - for example Mosquitto.
 #ifdef MQTT_HOME_ASSISTANT
-#define MQTT_BROKER "_enter_IP_of_the_broker_" // Broker host
-#define MQTT_PORT 1883                         // Broker port
-#define MQTT_USERNAME "_enter_MQTT_username_"  // Username
-#define MQTT_PASSWORD "_enter_MQTT_password_"  // Password
+#define MQTT_BROKER "__enter_IP_of_the_mqtt_broker__"     // Broker host
+#define MQTT_PORT 1883                                    // Broker port
+#define MQTT_USERNAME "__enter_your_mqtt_username_here__" // Username
+#define MQTT_PASSWORD "__enter_your_mqtt_password_here__" // Password
 #endif
 
 #define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received
-
 
 // Uncomment to append short MAC suffix to device name in Home Assistant for disambiguation when multiple identical models exist
 #define ENABLE_HA_DEVICE_NAME_SUFFIX

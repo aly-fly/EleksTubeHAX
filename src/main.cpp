@@ -884,7 +884,7 @@ void loop()
   {
     Serial.print("time spent in loop (ms): "); // print the time spent in the loop
     Serial.println(time_in_loop);
-}
+  }
 #endif // DEBUG_OUTPUT
 }
 
@@ -945,8 +945,21 @@ void checkDimmingNeeded()
 bool GetGeoLocationTimeZoneOffset()
 {
   Serial.println("\nStarting Geolocation API query...");
-  // Use Abstract API -> ATTENTION: Free tier has a 1000 requests limit! AT ALL, per account! No per-month reset! Be careful to not exceed this limit!!!
-  IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACT");
+
+#ifdef GEOLOCATION_PROVIDER_IPAPI
+  // Use IP-API.com -> Free tier has a 45 requests per minute limit!
+  IPGeolocation location(GEOLOCATION_API_KEY, "IPAPI");
+#elif defined(GEOLOCATION_PROVIDER_IPGEOLOCATION)
+  // Use ipgeolocation.io -> Free tier has 1,000 requests per month limit!
+  IPGeolocation location(GEOLOCATION_API_KEY, "IPGEOLOCATION");
+#elif defined(GEOLOCATION_PROVIDER_ABSTRACTAPI)
+  // Use AbstractAPI.com -> Free tier has 1,000 requests AT ALL per account!
+  IPGeolocation location(GEOLOCATION_API_KEY, "ABSTRACTAPI");
+#else
+  // No provider defined -> default to IP-API.com
+  IPGeolocation location(GEOLOCATION_API_KEY, "IPAPI");
+#endif
+
   IPGeo ipg;
   if (location.updateStatus(&ipg))
   {
@@ -1071,7 +1084,7 @@ void processGeoLocUpdate()
     GeoLocFailedAttempts = 0;
     GeoLocNextRetryMillis = 0;
     yesterday = today;
-    return; //success for today!
+    return; // success for today!
   }
 
   GeoLocFailedAttempts++;

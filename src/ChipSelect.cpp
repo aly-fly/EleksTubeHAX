@@ -26,9 +26,9 @@ void ChipSelect::begin()
   pinMode(GPIO_NUM_14, OUTPUT);
   pinMode(GPIO_NUM_17, OUTPUT);
 
-  digitalWrite(GPIO_NUM_14, LOW); // Set this pin to LOW
+  digitalWrite(GPIO_NUM_14, LOW);  // Set this pin to LOW
   digitalWrite(GPIO_NUM_17, HIGH); // Set this latch pin to HIGH
-#endif // HARDWARE_XUNFENG_CLOCK
+#endif                             // HARDWARE_XUNFENG_CLOCK
 
   digitalWrite(CSSR_DATA_PIN, LOW);
   digitalWrite(CSSR_CLOCK_PIN, LOW);

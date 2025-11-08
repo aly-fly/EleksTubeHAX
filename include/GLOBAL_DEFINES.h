@@ -63,7 +63,7 @@
 
 // Common indexing scheme, used to identify the digit
 #define NUM_DIGITS (6)
-#if defined (HARDWARE_PUNKCYBER_CLOCK) || defined (HARDWARE_XUNFENG_CLOCK)
+#if defined(HARDWARE_PUNKCYBER_CLOCK) || defined(HARDWARE_XUNFENG_CLOCK)
 #define SECONDS_ONES (5)
 #define SECONDS_TENS (4)
 #define MINUTES_ONES (3)
@@ -243,13 +243,13 @@
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (GPIO_NUM_5) // pin 35 is GPIO5
 
-// ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT! 
+// ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT!
 // Define HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE in platformio.ini if present!
 #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
-  #define NUM_BACKLIGHT_LEDS  (34) // 6 LEDs on the bottom of every LCD. 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
+#define NUM_BACKLIGHT_LEDS (34) // 6 LEDs on the bottom of every LCD. 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
 #else
-  #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD. For IPSTube clock without LED stripe.
-#endif // #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD. For IPSTube clock without LED stripe.
+#endif                         // #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
 
 // Only one Button on IPSTube clocks!
 #define ONE_BUTTON_ONLY_MENU
@@ -532,7 +532,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (GPIO_NUM_38)
-#define NUM_BACKLIGHT_LEDS 6 // 6 LEDs on the bottom of every LCD. 
+#define NUM_BACKLIGHT_LEDS 6 // 6 LEDs on the bottom of every LCD.
 
 // Buttons, active low, externally pulled up (with actual resistors!) -> don't set intenal pull-ups!
 #define BUTTON_LEFT_PIN (GPIO_NUM_7)
@@ -546,7 +546,7 @@
 
 // Chip Select shift register, to select the display
 #define CSSR_DATA_PIN (GPIO_NUM_13)
-#define CSSR_CLOCK_PIN (GPIO_NUM_16 )
+#define CSSR_CLOCK_PIN (GPIO_NUM_16)
 #define CSSR_LATCH_PIN (GPIO_NUM_15)
 
 // Power for all TFT displays are grounded through a MOSFET so they can all be turned off.
@@ -560,14 +560,13 @@
 #define TFT_HEIGHT 240
 #define CGRAM_OFFSET // Library will add offsets required
 // SPI to displays
-#define TFT_SDA_READ  // Read and write on the MOSI/SDA pin, no separate MISO pin
+#define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
 #define TFT_MISO -1
 #define TFT_MOSI (GPIO_NUM_9)
 #define TFT_SCLK (GPIO_NUM_10)
 // #define TFT_CS -1     // Not connected -> via shift register
-#define TFT_DC (GPIO_NUM_11)   // Data Command, aka Register Select or RS
-#define TFT_RST (GPIO_NUM_12)  // Connect reset to ensure display initialises
-
+#define TFT_DC (GPIO_NUM_11)  // Data Command, aka Register Select or RS
+#define TFT_RST (GPIO_NUM_12) // Connect reset to ensure display initialises
 
 // #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
 #define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters

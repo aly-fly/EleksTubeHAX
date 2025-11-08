@@ -480,16 +480,17 @@ bool MQTTStart(bool restart)
     }
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message if the connection get lost.
-    if (MQTTclient.connect( UniqueDeviceName,                                                      // MQTT client id
-                            MQTT_USERNAME,                                                         // MQTT username
-                            MQTT_PASSWORD                                                         // MQTT password
+    if (MQTTclient.connect(UniqueDeviceName, // MQTT client id
+                           MQTT_USERNAME,    // MQTT username
+                           MQTT_PASSWORD     // MQTT password
 #ifndef MQTT_CLIENT_ID_FOR_SMARTNEST
-                            , concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic (rooted for HA/plain unified mode) because smartnest.cz broker does not interpret this
-                            0,                                                                     // Last will QoS
-                            MQTT_RETAIN_ALIVE_MESSAGES,                                            // Retain message
-                            MQTT_ALIVE_MSG_OFFLINE                                               // Last will message
+                           ,
+                           concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic (rooted for HA/plain unified mode) because smartnest.cz broker does not interpret this
+                           0,                                                                                                // Last will QoS
+                           MQTT_RETAIN_ALIVE_MESSAGES,                                                                       // Retain message
+                           MQTT_ALIVE_MSG_OFFLINE                                                                            // Last will message
 #endif
-                            ))
+                           ))
     {
       Serial.println("MQTT connected");
       MQTTConnected = true;
@@ -508,7 +509,7 @@ bool MQTTStart(bool restart)
 #endif
 
 #ifdef MQTT_PLAIN_ENABLED
-  bool ok = MQTTclient.subscribe(concat7_into(outbuf, UniqueDeviceNameLower, "/directive/#", "", "", "", "", "")); // Subscribes only to messages send to the device
+    bool ok = MQTTclient.subscribe(concat7_into(outbuf, UniqueDeviceNameLower, "/directive/#", "", "", "", "", "")); // Subscribes only to messages send to the device
     if (!ok)
       Serial.println("Error subscribing to /directive messages!");
 #ifdef DEBUG_OUTPUT_MQTT
@@ -659,7 +660,7 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   else // Process all other MQTT messages.
   {
     if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", TopicFront, "/set", "")) == 0) // Process "<root>/<device>/main/set"
-    {                                                                                            // Process JSON for main set command
+    {                                                                                                                       // Process JSON for main set command
       JsonDocument doc;
       DeserializationError err = deserializeJson(doc, payload, length);
       if (err)
@@ -879,7 +880,7 @@ void MQTTReportWiFiSignal()
 #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
     MQTTPublish(concat7_into(outbuf, UniqueDeviceName, "/report/signal", "", "", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES);
 #else
-  MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+    MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
 #endif // MQTT_CLIENT_ID_FOR_SMARTNEST
     LastSentSignalLevel = SignalLevel;
   }
@@ -983,7 +984,7 @@ bool MQTTReportDiscovery()
   }
 #else
   snprintf(DeviceNameForHA, sizeof(DeviceNameForHA), "%s", DEVICE_MODEL);
-#endif  // ENABLE_HA_DEVICE_NAME_SUFFIX
+#endif // ENABLE_HA_DEVICE_NAME_SUFFIX
 
   // Main Light.
   discovery.clear();
@@ -1014,7 +1015,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicFront, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicFront, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Back Light.
@@ -1046,7 +1047,7 @@ bool MQTTReportDiscovery()
   }
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicBack, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/light/", UniqueDeviceNameLower, "/", TopicBack, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Use Twelve Hours.
@@ -1075,7 +1076,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", Topic12hr, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", Topic12hr, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Blank Zero Hours.
@@ -1104,7 +1105,7 @@ bool MQTTReportDiscovery()
   discovery["payload_off"] = "{\"state\":\"OFF\"}";
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", TopicBlank0, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/switch/", UniqueDeviceNameLower, "/", TopicBlank0, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Pulses per minute.
@@ -1135,7 +1136,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicPulse, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicPulse, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Breaths per minute.
@@ -1166,7 +1167,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicBreath, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicBreath, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   // Rainbow duration.
@@ -1197,7 +1198,7 @@ bool MQTTReportDiscovery()
   discovery["value_template"] = "{{ value_json.state }}";
 
   delay(150);
-  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicRainbow, "/config", "" , ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+  if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceNameLower, "/", TopicRainbow, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
   discovery.clear();
@@ -1211,9 +1212,9 @@ bool MQTTReportDiscovery()
 bool MQTTReportAvailability(const char *status)
 {
 #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
-    availabilityReported = MQTTclient.publish(concat7_into(outbuf, UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "", "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
+  availabilityReported = MQTTclient.publish(concat7_into(outbuf, UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", "", "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true
 #else
-    availabilityReported = MQTTclient.publish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true}
+  availabilityReported = MQTTclient.publish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceNameLower, "/", MQTT_ALIVE_TOPIC, "", ""), status, MQTT_RETAIN_ALIVE_MESSAGES); // normally published with 'retain' flag set to true}
 #endif // MQTT_CLIENT_ID_FOR_SMARTNEST
 #ifdef DEBUG_OUTPUT_MQTT
   Serial.print("DEBUG: Sent availability: ");
