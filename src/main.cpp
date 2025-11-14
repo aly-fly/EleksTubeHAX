@@ -139,7 +139,6 @@ void HandleGesture()
 #endif // #ifdef HARDWARE_NOVELLIFE_CLOCK
 
 char UniqueDeviceName[32];      // Enough space for <DeviceName> + 6 hex chars + null
-char UniqueDeviceNameLower[32]; // Lowercase variant used for MQTT topics
 
 Backlights backlights;
 Buttons buttons;
@@ -212,11 +211,11 @@ void setup()
   for (size_t i = 0; i < sizeof(UniqueDeviceName); ++i)
   {
     char c = UniqueDeviceName[i];
-    UniqueDeviceNameLower[i] = (char)tolower((int)c);
+    UniqueDeviceName[i] = (char)tolower((int)c);
     if (c == '\0')
       break;
   }
-  Serial.printf("Set device name: \"%s\" (lowercase: %s).\n", UniqueDeviceName, UniqueDeviceNameLower);
+  Serial.printf("Set device name: \"%s\".\n", UniqueDeviceName);
 
   Serial.print("Init NVS flash partition usage...");
   esp_err_t ret = nvs_flash_init(); // Initialize NVS
