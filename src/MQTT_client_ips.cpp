@@ -480,16 +480,16 @@ bool MQTTStart(bool restart)
     }
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message if the connection get lost.
-    if (MQTTclient.connect( UniqueDeviceName,                                                      // MQTT client id
-                            MQTT_USERNAME,                                                         // MQTT username
-                            MQTT_PASSWORD                                                         // MQTT password
+    if (MQTTclient.connect(UniqueDeviceName, // MQTT client id
+                           MQTT_USERNAME,    // MQTT username
+                           MQTT_PASSWORD     // MQTT password
 #ifndef MQTT_CLIENT_ID_FOR_SMARTNEST
                             , concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic (rooted for HA/plain unified mode) because smartnest.cz broker does not interpret this
                             0,                                                                     // Last will QoS
                             MQTT_RETAIN_ALIVE_MESSAGES,                                            // Retain message
                             MQTT_ALIVE_MSG_OFFLINE                                               // Last will message
 #endif
-                            ))
+                           ))
     {
       Serial.println("MQTT connected");
       MQTTConnected = true;
@@ -879,7 +879,7 @@ void MQTTReportWiFiSignal()
 #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
     MQTTPublish(concat7_into(outbuf, UniqueDeviceName, "/report/signal", "", "", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES);
 #else
-  MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
+    MQTTPublish(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/report/signal", "", "", ""), signal, MQTT_RETAIN_STATE_MESSAGES); // Reports the signal strength
 #endif // MQTT_CLIENT_ID_FOR_SMARTNEST
     LastSentSignalLevel = SignalLevel;
   }
@@ -983,7 +983,7 @@ bool MQTTReportDiscovery()
   }
 #else
   snprintf(DeviceNameForHA, sizeof(DeviceNameForHA), "%s", DEVICE_MODEL);
-#endif  // ENABLE_HA_DEVICE_NAME_SUFFIX
+#endif // ENABLE_HA_DEVICE_NAME_SUFFIX
 
   // Main Light.
   discovery.clear();
