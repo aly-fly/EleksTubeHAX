@@ -633,6 +633,12 @@ Note: For using smartnest.cz, define `MQTT_CLIENT_ID_FOR_SMARTNEST` (previously 
 
 Note: If you want to use an internet-based broker, you can use HiveMQ. You will need to create an account there and set it up in HA and in here. 'MQTT\_USE\_TLS' must be defined, because HiveMQ only supports encrypted connections. The HiveMQ TLS cert is based on the root CA of Let's Encrypt, so you also need to copy the 'mqtt-ca-root.pem' file from the `data/other graphics` subdirectory into the `data` subdirectory of the PIO project and upload the data partition (file system) with the changed app partition. Other brokers or your locally used cert for your MQTT broker may need another root CA to be set. See: [Connect HA to HiveMQ](https://www.hivemq.com/blog/connect-home-assistant-to-hivemq-cloud/).
 
+Note: If you use Mosquitto and want to separate the permissions on the topics or experience access problems in the logs, you need to set the ACLs manually for it! Commands for it:
+user <your_mqtt_username>
+topic read homeassistant/status
+pattern readwrite elekstubehax/%c/#
+pattern readwrite homeassistant/+/%c/#
+
 #### 5.6.5.1.2 Migration Notes (Home Assistant)
 
 This section centralizes all earlier inline migration notes previously shown in other subsections.
