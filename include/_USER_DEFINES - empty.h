@@ -64,7 +64,7 @@
 #define MQTT_PORT 1883                                    // Broker port
 #define MQTT_USERNAME "__enter_your_mqtt_username_here__" // Username from Smartnest
 #define MQTT_PASSWORD "__enter_your_mqtt_password_here__" // Password from Smartnest or API key (under MY Account)
-// #define MQTT_CLIENT_ID_FOR_SMARTNEST "__enter_your_device_id_here__"  // Device ID from Smartnest
+// #define MQTT_CLIENT_ID_FOR_SMARTNEST "__enter_your_device_id_here__"     // Device ID from Smartnest
 #endif
 
 // ************* MQTT HomeAssistant config *************
@@ -78,10 +78,10 @@
 // Retained messages can create ghost entities that keep coming back (i.e., if you change MQTT device name)! You need to delete them manually from the broker queue!
 
 // Note that the following ACL may need to be set in Mosquitto in order to let the device access and write the necessary topics:
-//   user <username>
+//   user <mqtt_username>
 //   topic read homeassistant/status
+//   pattern readwrite elekstubehax/%c/#
 //   pattern readwrite homeassistant/+/%c/#
-//   pattern readwrite %c/#
 
 // --- MQTT broker settings ---
 // Fill in the data according to configuration of your local MQTT broker that is linked to HomeAssistant - for example Mosquitto.
@@ -92,7 +92,7 @@
 #define MQTT_PASSWORD "__enter_your_mqtt_password_here__" // Password
 #endif
 
-#define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // auto save config X seconds after last MQTT configuration message received
+#define MQTT_SAVE_PREFERENCES_AFTER_SEC 60 // Autosave config X seconds after last MQTT configuration message received
 
 // Uncomment to append short MAC suffix to device name in Home Assistant for disambiguation when multiple identical models exist
 #define ENABLE_HA_DEVICE_NAME_SUFFIX
