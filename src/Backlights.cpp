@@ -243,7 +243,7 @@ void Backlights::rainbowPattern()
   uint16_t duration = uint16_t(round(getRainbowDuration() * 1000));
   uint16_t phase = uint16_t(round(float(millis() % duration) / duration * max_phase));
 
-  for (uint8_t digit = 0; digit < NUM_DIGITS; digit++)
+  for (uint8_t digit = 0; digit < NUM_BACKLIGHT_LEDS; digit++)
   {
     // Shift the phase for this LED.
     uint16_t my_phase = (phase + digit * phase_per_digit) % max_phase;
