@@ -29,6 +29,7 @@
 // #define HARDWARE_NOVELLIFE_CLOCK      // NovelLife clocks
 // #define HARDWARE_PUNKCYBER_CLOCK      // PunkCyber / RGB Glow tube / PCBway clocks
 // #define HARDWARE_IPSTUBE_CLOCK        // Clocks with 8MB flash on PCB (like the IPSTube model H401 and H402)
+// #define HARDWARE_MARVELTUBES_CLOCK // MarvelTubes clock with 16MB flash on PCB
 
 #ifdef HARDWARE_PUNKCYBER_CLOCK
 // Everything else is the same, except digits are swapped from left to right.
@@ -77,7 +78,7 @@
 #define MINUTES_TENS (3)
 #define HOURS_ONES (4)
 #define HOURS_TENS (5)
-#endif // #ifdef HARDWARE_PUNKCYBER_CLOCK
+#endif // if defined(HARDWARE_PUNKCYBER_CLOCK) || defined(HARDWARE_XUNFENG_CLOCK)
 
 #define SECONDS_ONES_MAP (0x01 << SECONDS_ONES)
 #define SECONDS_TENS_MAP (0x01 << SECONDS_TENS)
@@ -87,14 +88,22 @@
 #define HOURS_TENS_MAP (0x01 << HOURS_TENS)
 
 // Define the activate and deactivate state for the display power transistor and how the dimming value is calculated.
-#ifndef HARDWARE_IPSTUBE_CLOCK    // for all clocks, except HARDWARE_IPSTUBE_CLOCK
-#define ACTIVATEDISPLAYS HIGH     // Activate is HIGH
-#define DEACTIVATEDISPLAYS LOW    // Deactivate is LOW
-#define CALCDIMVALUE(x) (x)       // Dimming value is directly used for software dimming
-#else                             // Only for HARDWARE_IPSTUBE_CLOCK currently
-#define ACTIVATEDISPLAYS LOW      // Activate is LOW for the IPSTube
-#define DEACTIVATEDISPLAYS HIGH   // Deactivate is HIGH for the IPSTube
-#define CALCDIMVALUE(x) (255 - x) // Dimming value is "inverted" for hardware dimming for IPSTube
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK)) // for all clocks, except IPSTube and MarvelTubes
+#define ACTIVATEDISPLAYS HIGH                                                  // Activate is HIGH
+#define DEACTIVATEDISPLAYS LOW                                                 // Deactivate is LOW
+#define CALCDIMVALUE(x) (x)                                                    // Dimming value is directly used for software dimming
+#else                                                                          // IPSTube keeps LOW active for display power
+#define ACTIVATEDISPLAYS LOW                                                   // Activate is LOW for the IPSTube
+#define DEACTIVATEDISPLAYS HIGH                                                // Deactivate is HIGH for the IPSTube
+#define CALCDIMVALUE(x) (255 - x)                                              // Dimming value is "inverted" for hardware dimming for IPSTube
+#endif
+
+#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+#define DIGIT_CS_ACTIVE_LEVEL LOW
+#define DIGIT_CS_INACTIVE_LEVEL HIGH
+#else
+#define DIGIT_CS_ACTIVE_LEVEL HIGH
+#define DIGIT_CS_INACTIVE_LEVEL LOW
 #endif
 
 /************************
@@ -281,7 +290,7 @@
 // Then the GPIO4 pin is connected to the transistor and Ground of the LCDs is running through the transistor, so the LCDs can be turned on and off AND dimmed!
 #define TFT_ENABLE_PIN (GPIO_NUM_4) // pin 24 is GPIO4
 // If transistor is present and we want hardware dimming, we need to choose a PWM channel for this, can always be defined, even if not used.
-#define TFT_PWM_CHANNEL 0
+#define TFT_PWM_CHANNEL 0 // Use PWM channel 0 for TFT dimming
 
 // Skip reinitialization.
 // This feature is only for IPSTube clocks by now!!! Can also be used on other clocks, but not tested yet!
@@ -350,7 +359,7 @@
 
 #define SPI_READ_FREQUENCY 20000000
 
-// Global definitions for PWM frequency and resolution for TFT dimming.
+// Definitions for PWM frequency and resolution for TFT dimming.
 #define TFT_PWM_FREQ 20000   // PWM frequency for TFT dimming (Hz)
 #define TFT_PWM_RESOLUTION 8 // PWM resolution for TFT dimming (bits)
 
@@ -579,9 +588,88 @@
 #define SMOOTH_FONT
 
 #define SPI_FREQUENCY 40000000
+
 // To make the TFT_eSPI library not over-write all this with its default settings:
 #define USER_SETUP_LOADED
 
 #endif // HARDWARE_XUNFENG_CLOCK
+
+/************************
+ *  MarvelTubes Clone    *
+ ************************/
+#ifdef HARDWARE_MARVELTUBES_CLOCK
+#define DEVICE_NAME "MarvelTubes"
+#define DEVICE_MANUFACTURER "MarvelTubes"
+#define DEVICE_MODEL "MarvelTubes IPS Tube Clock"
+#define DEVICE_HW_VERSION "1.0"
+
+// WS2812 (or compatible) LEDs on the back of the display modules.
+#define BACKLIGHTS_PIN (38)    // controls the WS2812B LEDs
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the back of every LCD
+
+// Buttons, active low, externally pulled up (with actual resistors!).
+#define BUTTON_LEFT_PIN (13)  // Style/Left button
+#define BUTTON_MODE_PIN (12)  // Menu/Mode button
+#define BUTTON_RIGHT_PIN (11) // Time/Right button
+#define BUTTON_POWER_PIN (10) // Alarm/Power button
+
+// I2C! RTC UNKWONN TYPE! 5609 HDN2mY - ECS-RTC-3225-5609 clone -> I2C ID 0x32 -> RX8025T compatible -> modified driver is working
+#define RTC_SCL_PIN (20)
+#define RTC_SDA_PIN (21)
+
+// #define TFT_SKIP_REINIT
+
+// No chip select shift register! Directly connected to ESP32 GPIOs
+// #define CSSR_DATA_PIN (-1)
+// #define CSSR_CLOCK_PIN (-1)
+// #define CSSR_LATCH_PIN (-1)
+
+// Power for all TFT displays are grounded through a MOSFET so they can all be turned off.
+// Active is LOW for this clock.
+#define TFT_ENABLE_PIN (19)
+
+#define TFT_PWM_CHANNEL 0 // Use PWM channel 0 for TFT dimming
+
+#define DIM_WITH_ENABLE_PIN_PWM // Enable hardware dimming with TFT_ENABLE_PIN
+
+// Configure library \TFT_eSPI\User_Setup.h: ST7789 135 x 240 display with no chip select line.
+#define ST7789_DRIVER // Configure all registers
+#define TFT_WIDTH 135
+#define TFT_HEIGHT 240
+#define CGRAM_OFFSET // Library will add offsets required
+
+
+// S2 Bullshit
+// #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
+#define TFT_MISO (45) // No MISO
+
+#define TFT_MOSI (40)
+#define TFT_SCLK (39)
+#define TFT_CS (46)  // MUST be -1 for this clock -> chipselect class does the magic also without a shift register
+#define TFT_DC (41)  // Data Command, aka Register Select or RS
+#define TFT_RST (42) // Connect reset to ensure display initialises
+
+// Fonts to load for TFT.
+// #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
+#define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~353
+#define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
+// #define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm
+// #define LOAD_FONT7  // Font 7. 7-segment 48 pixel font, needs ~2438 bytes in FLASH, only characters 1234567890:.
+// #define LOAD_FONT8  // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
+// #define LOAD_FONT8N // Font 8. Alternative to Font 8 above, slightly narrower, so 3 digits fit a 160 pixel TFT
+// #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
+#define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
+
+// #define SPI_FREQUENCY  27000000
+#define SPI_FREQUENCY 20000000
+
+// Definitions for PWM frequency and resolution for TFT dimming.
+#define TFT_PWM_FREQ 20000   // PWM frequency for TFT dimming (Hz)
+#define TFT_PWM_RESOLUTION 8 // PWM resolution for TFT dimming (bits)
+
+// Force the TFT_eSPI library to not over-write all this
+#define USER_SETUP_LOADED
+
+#endif // #ifdef HARDWARE_MARVELTUBES_CLOCK
 
 #endif /* GLOBAL_DEFINES_H_ */
