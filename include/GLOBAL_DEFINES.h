@@ -117,7 +117,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (12)
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!).
 #define BUTTON_LEFT_PIN (33)
@@ -173,9 +173,9 @@
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_ELEKSTUBE_CLOCK
 
-/************************
- * EleksTube IPS Gen 2  *
- ************************/
+/*************************
+ *    EleksTube Gen2     *
+ *************************/
 #ifdef HARDWARE_ELEKSTUBE_GEN2_CLOCK
 #define DEVICE_NAME "EleksTubeG2"
 #define DEVICE_MANUFACTURER "EleksMaker"
@@ -184,7 +184,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (12)
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!)
 #define BUTTON_LEFT_PIN (33)
@@ -255,9 +255,9 @@
 // ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT!
 // Define HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE in platformio.ini if present!
 #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
-#define NUM_BACKLIGHT_LEDS (34) // 6 LEDs on the bottom of every LCD. 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
+    #define NUM_BACKLIGHT_LEDS (34) // 6 LEDs on the bottom of every LCD + 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
 #else
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD. For IPSTube clock without LED stripe.
+    #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD. For IPSTube clock without LED stripe.
 #endif                         // #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
 
 // Only one Button on IPSTube clocks!
@@ -363,9 +363,9 @@
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_IPSTUBE_CLOCK
 
-/************************
- *   NovelLife Clone    *
- ************************/
+/*************************
+ *    NovelLife Clone    *
+ *************************/
 #ifdef HARDWARE_NOVELLIFE_CLOCK
 #define DEVICE_NAME "NovelLife"
 #define DEVICE_MANUFACTURER "NovelLife"
@@ -374,17 +374,17 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (GPIO_NUM_12)
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD.
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD.
 
 // No Buttons on SE version!!!
 // Set to pins, which should always be HIGH!
-#define BUTTON_LEFT_PIN (GPIO_NUM_3)
-#define BUTTON_MODE_PIN (GPIO_NUM_3)
-#define BUTTON_RIGHT_PIN (GPIO_NUM_3)
-#define BUTTON_POWER_PIN (GPIO_NUM_3)
+#define BUTTON_LEFT_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
+#define BUTTON_MODE_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
+#define BUTTON_RIGHT_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
+#define BUTTON_POWER_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
 
 // Pins ADPS interupt.
-#define GESTURE_SENSOR_INPUT_PIN (GPIO_NUM_5) // -> INTERRUPT
+#define GESTURE_SENSOR_INPUT_PIN (GPIO_NUM_5) // -> Interrupt pin from ADPS9960 gesture sensor
 
 // Pin for the active buzzer.
 #define BUZZER_PIN (GPIO_NUM_19) // Buzzer pin, active HIGH, use with PWM
@@ -401,9 +401,9 @@
 #define CSSR_CLOCK_PIN (GPIO_NUM_13) // SHcp changed from IO16 in original EleksTube
 #define CSSR_LATCH_PIN (GPIO_NUM_15) // STcp was IO17 in original EleksTube
 
-// Power for all TFT displays are grounded through a MOSFET so they can all be turned off.
-// Active HIGH.
-#define TFT_ENABLE_PIN GPIO_NUM_4 // Was 27 on EleksTube
+// Power (VCC) and LEDA (TFT backlight) for all TFT displays are running through a MOSFET (S12 on the PCB).
+// The MOSFET is controlled by GPIO4 pin, so the displays can all be turned off/on but no hardware dimming.
+#define TFT_ENABLE_PIN (GPIO_NUM_4) // pin for the TFT displays backlight
 
 // Configure library \TFT_eSPI\User_Setup.h, ST7789 135 x 240 display with no chip select line.
 #define ST7789_DRIVER // Configure all registers
@@ -412,12 +412,14 @@
 
 // SPI to displays.
 #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
+#define TFT_MISO -1           // No MISO
+
 #define TFT_MOSI (GPIO_NUM_23)
 #define TFT_SCLK (GPIO_NUM_18)
 #define TFT_CS -1              // Not connected -> via shift register
 #define TFT_DC (GPIO_NUM_25)   // Data Command, aka Register Select or RS
 #define TFT_RST (GPIO_NUM_26)  // Connect reset to ensure display initialises
-#define SPI_FREQUENCY 40000000 // 40MHz SPI speed
+
 #define CGRAM_OFFSET           // Library will add offsets required
 
 // Fonts to load for TFT.
@@ -431,7 +433,7 @@
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
 #define SMOOTH_FONT
 
-#define SPI_FREQUENCY 40000000
+#define SPI_FREQUENCY 40000000 // 40MHz SPI speed
 
 /*
  * Force the TFT_eSPI library to not over-write all this:
@@ -439,9 +441,9 @@
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_NOVELLIFE_CLOCK
 
-/************************
- *   PunkCyber Clone    *
- ************************/
+/*************************
+ *    PunkCyber Clone    *
+ *************************/
 #ifdef HARDWARE_PUNKCYBER_CLOCK
 #undef DEVICE_NAME
 #undef DEVICE_MANUFACTURER
@@ -454,9 +456,9 @@
 #define DEVICE_HW_VERSION "1.0"
 #endif // #ifdef HARDWARE_PUNKCYBER_CLOCK
 
-/************************
- *     Si Hai Clone     *
- ************************/
+/***********************
+ *    Si Hai Clone     *
+ ***********************/
 #ifdef HARDWARE_SI_HAI_CLOCK
 #define DEVICE_NAME "SiHai"
 #define DEVICE_MANUFACTURER "Si Hai"
@@ -467,7 +469,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (32)
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the bottom of every LCD
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!).
 #define BUTTON_LEFT_PIN (35)
@@ -522,9 +524,9 @@
 #define USER_SETUP_LOADED
 #endif // #ifdef HARDWARE_SI_HAI_CLOCK
 
-/************************
- *   Xunfeng Clone      *
- ************************/
+/*************************
+ *    Xunfeng Clone      *
+ *************************/
 #ifdef HARDWARE_XUNFENG_CLOCK
 // uses ESP32-S2-WROOM module
 
@@ -535,7 +537,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (GPIO_NUM_38)
-#define NUM_BACKLIGHT_LEDS 6 // 6 LEDs on the bottom of every LCD.
+#define NUM_BACKLIGHT_LEDS 6 // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!) -> don't set intenal pull-ups!
 #define BUTTON_LEFT_PIN (GPIO_NUM_7)
@@ -589,9 +591,9 @@
 
 #endif // HARDWARE_XUNFENG_CLOCK
 
-/************************
- *  MarvelTubes Clone   *
- ************************/
+/**************************
+ *    MarvelTubes Clone   *
+ **************************/
 #ifdef HARDWARE_MARVELTUBES_CLOCK
 #define DEVICE_NAME "MarvelTubes"
 #define DEVICE_MANUFACTURER "MarvelTubes"
