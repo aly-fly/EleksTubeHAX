@@ -164,7 +164,7 @@
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
 
 #define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
-// #define SPI_FREQUENCY  27000000
+
 #define SPI_FREQUENCY 40000000
 
 /*
@@ -231,7 +231,7 @@
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
 
 #define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
-// #define SPI_FREQUENCY  27000000
+
 #define SPI_FREQUENCY 40000000
 
 /*
@@ -278,12 +278,6 @@
 #define DS1302_SCLK (GPIO_NUM_22) // pin 39 is GPIO22
 #define DS1302_IO (GPIO_NUM_19)   // pin 38 is GPIO19
 #define DS1302_CE (GPIO_NUM_21)   // pin 42 is GPIO21
-
-// Chip Select shift register, to select the display.
-// No shift register on this board - Chip Select of the displays is directly connected to the ESP32
-// #define CSSR_DATA_PIN (-1)
-// #define CSSR_CLOCK_PIN (-1)
-// #define CSSR_LATCH_PIN (-1)
 
 // All IPSTubes has the LCDs pins VCC power (LED Anode) and VDD (Power Supply for Analog) connected to the VCC (3.3V) and Ground to Ground (PCB), so the displays are Always-On!
 // EXCEPT: The Q1 transistor is present!
@@ -519,7 +513,7 @@
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
 
 #define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
-// #define SPI_FREQUENCY  27000000
+
 #define SPI_FREQUENCY 40000000
 
 /*
@@ -568,6 +562,7 @@
 #define TFT_WIDTH 135
 #define TFT_HEIGHT 240
 #define CGRAM_OFFSET // Library will add offsets required
+
 // SPI to displays
 #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
 #define TFT_MISO -1
@@ -595,7 +590,7 @@
 #endif // HARDWARE_XUNFENG_CLOCK
 
 /************************
- *  MarvelTubes Clone    *
+ *  MarvelTubes Clone   *
  ************************/
 #ifdef HARDWARE_MARVELTUBES_CLOCK
 #define DEVICE_NAME "MarvelTubes"
@@ -605,7 +600,7 @@
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
 #define BACKLIGHTS_PIN (38)    // controls the WS2812B LEDs
-#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs on the back of every LCD
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!).
 #define BUTTON_LEFT_PIN (13)  // Style/Left button
@@ -613,19 +608,12 @@
 #define BUTTON_RIGHT_PIN (11) // Time/Right button
 #define BUTTON_POWER_PIN (10) // Alarm/Power button
 
-// I2C! RTC UNKWONN TYPE! 5609 HDN2mY - ECS-RTC-3225-5609 clone -> I2C ID 0x32 -> RX8025T compatible -> modified driver is working
+// RTC UNKWONN TYPE! I2C bus! 5609 HDN2mY - ECS-RTC-3225-5609 clone -> I2C ID 0x32 -> RX8025T compatible -> modified driver is working
 #define RTC_SCL_PIN (20)
 #define RTC_SDA_PIN (21)
 
-// #define TFT_SKIP_REINIT
-
-// No chip select shift register! Directly connected to ESP32 GPIOs
-// #define CSSR_DATA_PIN (-1)
-// #define CSSR_CLOCK_PIN (-1)
-// #define CSSR_LATCH_PIN (-1)
-
-// Power for all TFT displays are grounded through a MOSFET so they can all be turned off.
-// Active is LOW for this clock.
+// Power for TFT displays backlight (LEDA) through a MOSFET - so they can all be dimmed and turned on/off.
+// Active is LOW for this clock!
 #define TFT_ENABLE_PIN (19)
 
 #define TFT_PWM_CHANNEL 0 // Use PWM channel 0 for TFT dimming
@@ -638,16 +626,15 @@
 #define TFT_HEIGHT 240
 #define CGRAM_OFFSET // Library will add offsets required
 
+// S2 workaround -> S2 needs a fake MISO and CS pin defined, to avoid that the TFT_eSPI library initializes the default FSPI stuff and takes other pins!
+// #define TFT_SDA_READ // -> S2 needs this disabled, otherwise the fake MISO pin is not working as expected!
+#define TFT_MISO (45) // Fake MISO pin for S2 workaround -> Input pin only, not connected to anything
 
-// S2 Bullshit
-// #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
-#define TFT_MISO (45) // No MISO
-
-#define TFT_MOSI (40)
-#define TFT_SCLK (39)
-#define TFT_CS (46)  // MUST be -1 for this clock -> chipselect class does the magic also without a shift register
-#define TFT_DC (41)  // Data Command, aka Register Select or RS
-#define TFT_RST (42) // Connect reset to ensure display initialises
+#define TFT_MOSI (40) // SPI Data
+#define TFT_SCLK (39) // SPI Clock
+#define TFT_CS (46)   // Fake CS pin for S2 workaround -> Input pin only, not connected to anything -> we use direct GPIOs for CS later
+#define TFT_DC (41)   // SPI Data Command, aka Register Select or RS
+#define TFT_RST (42)  // SPI Reset
 
 // Fonts to load for TFT.
 // #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -660,7 +647,7 @@
 // #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
 #define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
 
-// #define SPI_FREQUENCY  27000000
+// only working at 20MHz
 #define SPI_FREQUENCY 20000000
 
 // Definitions for PWM frequency and resolution for TFT dimming.

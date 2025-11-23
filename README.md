@@ -830,8 +830,8 @@ Light (front/back) command payload examples (subset):
 
 Effects:
 
-- Front light: effect list equals available clock faces.
-- Back light: effect list equals firmware‑defined patterns (Dark/Test/Constant/Pulse/Breath/Rainbow etc.).
+* Front light: effect list equals available clock faces.
+* Back light: effect list equals firmware‑defined patterns (Dark/Test/Constant/Pulse/Breath/Rainbow etc.).
 
 Entity summary:
 
