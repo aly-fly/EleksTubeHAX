@@ -32,6 +32,8 @@
 
   * With and without hardware dimming
 
+* **MarvelTubes Clock**
+
 ##### Notes
 
 * **EleksTube IPS Clock** is the original model created by the inventor in 2021. There are now many similar designs and clones on the market with varying hardware modifications.
@@ -59,6 +61,7 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 ## 2\. Mainboard/PCB views
 
 EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
+MarvelTubes ![MarvelTubes clock](/docs/ImagesMD/MarvelTubes_clock_PCB.jpg)
 
 For detailed pictures for most of the clocks see the `docs` subdirectory.
 
@@ -88,7 +91,7 @@ For detailed pictures for most of the clocks see the `docs` subdirectory.
 
 * Turning displays on and off (not supported on all clock versions)
 
-* Keeping time even when power is off by using battery-powered real-time clock (not supported on all clocks)
+* Keeping time even when power is off by using battery-powered real-time clock
 
 * Saving and loading clock configuration from the flash, to store all settings, even when power is off
 
@@ -149,6 +152,8 @@ Some clock models have specific functionalities or hardware specials which are o
 
 * This model has a 8MB flash memory, so either more clock faces can be stored on the clock or in a better quality (i.e. no palettization/conversion needed) or bigger size of the images.
 
+* Uses a dedicated PlatformIO environment (`IPSTube`) with the `partition_8MB.csv` layout and custom board definition found in `boards/`.
+
 ##### 3.2.2.1 One button menu
 
 * The clock has only one button, so there is a special menu mode active for this model.
@@ -162,6 +167,12 @@ Some clock models have specific functionalities or hardware specials which are o
 * newer versions (after mid-2024) of the IPSTube clocks can do hardware dimming on the displays and turn off the displays completely
 
 Note: See "Known problems/Limitations" for more info.
+
+#### 3.2.3 MarvelTubes Clock
+
+* Ships with 16MB of flash, allocating a 2MB application slot and a large SPIFFS partition so high-resolution or alternate clock faces rarely need recompression.
+
+* Uses a dedicated PlatformIO environment (`MarvelTubes`) with the `partition_16MB.csv` layout and custom board definition found in `boards/`.
 
 ## 4\. Quick Start - Backup and Pre-Build firmware images
 
@@ -207,7 +218,7 @@ To read from (or write to) the clock, it needs to be in the "download mode". Mos
 
 * Open Device Manager and find out which virtual COM port represents your clock.
 
-* Modify file `_ESP32 save flash 4MB.cmd` with your COM port number (or 8MB version for the IPSTubes).
+* Modify the backup script that matches your flash size (e.g. `_ESP32 save flash 4MB.cmd`, `_ESP32 save flash 8MB.cmd` for IPSTubes or `_ESP32 save flash 16MB.cmd` for MarvelTubes) with your COM port number.
 
 * Run the CMD file.
 
@@ -311,7 +322,7 @@ It is possible that the project also works with ESP32 platform modules from othe
 
 #### 5.3.2 PIO build environment
 
-The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder. The Xunfeng clock needs also its own board definition "esp32devS2" in the `boards` folder
+The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder. The MarvelTubes environment uses the `esp32devs2marveltubes` board file from the same folder to match its 16MB ESP32-S2 hardware. The Xunfeng clock needs also its own board definition "esp32devS2" in the `boards` folder
 
 Flash partition size settings are already configured in the following files.
 
@@ -319,6 +330,7 @@ Flash partition size settings are already configured in the following files.
 | --- | --- | --- | --- | --- |
 | `partition_4MB.csv` | All clocks with 4MB flash | 4.0 MB | 1.2 MB | 2.8 MB |
 | `partition_8MB.csv` | IPSTube | 8.0 MB | 1.2 MB | 6.8 MB |
+| `partition_16MB.csv` | MarvelTubes | 16.0 MB | 2.0 MB | 13.3 MB |
 
 No OTA partition, one app partition, one data partition as SPIFFS to store the images of the clock faces.
 
@@ -455,7 +467,7 @@ Most clocks will go into to the download mode automatically, when PlatformIO is 
 
 #### 5.4.1 Step 1 - Compile the code and upload the firmware file (to the app partition)
 
-Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, or IPSTube) and upload the code via the "Upload" command in the matching environment for your clock.
+Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube or MarvelTubes) and upload the code via the "Upload" command in the matching environment for your clock.
 
 ![PlatformIO Build](/docs/ImagesMD/PlatformIOBuild.png)
 
@@ -517,23 +529,21 @@ If you now build the project in PlatformIO via the "Build" command, the normal b
 
 The output file is written to the default output dir of the build. Usually the subdirectory `.pio\build\<environment name>` in the project directory.
 
-The firmware file will be named like `FW_<CLOCKNAME>_v1.3.1.bin` (e.g., `FW_EleksTube_v1.3.1.bin`).
+The firmware file will be named like `FW_<CLOCKNAME>_<VERSIONNUMBER>.bin` (e.g., `FW_EleksTube_v1.3.5.bin`).
 
 This file can be flashed with the `esptool.exe` with the `write_flash` option.
 
 E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and the clock is connected to COM5:
 
-`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.1.bin --erase-all`
+`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.5.bin --erase-all`
 
 ### 5.5.1 Helper script
 
-The supplied `script_build_fs_and_merge.py` automatically hangs in two more post-build steps to the build process of PlatformIO (PIO).
+The legacy `script_build_fs_and_merge.py` has been replaced by `script_build_unified_binary.py`. This post-build helper registers two chained PlatformIO actions whenever `CREATE_FIRMWAREFILE` is defined.
 
-The first one executes PlatformIO with the build target `buildfs` (equivalent to the option "Build Filesystem Image" in the PIO GUI) by calling PIO directly from Python. The file `spiffs.bin` with the data partition is created in the PIO build target subdirectory.
+First, it launches PlatformIO with the `buildfs` target for the active environment (same result as choosing "Build Filesystem Image" in the GUI) so a fresh `spiffs.bin`/`littlefs.bin` lands in the environment's build directory.
 
-The second one checks if all necessary files are present and then reads the used partition table file for this PIO environment to get the right offsets for merging the files together.
-
-It then uses the `esptool.py` with the option `merge_bin` to merge the binary files together.
+Second, it parses the currently selected partition CSV to discover the offsets, gathers the core images (bootloader, partitions, app) and the freshly built filesystem image, and then calls `python -m esptool merge-bin` (with a fallback to the legacy `merge_bin` syntax) to emit the unified firmware file.
 
 ## 5.6 Miscellaneous stuff
 
@@ -871,11 +881,7 @@ All MQTT messages from and to the clock are also traced out via the serial inter
 
 ## 6\. Known problems/limitations, Notes
 
-##### 6.1 No RTC backup battery for SI HAI IPS Clock
-
-There is no battery on the SI HAI IPS clock, so the clock will loose the time, if powered off and needs WiFi at start-up to show the correct time via NTP request.
-
-##### 6.2 Precision of the gesture sensor (NovelLife SE)
+##### 6.1 Precision of the gesture sensor (NovelLife SE)
 
 The accuracy of the gesture sensor on the Novellife clock is not very good. It needs some 'training' to be able to control the clock.
 
@@ -900,7 +906,7 @@ The defined gestures and there button equivalents are:
 
 * Moving from close by the sensor (coming from the front and putting the finger/hand in 1cm distance over the sensor) to a bit more far away (5-7cm distance) is the "far" gesture.
 
-##### 6.3 One button menu for IPSTube clocks
+##### 6.2 One button menu for IPSTube clocks
 
 The IPSTube clocks have only one button, so there are some limitations at the moment.
 
@@ -912,7 +918,7 @@ The IPSTube clocks have only one button, so there are some limitations at the mo
 
 This makes navigating through the menus a bit "unhandy." The values always change "to the right" because the long button press emulates a "right button" press in the menu. This limits the selection of values (e.g., for the absolute color values). The selection loops back to the first value after reaching the last value.
 
-##### 6.4 No real display turn-off or dimming for some IPSTube clocks
+##### 6.3 No real display turn-off or dimming for some IPSTube clocks
 
 Depending on the board version (PCB revision) of the IPSTube models (H401 and H402), transistor Q1 may or may not be present on the board.
 
@@ -928,13 +934,13 @@ If the dimming is not working with your clock, you need to uncomment `-D HARDWAR
 
 See also the code comments for more info in the `GLOBAL_DEFINES.h` for the IPSTubes.
 
-##### 6.5 Slow digit refresh times for IPSTube clocks
+##### 6.4 Slow digit refresh times for IPSTube clocks
 
 IPSTube clocks use slower Winbond flash chips that require conservative SPI settings (DIO mode at 40 MHz instead of QIO at 80 MHz). These slower flash chips provide only half the throughput of standard ESP32 flash memory, which results in slower loading times for the high-quality digit images and therefore slower display refresh rates compared to other clock models. Additionally, attempting to use QIO mode (quad I/O with four data lines which ARE connected on the PCB) or higher frequencies like 80 MHz (DIO or QIO) causes system instability with these chips.
 
 In normal operation this is barely noticeable, but becomes very apparent when multiple different digits need to be drawn simultaneously (cold load without prefetch).
 
-##### 6.6 LED strip on the bottom for some IPSTube clocks
+##### 6.5 LED strip on the bottom for some IPSTube clocks
 
 Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on the bottom.
 
@@ -946,7 +952,7 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 
 * By default, only six LEDs are set. To enable the full LED strip, uncomment `-D HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE` in `platformio.ini` and rebuild and upload the firmware.
 
-##### 6.7 Xunfeng clocks
+##### 6.6 Xunfeng clocks
 
 * The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
 
