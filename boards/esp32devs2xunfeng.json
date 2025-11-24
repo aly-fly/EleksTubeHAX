@@ -1,0 +1,34 @@
+{
+  "build": {
+    "arduino":{
+      "ldscript": "esp32s2_out.ld"
+    },
+    "core": "esp32",
+    "f_cpu": "240000000L",
+    "f_flash": "40000000L",
+    "flash_mode": "qio",
+    "mcu": "esp32s2",
+    "variant": "esp32s2"
+  },
+  "connectivity": [
+    "wifi",
+    "bluetooth"
+  ],
+  "debug": {
+    "openocd_board": "esp32s2.cfg"
+  },
+  "frameworks": [
+    "arduino",
+    "espidf"
+  ],
+  "name": "Espressif ESP32-S2 Wroom Module - Xunfeng",
+  "upload": {
+    "flash_size": "4MB",
+    "maximum_ram_size": 327680,
+    "maximum_size": 4194304,
+    "require_upload_port": true,
+    "speed": 460800
+  },
+  "url": "https://en.wikipedia.org/wiki/ESP32",
+  "vendor": "Espressif"
+}

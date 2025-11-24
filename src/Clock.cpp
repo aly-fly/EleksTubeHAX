@@ -68,8 +68,8 @@ void RtcSet(uint32_t tt)
 #endif
   RTC.SetDateTime(temptime);
 }
-#elif defined(HARDWARE_NOVELLIFE_CLOCK) // For NovelLife_SE clone with R8025T RTC chip
-#include <RTC_RX8025T.h>                // This header will now use Wire1 for I2C operations
+#elif defined(HARDWARE_NOVELLIFE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK) // R8025T RTC chip
+#include <RTC_RX8025T.h>
 
 RX8025T RTC;
 
@@ -79,7 +79,11 @@ void RtcBegin()
   Serial.println("");
   Serial.println("DEBUG_OUTPUT_RTC: Trying to call RX8025T RTC.Init()");
 #endif
-  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire1); // Initialize the RTC with the second I2C bus (Wire1)
+#if defined(HARDWARE_NOVELLIFE_CLOCK)
+  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire1); // NovelLife uses the secondary I2C bus
+#else
+  RTC.init(RTC_SDA_PIN, RTC_SCL_PIN, Wire); // MarvelTubes uses the default I2C bus
+#endif
 #ifdef DEBUG_OUTPUT_RTC
   Serial.println("DEBUG_OUTPUT_RTC: RTC RX8025T initialized!");
 #endif

@@ -54,6 +54,8 @@ public:
   void enableAllCSPins();
   void disableAllCSPins();
 
+  void reclaimPins();
+
 private:
   uint8_t digits_map;
   const uint8_t all_on = 0x3F;

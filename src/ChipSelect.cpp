@@ -1,4 +1,5 @@
 #include "ChipSelect.h"
+#include <driver/gpio.h>
 
 #ifdef HARDWARE_IPSTUBE_CLOCK
 // Define the pins for each LCD's enable wire
@@ -13,9 +14,15 @@ const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_27, GPI
 const int numLCDs = NUM_DIGITS;
 #endif
 
+#ifdef HARDWARE_MARVELTUBES_CLOCK
+// Define the pins for each LCD's enable wire (left to right: hours tens .. seconds ones)
+const int lcdEnablePins[NUM_DIGITS] = {15, 33, 34, 35, 36, 37};
+const int numLCDs = NUM_DIGITS;
+#endif
+
 void ChipSelect::begin()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   pinMode(CSSR_LATCH_PIN, OUTPUT);
   pinMode(CSSR_DATA_PIN, OUTPUT);
   pinMode(CSSR_CLOCK_PIN, OUTPUT);
@@ -34,19 +41,25 @@ void ChipSelect::begin()
   digitalWrite(CSSR_CLOCK_PIN, LOW);
   digitalWrite(CSSR_LATCH_PIN, LOW);
   update();
-#else
+#else // !HARDWARE_IPSTUBE_CLOCK && !HARDWARE_MARVELTUBES_CLOCK
   // Initialize all six different pins for the CS of each LCD as OUTPUT and set it to HIGH (disabled)
   for (int i = 0; i < numLCDs; ++i)
   {
-    pinMode(lcdEnablePins[i], OUTPUT);
-    digitalWrite(lcdEnablePins[i], HIGH);
-  }
+#ifdef DEBUG_OUTPUT_CHIPSELECT
+    Serial.print("ChipSelect::begin - Config pin ");
+    Serial.print(lcdEnablePins[i]);
+    Serial.println(" as OUTPUT, default disabled");
 #endif
+    gpio_reset_pin(static_cast<gpio_num_t>(lcdEnablePins[i]));
+    pinMode(lcdEnablePins[i], OUTPUT);
+    digitalWrite(lcdEnablePins[i], DIGIT_CS_INACTIVE_LEVEL);
+  }
+#endif // !HARDWARE_IPSTUBE_CLOCK && !HARDWARE_MARVELTUBES_CLOCK
 }
 
 void ChipSelect::clear(bool update_)
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   setDigitMap(all_off, update_);
 #else
   disableAllCSPins();
@@ -55,16 +68,30 @@ void ChipSelect::clear(bool update_)
 
 void ChipSelect::setAll(bool update_)
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   setDigitMap(all_on, update_);
 #else
   enableAllCSPins();
 #endif
 }
 
+
+void ChipSelect::reclaimPins()
+{
+#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+  for (int i = 0; i < numLCDs; ++i)
+  {
+    gpio_reset_pin(static_cast<gpio_num_t>(lcdEnablePins[i]));
+    pinMode(lcdEnablePins[i], OUTPUT);
+    digitalWrite(lcdEnablePins[i], DIGIT_CS_INACTIVE_LEVEL); // start with disabled CS
+  }
+#endif
+}
+
+
 void ChipSelect::setDigit(uint8_t digit, bool update_)
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   // Set the bit for the given digit in the digits_map
   setDigitMap(1 << digit, update_);
   if (update_)
@@ -84,7 +111,7 @@ void ChipSelect::setDigit(uint8_t digit, bool update_)
 
 void ChipSelect::update()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   // Documented in README.md.  Q7 and Q6 are unused. Q5 is Seconds Ones, Q0 is Hours Tens.
   // Q7 is the first bit written, Q0 is the last.  So we push two dummy bits, then start with
   // Seconds Ones and end with Hours Tens.
@@ -100,13 +127,13 @@ void ChipSelect::update()
   // for IPSTUBE clocks, the CS pin is already pulled to LOW by the "setDigit" function and stays there, till another "setDigit" is called.
   // so all writing done by the eTFT_SPI lib functions in the time, the pin is low, will write out directly to the LCD.
   //"Update" never will work, because, if pin was HIGH, no writing was done.
-  digitalWrite(lcdEnablePins[currentLCD], LOW);
+  digitalWrite(lcdEnablePins[currentLCD], DIGIT_CS_ACTIVE_LEVEL);
 #endif
 }
 
 bool ChipSelect::isSecondsOnes()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   return ((digits_map & SECONDS_ONES_MAP) > 0);
 #else
   return true;
@@ -115,8 +142,8 @@ bool ChipSelect::isSecondsOnes()
 
 bool ChipSelect::isSecondsTens()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
-  return ((digits_map & SECONDS_TENS_MAP) > 0);
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+  return ((digits_map & SECONDS_TENS_MAP) > 0); 
 #else
   return true;
 #endif
@@ -124,7 +151,7 @@ bool ChipSelect::isSecondsTens()
 
 bool ChipSelect::isMinutesOnes()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   return ((digits_map & MINUTES_ONES_MAP) > 0);
 #else
   return true;
@@ -133,7 +160,7 @@ bool ChipSelect::isMinutesOnes()
 
 bool ChipSelect::isMinutesTens()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   return ((digits_map & MINUTES_TENS_MAP) > 0);
 #else
   return true;
@@ -142,7 +169,7 @@ bool ChipSelect::isMinutesTens()
 
 bool ChipSelect::isHoursOnes()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   return ((digits_map & HOURS_ONES_MAP) > 0);
 #else
   return true;
@@ -151,7 +178,7 @@ bool ChipSelect::isHoursOnes()
 
 bool ChipSelect::isHoursTens()
 {
-#ifndef HARDWARE_IPSTUBE_CLOCK
+#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
   return ((digits_map & HOURS_TENS_MAP) > 0);
 #else
   return true;
@@ -160,38 +187,38 @@ bool ChipSelect::isHoursTens()
 
 void ChipSelect::enableAllCSPins()
 {
-#ifdef HARDWARE_IPSTUBE_CLOCK
+#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
   // enable each LCD
   for (int i = 0; i < numLCDs; ++i)
   {
-    digitalWrite(lcdEnablePins[i], LOW);
+    digitalWrite(lcdEnablePins[i], DIGIT_CS_ACTIVE_LEVEL);
   }
 #endif
 }
 
 void ChipSelect::disableAllCSPins()
 {
-#ifdef HARDWARE_IPSTUBE_CLOCK
+#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
   // disable each LCD
   for (int i = 0; i < numLCDs; ++i)
   {
-    digitalWrite(lcdEnablePins[i], HIGH);
+    digitalWrite(lcdEnablePins[i], DIGIT_CS_INACTIVE_LEVEL);
   }
 #endif
 }
 
 void ChipSelect::enableDigitCSPins(uint8_t digit)
 {
-#ifdef HARDWARE_IPSTUBE_CLOCK
+#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
   // enable the LCD for the given digit
-  digitalWrite(lcdEnablePins[digit], LOW);
+  digitalWrite(lcdEnablePins[digit], DIGIT_CS_ACTIVE_LEVEL);
 #endif
 }
 
 void ChipSelect::disableDigitCSPins(uint8_t digit)
 {
-#ifdef HARDWARE_IPSTUBE_CLOCK
+#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
   // disable the LCD for the given digit
-  digitalWrite(lcdEnablePins[digit], HIGH);
+  digitalWrite(lcdEnablePins[digit], DIGIT_CS_INACTIVE_LEVEL);
 #endif
 }
