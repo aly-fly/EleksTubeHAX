@@ -28,9 +28,9 @@ void TFTs::begin()
 #endif
   enableAllDisplays();       // Signal, that the displays are enabled now and do the hardware dimming, if available and enabled
 
-  if (!SPIFFS.begin()) // Initialize SPIFFS
+  if (!LittleFS.begin()) // Initialize LittleFS
   {
-    Serial.println("SPIFFS initialization failed!");
+    Serial.println("LittleFS initialization failed!");
     NumberOfClockFaces = 0;
     return;
   }
@@ -80,10 +80,10 @@ void TFTs::loadClockFacesNames()
   int8_t i = 0;
   const char *filename = "/clockfaces.txt";
   Serial.println("Loading clock face names...");
-  fs::File f = SPIFFS.open(filename);
+  fs::File f = LittleFS.open(filename);
   if (!f)
   {
-    Serial.println("ERROR: SPIFFS clockfaces.txt not found.");
+    Serial.println("ERROR: LittleFS clockfaces.txt not found.");
     return;
   }
   while (f.available() && i < 9)
@@ -248,7 +248,7 @@ void TFTs::ProcessUpdatedDimming()
 
 bool TFTs::FileExists(const char *path)
 {
-  fs::File f = SPIFFS.open(path, "r");
+  fs::File f = LittleFS.open(path, "r");
   bool Exists = ((f == true) && !f.isDirectory());
   f.close();
   return Exists;
@@ -299,7 +299,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
 #endif
 
   // Open requested file on SD card
-  bmpFS = SPIFFS.open(filename, "r");
+  bmpFS = LittleFS.open(filename, "r");
   if (!bmpFS)
   {
     Serial.print("File not found: ");
@@ -317,7 +317,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   uint16_t magic = read16(bmpFS);
   if (magic == 0xFFFF)
   {
-    Serial.print("Can't openfile. Make sure you upload the SPIFFs image with BMPs. : ");
+    Serial.print("Can't openfile. Make sure you upload the LittleFS image with BMPs. : ");
     Serial.println(filename);
     bmpFS.close();
     return (false);
@@ -485,7 +485,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
 #endif
 
   // Open requested file on SD card
-  bmpFS = SPIFFS.open(filename, "r");
+  bmpFS = LittleFS.open(filename, "r");
   if (!bmpFS)
   {
     Serial.print("File not found: ");
@@ -502,7 +502,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
   uint16_t magic = read16(bmpFS);
   if (magic == 0xFFFF)
   {
-    Serial.print("Can't openfile. Make sure you upload the SPIFFs image with images. : ");
+    Serial.print("Can't openfile. Make sure you upload the LittleFS image with images. : ");
     Serial.println(filename);
     bmpFS.close();
     return (false);

@@ -3,7 +3,7 @@
 
 #define FS_NO_GLOBALS
 #include <FS.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include <TFT_eSPI.h>
 #include "GLOBAL_DEFINES.h"
 #include "ChipSelect.h"
