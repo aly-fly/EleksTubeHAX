@@ -1,0 +1,48 @@
+# Treat every text file as LF by default for cross-platform consistency
+* text eol=lf
+
+# Source code, configs, and documentation (explicit listings help reviewers)
+*.c           text
+*.cpp         text
+*.h           text
+*.hpp         text
+*.ino         text
+*.md          text
+*.txt         text
+*.json        text
+*.yml         text
+*.yaml        text
+*.ini         text
+*.csv         text
+*.py          text
+*.js          text
+*.ts          text
+*.properties  text
+*.svg         text
+*.pem         text
+
+# Scripts and shortcuts that must keep CRLF for Windows tooling
+*.cmd         text eol=crlf
+*.bat         text eol=crlf
+*.url*        text eol=crlf
+*.dpr         text eol=crlf
+*.dproj       text eol=crlf
+*.dfm         text eol=crlf
+
+# Project scripts folder (covers miscellaneous helper scripts)
+scripts/**    text
+
+# Binary assets and generated artifacts (no newline filtering)
+*.bmp         binary
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.exe         binary
+*.pdf         binary
+*.docx        binary
+*.xlsx        binary
+*.res         binary
+*.dfm         binary
+*.dproj       binary
+*.dpr         binary
+*.kicad_sch   binary

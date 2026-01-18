@@ -407,14 +407,14 @@ bool loadCARootCert()
   Serial.println("Loading CA Root Certificate");
 
   // Check if the PEM file exists.
-  if (!SPIFFS.exists(filename))
+  if (!LittleFS.exists(filename))
   {
     Serial.println("ERROR: File not found mqtt-ca-root.pem");
     return false;
   }
 
   // Open the PEM file in read mode.
-  File file = SPIFFS.open(filename, "r");
+  File file = LittleFS.open(filename, "r");
   if (!file)
   {
     Serial.println("ERROR: Failed to open mqtt-ca-root.pem");

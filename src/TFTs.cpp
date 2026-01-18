@@ -28,7 +28,7 @@ void TFTs::begin()
 #endif
   enableAllDisplays();       // Signal, that the displays are enabled now and do the hardware dimming, if available and enabled
 
-  if (!LittleFS.begin()) // Initialize LittleFS
+  if (!LittleFS.begin(false, "/littlefs", 5, "littlefs")) // Initialize LittleFS (partition label: littlefs)
   {
     Serial.println("LittleFS initialization failed!");
     NumberOfClockFaces = 0;

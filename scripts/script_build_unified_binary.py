@@ -12,6 +12,7 @@ import csv
 import shlex
 import subprocess
 import re
+import shutil
 
 Import("env")
 platform     = env.PioPlatform()
@@ -161,16 +162,10 @@ def find_offsets_from_csv():
 
 def resolve_fs_image(fs_kind, build_dir):
     # PlatformIO emits <build_dir>/spiffs.bin or <build_dir>/littlefs.bin
-    candidates = []
-    if fs_kind == "spiffs":
-        candidates.append(os.path.join(build_dir, "spiffs.bin"))
-    elif fs_kind == "littlefs":
-        candidates.append(os.path.join(build_dir, "littlefs.bin"))
-    else:
-        candidates += [
-            os.path.join(build_dir, "spiffs.bin"),
-            os.path.join(build_dir, "littlefs.bin"),
-        ]
+    candidates = [
+        os.path.join(build_dir, "littlefs.bin"),
+        os.path.join(build_dir, "spiffs.bin"),
+    ]
     for p in candidates:
         if os.path.exists(p):
             return p
@@ -276,8 +271,9 @@ def esp32_create_combined_bin(target, source, env):
         if fs_img:
             sections.append((str(fs_offset), str(fs_img)))
         else:
-            print(f"[unified][WARN] FS image not found in {build_dir} "
-                  f"(expected spiffs.bin/littlefs.bin); excluding FS.")
+            print(f"[unified][ERROR] FS image not found in {build_dir} "
+                  f"(expected spiffs.bin/littlefs.bin); aborting merge.")
+            sys.exit(1)
 
     print("[unified] Merge plan (offset | file):")
     for off, f in sections:
@@ -297,6 +293,25 @@ def esp32_create_combined_bin(target, source, env):
     run_esptool_with_fallback(args)
     print(f"[unified] Combined image written: {output_path}")
 
+# --- Copy merged bin to firmware/ -------------------------------------------
+# IMPORTANT: Signature must match what SCons passes: (target, source, env)
+def copy_merged_bin_to_firmware_dir(target, source, env):
+    build_dir = env.subst("$BUILD_DIR")
+    progname = env.subst("$PROGNAME")
+    env_name = env.subst("$PIOENV")
+    src_path = os.path.join(build_dir, f"FW_{progname}.bin")
+
+    dest_dir = os.path.join(PROJECT_DIR, "firmware")
+    os.makedirs(dest_dir, exist_ok=True)
+
+    if not os.path.exists(src_path):
+        print(f"[unified][WARN] Merged bin not found, skipping copy: {src_path}")
+        return
+
+    dest_path = os.path.join(dest_dir, os.path.basename(src_path))
+    shutil.copy2(src_path, dest_path)
+    print(f"[unified] Copied merged bin ({env_name}) -> {dest_path}")
+
 # --- Register post-build ------------------------------------------------------
 my_flags = env.ParseFlags(env['BUILD_FLAGS'])
 defines = {}
@@ -308,6 +323,7 @@ for b in my_flags.get("CPPDEFINES", []):
 
 if defines.get("CREATE_FIRMWAREFILE"):
     print("[unified] CREATE_FIRMWAREFILE defined - registering post-buildprog action")
-    env.AddPostAction("buildprog", [pio_run_buildfs, esp32_create_combined_bin])
+    env.AlwaysBuild("buildprog")
+    env.AddPostAction("buildprog", [pio_run_buildfs, esp32_create_combined_bin, copy_merged_bin_to_firmware_dir])
 else:
     print("[unified] CREATE_FIRMWAREFILE not defined - skipping")

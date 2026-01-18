@@ -170,7 +170,7 @@ Note: See "Known problems/Limitations" for more info.
 
 #### 3.2.3 MarvelTubes Clock
 
-* Ships with 16MB of flash, allocating a 2MB application slot and a large SPIFFS partition so high-resolution or alternate clock faces rarely need recompression.
+* Ships with 16MB of flash, allocating a 2MB application slot and a large LittleFS partition so high-resolution or alternate clock faces rarely need recompression.
 
 * Uses a dedicated PlatformIO environment (`MarvelTubes`) with the `partition_16MB.csv` layout and custom board definition found in `boards/`.
 
@@ -332,7 +332,7 @@ Flash partition size settings are already configured in the following files.
 | `partition_8MB.csv` | IPSTube | 8.0 MB | 1.2 MB | 6.8 MB |
 | `partition_16MB.csv` | MarvelTubes | 16.0 MB | 2.0 MB | 13.3 MB |
 
-No OTA partition, one app partition, one data partition as SPIFFS to store the images of the clock faces.
+No OTA partition, one app partition, one data partition as LittleFS to store the images of the clock faces.
 
 These files are used by PlatformIO to create the partitions on the flash of the ESP32 when uploading.
 
@@ -489,13 +489,13 @@ Example output from a successful upload:
 
 Continue with the next step to get the clock running.
 
-#### 5.4.2 Step 2 - Fill data partition (SPIFFS) with images
+#### 5.4.2 Step 2 - Fill data partition (LittleFS) with images
 
 The repository comes with a "predefined" set of BMP files in the `data` subdirectory.
 
 Each set of 10 images (one image for each digit) is called a "clock face" and can be chosen from the clock menu. Each set represents normally a different design or 'font' for the clock. See below if you want to make your own.
 
-Note: All files in the `data` subdirectory will be packed into the SPIFFS flash image! Make sure to tidy it up. Only the necessary images should be there and `clockfaces.txt` with names of the clock fonts for HA.
+Note: All files in the `data` subdirectory will be packed into the LittleFS flash image! Make sure to tidy it up. Only the necessary images should be there and `clockfaces.txt` with names of the clock fonts for HA.
 
 ##### 5.4.2.1 Generate and upload
 
@@ -509,7 +509,7 @@ Note: All files in the `data` subdirectory will be packed into the SPIFFS flash 
 
 ![PlatformIO Build Filesystem](/docs/ImagesMD/PlatformIOBuildFilesystem.png)
 
-This will upload the files to the SPIFFS filesystem on the ESP32 (flash of the clock).
+This will upload the files to the LittleFS filesystem on the ESP32 (flash of the clock).
 
 Note: The data will stay there, even if you re-upload the real firmware to the app partition, because the data partition is not overridden or modified by that.
 
@@ -525,7 +525,7 @@ You still need to define all the settings/features you want to use in the `USER_
 
 Additionally, you need to uncomment the line `-D CREATE_FIRMWAREFILE` in the platformio.ini to enable a post-build step, to create the image for your clock.
 
-If you now build the project in PlatformIO via the "Build" command, the normal build will takes place and afterwards, a helper script will call the build for the SPIFFS data partition and then merge the existing single files together to one file.
+If you now build the project in PlatformIO via the "Build" command, the normal build will takes place and afterwards, a helper script will call the build for the LittleFS data partition and then merge the existing single files together to one file.
 
 The output file is written to the default output dir of the build. Usually the subdirectory `.pio\build\<environment name>` in the project directory.
 
@@ -541,7 +541,7 @@ E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and
 
 The legacy `script_build_fs_and_merge.py` has been replaced by `script_build_unified_binary.py`. This post-build helper registers two chained PlatformIO actions whenever `CREATE_FIRMWAREFILE` is defined.
 
-First, it launches PlatformIO with the `buildfs` target for the active environment (same result as choosing "Build Filesystem Image" in the GUI) so a fresh `spiffs.bin`/`littlefs.bin` lands in the environment's build directory.
+First, it launches PlatformIO with the `buildfs` target for the active environment (same result as choosing "Build Filesystem Image" in the GUI) so a fresh `littlefs.bin` lands in the environment's build directory.
 
 Second, it parses the currently selected partition CSV to discover the offsets, gathers the core images (bootloader, partitions, app) and the freshly built filesystem image, and then calls `python -m esptool merge-bin` (with a fallback to the legacy `merge_bin` syntax) to emit the unified firmware file.
 
