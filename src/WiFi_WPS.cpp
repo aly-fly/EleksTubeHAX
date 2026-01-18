@@ -176,11 +176,13 @@ void WifiReconnect()
 #ifdef WIFI_USE_WPS // WPS code
 void WiFiStartWps()
 {
+  const uint32_t WPS_RESTART_INTERVAL_MS = 60000; // Restart WPS every 30s to catch late router activation
+  const uint8_t WPS_HARD_RESET_EVERY = 3;         // Full WiFi reset every 3 restarts
   memset(&stored_config.config.wifi, 0, sizeof(stored_config.config.wifi)); // erase all settings
   stored_config.config.wifi.password[0] = '\0';                             // empty string as password
   stored_config.config.wifi.WPS_connected = 0x11;                           // invalid = different than 0x55
   Serial.println("");
-  Serial.print("Saving config! Triggered from WPS start...");
+  Serial.print("Saving config! Triggered from WPS start (erasing)...");
   stored_config.save();
   Serial.println(" Done.");
 
@@ -201,6 +203,8 @@ void WiFiStartWps()
   wpsInitConfig();
   esp_wifi_wps_enable(&wps_config);
   esp_wifi_wps_start(0);
+  uint32_t lastWpsStartMs = millis();
+  uint8_t wpsRestartCount = 0;
 
   // Loop until connected.
   tfts.setTextColor(TFT_BLUE, TFT_BLACK);
@@ -209,6 +213,31 @@ void WiFiStartWps()
     delay(2000);
     tfts.print(".");
     Serial.print(".");
+    if ((millis() - lastWpsStartMs) > WPS_RESTART_INTERVAL_MS)
+    {
+      wpsRestartCount++;
+      Serial.println("\r\nWPS restart to catch late router activation");
+      tfts.setTextColor(TFT_ORANGE, TFT_BLACK);
+      tfts.print("/");
+      tfts.setTextColor(TFT_BLUE, TFT_BLACK);
+      if ((wpsRestartCount % WPS_HARD_RESET_EVERY) == 0)
+      {
+        Serial.println("WPS full WiFi reset");
+        tfts.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tfts.print("/");
+        tfts.setTextColor(TFT_BLUE, TFT_BLACK);
+        WiFi.disconnect(true, true);
+        delay(200);
+        WiFi.mode(WIFI_MODE_STA);
+        delay(200);
+      }
+      esp_wifi_wps_disable();
+      wpsInitConfig();
+      esp_wifi_wps_enable(&wps_config);
+      esp_wifi_wps_start(0);
+      WifiState = wps_active;
+      lastWpsStartMs = millis();
+    }
   }
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
   snprintf(stored_config.config.wifi.ssid, sizeof(stored_config.config.wifi.ssid), "%s", WiFi.SSID().c_str()); // Copy the SSID into the stored configuration safely
@@ -216,7 +245,7 @@ void WiFiStartWps()
   stored_config.config.wifi.password[0] = '\0';                                                                // ...and set to an empty string
   stored_config.config.wifi.WPS_connected = StoredConfig::valid;                                               // Mark the configuration as valid
   Serial.println();
-  Serial.print("Saving config! Triggered from WPS success...");
+  Serial.print("Saving config! Triggered from WPS success (saving)...");
   stored_config.save();
   Serial.println(" WPS finished.");
 }
