@@ -4,7 +4,7 @@
 #include "GLOBAL_DEFINES.h"
 
 #ifdef MQTT_USE_TLS
-#include "SPIFFS.h"
+#include "LittleFS.h"
 #endif // MQTT_USE_TLS
 
 #ifdef MQTT_PLAIN_ENABLED

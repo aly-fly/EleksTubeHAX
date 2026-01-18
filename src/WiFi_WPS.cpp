@@ -16,16 +16,29 @@ uint32_t TimeOfWifiReconnectAttempt = 0;
 
 static esp_wps_config_t wps_config = WPS_CONFIG_INIT_DEFAULT(ESP_WPS_MODE); // Init with defaults
 
+static void copy_wps_field(char *dest, size_t dest_size, const char *src)
+{
+  if (dest_size == 0)
+    return;
+  if (src == nullptr)
+  {
+    dest[0] = '\0';
+    return;
+  }
+  strncpy(dest, src, dest_size - 1);
+  dest[dest_size - 1] = '\0';
+}
+
 // Set alternative WPS config.
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/examples/WPS/WPS.ino
 void wpsInitConfig()
 {
   memset(&wps_config, 0, sizeof(esp_wps_config_t));
   wps_config.wps_type = ESP_WPS_MODE;
-  strcpy(wps_config.factory_info.manufacturer, ESP_MANUFACTURER);
-  strcpy(wps_config.factory_info.model_number, ESP_MODEL_NUMBER);
-  strcpy(wps_config.factory_info.model_name, ESP_MODEL_NAME);
-  strcpy(wps_config.factory_info.device_name, UniqueDeviceName);
+  copy_wps_field(wps_config.factory_info.manufacturer, sizeof(wps_config.factory_info.manufacturer), ESP_MANUFACTURER);
+  copy_wps_field(wps_config.factory_info.model_number, sizeof(wps_config.factory_info.model_number), ESP_MODEL_NUMBER);
+  copy_wps_field(wps_config.factory_info.model_name, sizeof(wps_config.factory_info.model_name), ESP_MODEL_NAME);
+  copy_wps_field(wps_config.factory_info.device_name, sizeof(wps_config.factory_info.device_name), UniqueDeviceName);
 }
 #endif
 
@@ -89,6 +102,7 @@ void WifiBegin()
   WifiState = disconnected;
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(UniqueDeviceName); // Set the hostname for DHCP
 
@@ -176,7 +190,7 @@ void WifiReconnect()
 #ifdef WIFI_USE_WPS // WPS code
 void WiFiStartWps()
 {
-  const uint32_t WPS_RESTART_INTERVAL_MS = 60000; // Restart WPS every 30s to catch late router activation
+  const uint32_t WPS_RESTART_INTERVAL_MS = 30000; // Restart WPS every 30s to catch late router activation
   const uint8_t WPS_HARD_RESET_EVERY = 3;         // Full WiFi reset every 3 restarts
   memset(&stored_config.config.wifi, 0, sizeof(stored_config.config.wifi)); // erase all settings
   stored_config.config.wifi.password[0] = '\0';                             // empty string as password

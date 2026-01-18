@@ -162,16 +162,10 @@ def find_offsets_from_csv():
 
 def resolve_fs_image(fs_kind, build_dir):
     # PlatformIO emits <build_dir>/spiffs.bin or <build_dir>/littlefs.bin
-    candidates = []
-    if fs_kind == "spiffs":
-        candidates.append(os.path.join(build_dir, "spiffs.bin"))
-    elif fs_kind == "littlefs":
-        candidates.append(os.path.join(build_dir, "littlefs.bin"))
-    else:
-        candidates += [
-            os.path.join(build_dir, "spiffs.bin"),
-            os.path.join(build_dir, "littlefs.bin"),
-        ]
+    candidates = [
+        os.path.join(build_dir, "littlefs.bin"),
+        os.path.join(build_dir, "spiffs.bin"),
+    ]
     for p in candidates:
         if os.path.exists(p):
             return p
@@ -277,8 +271,9 @@ def esp32_create_combined_bin(target, source, env):
         if fs_img:
             sections.append((str(fs_offset), str(fs_img)))
         else:
-            print(f"[unified][WARN] FS image not found in {build_dir} "
-                  f"(expected spiffs.bin/littlefs.bin); excluding FS.")
+            print(f"[unified][ERROR] FS image not found in {build_dir} "
+                  f"(expected spiffs.bin/littlefs.bin); aborting merge.")
+            sys.exit(1)
 
     print("[unified] Merge plan (offset | file):")
     for off, f in sections:
