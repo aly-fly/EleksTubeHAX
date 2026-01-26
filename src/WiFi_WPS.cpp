@@ -11,6 +11,10 @@ extern char UniqueDeviceName[32];
 WifiState_t WifiState = disconnected;
 
 uint32_t TimeOfWifiReconnectAttempt = 0;
+uint32_t WifiReconnectIntervalMs = WIFI_RETRY_CONNECTION_SEC * 1000UL;
+const uint32_t WifiReconnectIntervalMaxMs = 60000UL;
+bool WifiReconnectInProgress = false;
+bool WifiWpsActive = false;
 
 #ifdef WIFI_USE_WPS // WPS code
 
@@ -57,15 +61,22 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     Serial.print("Got IP: ");
     Serial.println(WiFi.localIP());
     WifiState = connected;
+    WifiReconnectIntervalMs = WIFI_RETRY_CONNECTION_SEC * 1000UL;
+    WifiReconnectInProgress = false;
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     WifiState = disconnected;
-    Serial.print("WiFi lost connection. Reason: ");
-    Serial.println(info.wifi_sta_disconnected.reason);
+    if (!WifiWpsActive)
+    {
+      Serial.print("WiFi lost connection. Reason: ");
+      Serial.println(info.wifi_sta_disconnected.reason);
+    }
     WifiReconnect();
     break;
 #ifdef WIFI_USE_WPS // WPS code
   case ARDUINO_EVENT_WPS_ER_SUCCESS:
+    if (!WifiWpsActive)
+      break;
     WifiState = wps_success;
     Serial.println("WPS Successful, stopping WPS and connecting to: " + String(WiFi.SSID()));
     esp_wifi_wps_disable();
@@ -73,6 +84,8 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     WiFi.begin();
     break;
   case ARDUINO_EVENT_WPS_ER_FAILED:
+    if (!WifiWpsActive)
+      break;
     WifiState = wps_failed;
     Serial.println("WPS Failed, retrying");
     esp_wifi_wps_disable();
@@ -81,6 +94,8 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     esp_wifi_wps_start(0);
     break;
   case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+    if (!WifiWpsActive)
+      break;
     Serial.println("WPS Timeout, retrying");
     tfts.setTextColor(TFT_RED, TFT_BLACK);
     tfts.print("/"); // retry
@@ -103,6 +118,7 @@ void WifiBegin()
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
+  WiFi.setAutoReconnect(false); // we do our own reconnection handling!
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(UniqueDeviceName); // Set the hostname for DHCP
 
@@ -165,25 +181,59 @@ void WifiBegin()
 
 #endif
 
-  WifiState = connected;
-
-  tfts.println("\nConnected! IP:");
-  tfts.println(WiFi.localIP());
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(WiFi.SSID());
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  delay(200);
+  if (WifiState == connected)
+  {
+    tfts.println("\nConnected! IP:");
+    tfts.println(WiFi.localIP());
+    Serial.println("");
+    Serial.print("Connected to ");
+    Serial.println(WiFi.SSID());
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    delay(200);
+  }
+  else
+  {
+    Serial.println("Connecting to WiFi failed! No WiFi! Clock will not show actual time or last saved time!");
+  }
 }
 
 void WifiReconnect()
 {
-  if ((WifiState == disconnected) && ((millis() - TimeOfWifiReconnectAttempt) > WIFI_RETRY_CONNECTION_SEC * 1000))
+#ifdef WIFI_USE_WPS
+  static bool warnedNoCreds = false;
+  if (WifiWpsActive)
+  {
+    return;
+  }
+  if (stored_config.config.wifi.WPS_connected != StoredConfig::valid)
+  {
+    if (!warnedNoCreds)
+    {
+        Serial.println("WiFi reconnect skipped: no stored credentials (WPS not completed).");
+      warnedNoCreds = true;
+    }
+    return;
+  }
+#endif
+  if (WifiReconnectInProgress)
+  {
+    if ((millis() - TimeOfWifiReconnectAttempt) < 5000UL)
+    {
+      return;
+    }
+    WifiReconnectInProgress = false; // allow a new attempt after timeout
+  }
+
+  if ((WifiState == disconnected) && ((millis() - TimeOfWifiReconnectAttempt) > WifiReconnectIntervalMs))
   {
     Serial.println("Attempting WiFi reconnection...");
-    WiFi.reconnect();
+    WifiReconnectInProgress = true;
+    WiFi.disconnect(false, false);
+    delay(200);
+    WiFi.begin();
     TimeOfWifiReconnectAttempt = millis();
+    WifiReconnectIntervalMs = min(WifiReconnectIntervalMs * 2, WifiReconnectIntervalMaxMs);
   }
 }
 
@@ -209,6 +259,7 @@ void WiFiStartWps()
   WiFi.disconnect(true, true);
 
   WifiState = wps_active;
+  WifiWpsActive = true;
   WiFi.onEvent(WiFiEvent);
   WiFi.mode(WIFI_MODE_STA);
 
@@ -218,6 +269,7 @@ void WiFiStartWps()
   esp_wifi_wps_enable(&wps_config);
   esp_wifi_wps_start(0);
   uint32_t lastWpsStartMs = millis();
+  uint32_t wpsStartMs = millis();
   uint8_t wpsRestartCount = 0;
 
   // Loop until connected.
@@ -227,6 +279,15 @@ void WiFiStartWps()
     delay(2000);
     tfts.print(".");
     Serial.print(".");
+    if ((millis() - wpsStartMs) > (WIFI_WPS_CONNECT_TIMEOUT_SEC * 1000UL))
+    {
+      tfts.setTextColor(TFT_RED, TFT_BLACK);
+      tfts.println("WPS FAILED! NO WiFi");
+      tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+      Serial.println("\r\nWPS FAILED! Going on without WiFi.");
+      WifiState = disconnected;
+      break;
+    }
     if ((millis() - lastWpsStartMs) > WPS_RESTART_INTERVAL_MS)
     {
       wpsRestartCount++;
@@ -254,6 +315,13 @@ void WiFiStartWps()
     }
   }
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+  if (WifiState != connected)
+  {
+    esp_wifi_wps_disable();
+    WifiWpsActive = false;
+    Serial.println("WPS finished without success! No credentials saved.");
+    return;
+  }
   snprintf(stored_config.config.wifi.ssid, sizeof(stored_config.config.wifi.ssid), "%s", WiFi.SSID().c_str()); // Copy the SSID into the stored configuration safely
   memset(&stored_config.config.wifi.password, 0, sizeof(stored_config.config.wifi.password));                  // Since the password cannot be retrieved from WPS, overwrite it completely
   stored_config.config.wifi.password[0] = '\0';                                                                // ...and set to an empty string
@@ -262,5 +330,6 @@ void WiFiStartWps()
   Serial.print("Saving config! Triggered from WPS success (saving)...");
   stored_config.save();
   Serial.println(" WPS finished.");
+  WifiWpsActive = false;
 }
 #endif

@@ -25,8 +25,9 @@
 #define TFT_DIMMED_INTENSITY 20      // 0..255
 
 // ************* WiFi config *************
-#define WIFI_CONNECT_TIMEOUT_SEC 20
-#define WIFI_RETRY_CONNECTION_SEC 15
+#define WIFI_CONNECT_TIMEOUT_SEC 20                     // Seconds to wait for WiFi connection before timing out, if credentials are present
+#define WIFI_RETRY_CONNECTION_SEC 15                    // Seconds between WiFi reconnect attempts, if connection is lost or not established
+#define WIFI_WPS_CONNECT_TIMEOUT_SEC 120                // Max seconds to wait for WPS before giving up
 #define WIFI_USE_WPS                                    // Uncomment to use WPS instead of hard coded wifi credentials
 #define WIFI_SSID "__enter_your_wifi_ssid_here__"       // Not needed if WPS is used
 #define WIFI_PASSWD "__enter_your_wifi_password_here__" // Not needed if WPS is used. Caution - Hard coded password is stored as clear text in BIN file

@@ -37,6 +37,7 @@ scripts/**    text
 *.png         binary
 *.jpg         binary
 *.jpeg        binary
+*.bin         binary
 *.exe         binary
 *.pdf         binary
 *.docx        binary
