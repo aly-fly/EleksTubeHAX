@@ -24,7 +24,7 @@
 
   * With gesture sensor
 
-* **PunkCyber IPS Clock f/k/a RGB Glow Tube DIY Clock**
+* **PunkCyber IPS Clock** f/k/a **RGB Glow Tube DIY Clock**
 
 * **IPSTube Clock - Model H401 and H402**
 
@@ -33,6 +33,8 @@
   * With and without hardware dimming
 
 * **MarvelTubes Clock**
+
+* **MarvelTubes Mini Clock** f/k/a **Marvel Tribe Mini**
 
 ##### Notes
 
@@ -62,6 +64,7 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 
 EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
 MarvelTubes ![MarvelTubes clock](/docs/ImagesMD/MarvelTubes_clock_PCB.jpg)
+MarvelTubes Mini ![MarvelTubes Mini clock](/docs/ImagesMD/MarvelTubesMini_clock_PCB.jpg)
 
 For detailed pictures for most of the clocks see the `docs` subdirectory.
 
@@ -173,6 +176,26 @@ Note: See "Known problems/Limitations" for more info.
 * Ships with 16MB of flash, allocating a 2MB application slot and a large LittleFS partition so high-resolution or alternate clock faces rarely need recompression.
 
 * Uses a dedicated PlatformIO environment (`MarvelTubes`) with the `partition_16MB.csv` layout and custom board definition found in `boards/`.
+
+#### 3.2.4 MarvelTubes Mini Clock
+
+* Compact version of the MarvelTubes clock with 6× ST7735 80×160 px IPS TFT displays on individual breakout boards.
+
+* Uses an **ESP32-C3-Mini-1** module with built-in USB Serial/JTAG — no external USB-UART chip (e.g. CH340).
+
+* Chip select lines, display reset and backlight power/dimming are all controlled via an **I2C IO expander** (address `0x19`) — no shift register, no direct GPIO CS.
+
+* Brightness dimming is done through the IO expander register, not via PWM or software alpha blending.
+
+* No RTC or battery is included in the standard kit. Soldering pads for an I2C RTC are present on the PCB but unpopulated — time is kept exclusively via NTP.
+
+* Clock face images are automatically rescaled to 80×160 px during the build process by a pre-build script (`script_prepare_mini_clockfaces.py`).
+
+* Uses a dedicated PlatformIO environment (`MarvelTubesMini`) with the `partition_4MB.csv` layout and the custom board definition `esp32devc3minimarveltubesmini` found in `boards/`.
+
+* Uses a modified version of the `TFT_eSPI` library (stored in `lib/modified_TFT_eSPI`) for ESP32-C3 processor support and correct ST7735 80×160 display offsets.
+
+* Requires `monitor_dtr = 0` and `monitor_rts = 0` in PlatformIO to prevent unintended clock resets when opening or closing the serial monitor (the ESP32-C3 USB-CDC reacts to DTR/RTS signals).
 
 ## 4\. Quick Start - Backup and Pre-Build firmware images
 
@@ -322,7 +345,7 @@ It is possible that the project also works with ESP32 platform modules from othe
 
 #### 5.3.2 PIO build environment
 
-The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder. The MarvelTubes environment uses the `esp32devs2marveltubes` board file from the same folder to match its 16MB ESP32-S2 hardware. The Xunfeng clock needs also its own board definition "esp32devS2" in the `boards` folder
+The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev". The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder. The MarvelTubes environment uses the `esp32devs2marveltubes` board file from the same folder to match its 16MB ESP32-S2 hardware. The MarvelTubes Mini uses the `MarvelTubesMini` environment with the custom board definition `esp32devc3minimarveltubesmini` for its ESP32-C3-based hardware. The Xunfeng clock needs also its own board definition "esp32devS2" in the `boards` folder
 
 Flash partition size settings are already configured in the following files.
 
@@ -348,7 +371,7 @@ All external libraries in use (for details, see the `platformio.ini` file) are a
 
 * Standard libraries from the frameworks (espressif32 + arduino) are not explicitly listed.
 
-##### 5.3.3.1 Verified Working Versions (as of 2025-11-03)
+##### 5.3.3.1 Verified Working Versions (as of 2026-05-02)
 
 The project compiles and runs correctly with the library versions listed below. Newer (and possibly older) versions should also work.
 
@@ -358,12 +381,12 @@ If you encounter issues with automatic installation, refer to the comments in `p
 
 | Library | Author | Version | Source Code Link |
 | --- | --- | --- | --- |
-| adafruit/Adafruit NeoPixel | Adafruit | 1.15.2 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
+| adafruit/Adafruit NeoPixel | Adafruit | 1.15.4 | [https://github.com/adafruit/Adafruit\_NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel) |
 | adafruit/RTClib | Adafruit | 2.1.4 | [https://github.com/adafruit/RTClib](https://github.com/adafruit/RTClib) |
 | paulstoffregen/Time | Paul Stoffregen | 1.6.1 | [https://github.com/PaulStoffregen/Time](https://github.com/PaulStoffregen/Time) |
-| bodmer/TFT\_eSPI | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
+| bodmer/TFT\_eSPI *(standard registry version replaced by modified local copy, see 5.3.3.4)* | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
 | knolleary/PubSubClient | Nick O'Leary | 2.8.0 | [https://www.arduinolibraries.info/libraries/pub-sub-client](https://www.arduinolibraries.info/libraries/pub-sub-client) |
-| bblanchon/ArduinoJson | Benoit Blanchon | 7.4.2 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
+| bblanchon/ArduinoJson | Benoit Blanchon | 7.4.3 | [https://github.com/bblanchon/ArduinoJson.git](https://github.com/bblanchon/ArduinoJson.git) |
 | makuna/RTC | Michael C.Miller | 2.5.0 | [https://github.com/Makuna/Rtc/wiki](https://github.com/Makuna/Rtc/wiki) |
 
 **Notes**:
@@ -393,12 +416,21 @@ The modified versions are stored in the `lib` subdirectory.
 | sparkfun/SparkFun APDS9960 RGB and Gesture Sensor | SparkFun | 1.4.3 | [https://github.com/sparkfun/SparkFun\_APDS-9960\_Sensor\_Arduino\_Library](https://github.com/sparkfun/SparkFun_APDS-9960_Sensor_Arduino_Library) |
 | (not listed in PIO registry) | Marcin Saj | 1.0.7 | [https://github.com/marcinsaj/RTC_RX8025T](https://github.com/marcinsaj/RTC_RX8025T) |
 | arduino-libraries/NTPClient | Arduino Libraries | 3.2.1 | [https://github.com/arduino-libraries/NTPClient](https://github.com/arduino-libraries/NTPClient) |
+| bodmer/TFT\_eSPI (modified) | Bodmer | 2.5.43 | [https://github.com/Bodmer/TFT\_eSPI](https://github.com/Bodmer/TFT_eSPI) |
 
 **Note:** The modified version of the `SparkFun APDS-9960` library is only required for the NovelLife SE clock (which includes a gesture sensor). It is always compiled **but not linked** for other clock variants.
 
+**Note:** The **MarvelTubes Mini** needs a **modified version of `TFT_eSPI`** stored in `lib/modified_TFT_eSPI/` instead of the standard library fetched from the PlatformIO registry. This modified version is used for **all clock environments** — the standard `bodmer/TFT_eSPI` entry in `platformio.ini` is intentionally commented out. The local modified copy is required for three reasons:
+
+1. **ESP32-C3 processor support** — adds the `TFT_eSPI_ESP32_C3.h` processor file with IDF-level bug fixes (missing definitions, renamed register references) that are not present in the current upstream release (2026-05-02).
+2. **ST7735 80×160 display offsets** — correct column offset (`colstart=26`) and row offset (`rowstart=1`) for the `ST7735_GREENTAB160x80` panel variant used in the Mini, preventing image shift on the display.
+3. **`User_Setup.h` via build script** — the library is pre-configured by the `script_configure_tft_lib.py` build script, which copies `GLOBAL_DEFINES.h` as `User_Setup.h` into the modified library folder before compilation.
+
+The `MarvelTubesMini` PlatformIO environment, like all other environments, references this local library path automatically via the `lib/` folder; the standard `bodmer/TFT_eSPI` from the PlatformIO registry is disabled.
+
 #### 5.3.4 Configure the `TFT_eSPI` library
 
-The supplied `script_configure_tft_lib.py` automatically takes care of the library configuration. It copies two files (`_USER_DEFINES.h` and `GLOBAL_DEFINES.h`) into the `TFT_eSPI` library subdirectory before building. This makes sure, that the TFT\_eSPI library is initialized with the correct values for each clock type.
+The supplied `script_configure_tft_lib.py` automatically takes care of the library configuration. It copies two files (`_USER_DEFINES.h` and `GLOBAL_DEFINES.h`) into the `lib/modified_TFT_eSPI/` subdirectory before building. This makes sure that the modified local `TFT_eSPI` library is initialized with the correct values for each clock type.
 
 If you have issues with the scripts, copy the files manually every time the `TFT_eSPI` library is updated.
 
@@ -467,7 +499,7 @@ Most clocks will go into to the download mode automatically, when PlatformIO is 
 
 #### 5.4.1 Step 1 - Compile the code and upload the firmware file (to the app partition)
 
-Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube or MarvelTubes) and upload the code via the "Upload" command in the matching environment for your clock.
+Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes or MarvelTubesMini) and upload the code via the "Upload" command in the matching environment for your clock.
 
 ![PlatformIO Build](/docs/ImagesMD/PlatformIOBuild.png)
 
@@ -1086,6 +1118,8 @@ Note: This problem does not appear on Gen2 hardware from EleksTube! All clocks s
 * Misc code snips either committed by or copied from: @icebreaker-ch, @meddle99, @OggyP, @bitrot-alpha
 
 * Home Assistant support by @victorvuelma and @gamba69
+
+* Help with MarvelTube Mini integration by @Hans99
 
 * in future (on to-do list) also from: @RedNax67, @wfdudley, @judge2005
 

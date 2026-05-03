@@ -3,6 +3,10 @@
 
 #include "GLOBAL_DEFINES.h"
 
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+#include <Wire.h>
+#endif
+
 /*
  * `digit`s are as defined in Hardware.h, 0 == seconds ones, 5 == hours tens.
  */
@@ -56,10 +60,28 @@ public:
 
   void reclaimPins();
 
+  // Unified display controller interface
+  void setDim(uint32_t duty);
+  void setEnabled(bool enabled);
+
 private:
   uint8_t digits_map;
   const uint8_t all_on = 0x3F;
   const uint8_t all_off = 0x00;
+
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  // Fixed address and command definitions for the specific IO expander used on the MarvelTubes Mini.
+  // Non-standard custom chip (NOT PCA9554-compatible):
+  //   Reg 0x00 = CS select output (0=selected, 1=deselected) — writable
+  //   Reg 0x01 = Power/enable register (controlled via init replay sequence)
+  //   Reg 0x02 = Dimming/brightness register
+  //   Reg 0x03 = Unknown — DO NOT WRITE
+  static constexpr uint8_t EXPANDER_ADDR      = 0x19;
+  static constexpr uint8_t EXPANDER_CMD_DIGIT = 0x00;
+  static constexpr uint8_t EXPANDER_CMD_DIM   = 0x02;
+  const uint8_t cs_masks[NUM_DIGITS] = {0x7F, 0xBF, 0xDF, 0xFB, 0xFD, 0xFE};
+  void i2cReplayInitSequence(uint8_t address);
+#endif
 };
 
 #endif // CHIP_SELECT_H

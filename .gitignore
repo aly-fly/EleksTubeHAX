@@ -25,6 +25,10 @@
 ### VisualStudioCode Patch ###
 .ionide
 
+# Ignore Python bytecode files and cache directories.
+*.pyc
+__pycache__
+
 # End of https://www.toptal.com/developers/gitignore/api/platformio,visualstudiocode
 
 # Exclude personal settings for the project (wifi credentials, etc.).

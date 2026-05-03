@@ -4,8 +4,8 @@
 #define FS_NO_GLOBALS
 #include <FS.h>
 #include <LittleFS.h>
-#include <TFT_eSPI.h>
 #include "GLOBAL_DEFINES.h"
+#include <TFT_eSPI.h>
 #include "ChipSelect.h"
 
 class TFTs : public TFT_eSPI
@@ -54,7 +54,7 @@ public:
   void toggleAllDisplays();
   bool isEnabled() { return TFTsEnabled; }
 
-  // Making chip_select public so we don't have to proxy all methods, and the caller can just use it directly.
+  // Unified display controller (type selected at compile time via #ifdef inside ChipSelect).
   ChipSelect chip_select;
 
   uint8_t NumberOfClockFaces = 0;

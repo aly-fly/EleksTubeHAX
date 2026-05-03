@@ -45,18 +45,19 @@ See also the section "Backup first" and following in the `README.md` file in the
 In this folder you will find the flashable files.
 They are updated from time to time in the repository, so version number may vary.
 
-Last Update: 2025-11-23 to Version 1.3.5
+Last Update: 2026-05-02 to Version 1.3.9
 
 | clock model | firmware image file |
 |--|--|
-| EleksTube IPS - Orginal Version | `FW_EleksTube_v1.3.5.bin` |
-| EleksTube IPS - Gen2 models | `FW_EleksTube_Gen2_v1.3.5.bin` |
-| SI HAI IPS | `FW_SI_HAI_v1.3.5.bin` |
-| Xunfeng IPS | `FW_Xunfeng_v1.3.5.bin` |
-| NovelLife SE version | `FW_NovelLife_v1.3.5.bin` |
-| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_v1.3.5.bin` |
-| IPSTUBE - Model H401 and H402| `FW_IPSTube_v1.3.5.bin` |
-| MarvelTubes | `FW_MarvelTubes_v1.3.5.bin` |
+| EleksTube IPS - Orginal Version | `FW_EleksTube_v1.3.9.bin` |
+| EleksTube IPS - Gen2 models | `FW_EleksTube_Gen2_v1.3.9.bin` |
+| SI HAI IPS | `FW_SI_HAI_v1.3.9.bin` |
+| Xunfeng IPS | `FW_Xunfeng_v1.3.9.bin` |
+| NovelLife SE version | `FW_NovelLife_v1.3.9.bin` |
+| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_v1.3.9.bin` |
+| IPSTUBE - Model H401 and H402| `FW_IPSTube_v1.3.9.bin` |
+| MarvelTubes | `FW_MarvelTubes_v1.3.9.bin` |
+| MarvelTubes Mini | `FW_MarvelTubesMini_v1.3.9.bin` |
 
 Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions. See [Note on EleksTube website](https://elekstube.com/blogs/news/instructions-on-elekstube-clock-for-gen2-systems). But always check the PCB version of your clock!
 
@@ -70,10 +71,14 @@ Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions.
 
 The CMD file should look like this:
 
-`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_EleksTube_v1.3.5.bin`
+`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_EleksTube_v1.3.9.bin`
 
 Note: Most clocks will go into to the "download mode" automatically when esptool is trying to write to it.
 Some clocks needs a button pressed while the powering phase (plugging the USB cable) to enter this mode, like the IPSTUBE ones.
+
+**Note for Xunfeng and MarvelTubes**: These use an ESP32-S2 chip. If auto-detection fails, add `--chip esp32s2` to the esptool command.
+
+**Note for MarvelTubes Mini**: Uses an ESP32-C3 with built-in USB Serial/JTAG — no CH340 driver needed. If auto-detection fails, add `--chip esp32c3`.
 
 ## 5. Download the newest firmware files
 

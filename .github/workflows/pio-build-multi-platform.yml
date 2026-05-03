@@ -2,7 +2,7 @@ name: Create each PlatformIO EleksTubeHAX environment build on multiple OSes.
 
 on:
   push:
-    branches: ["*"]
+    branches: ["**"]
   pull_request:
     branches: [main]
   workflow_dispatch:

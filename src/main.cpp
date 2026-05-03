@@ -9,6 +9,8 @@
 #include <nvs_flash.h>
 #include <stdint.h>
 #include <math.h>
+#include <Wire.h>
+#include <SPI.h>
 #include "GLOBAL_DEFINES.h"
 #include "Backlights.h"
 #include "Buttons.h"
@@ -168,6 +170,12 @@ uint8_t hour_old = 255;
 
 uint32_t lastMQTTCommandExecuted = (uint32_t)-1;
 
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK2
+static constexpr uint8_t EXPANDER_ADDR = 0x19;
+static bool expander_present = false;
+static TFT_eSPI test_tft;
+#endif // HARDWARE_MARVELTUBESMINI_CLOCK
+
 // Helper function, defined below.
 void updateClockDisplay(TFTs::show_t show = TFTs::yes);
 void setupMenu(void);
@@ -176,13 +184,169 @@ bool isNightTime(uint8_t current_hour);
 void checkDimmingNeeded(void);
 #endif
 
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK2
+static bool i2cReadReg(uint8_t address, uint8_t reg, uint8_t &value)
+{
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  if (Wire.endTransmission(false) != 0)
+  {
+    return false;
+  }
+  if (Wire.requestFrom(address, (uint8_t)1) != 1)
+  {
+    return false;
+  }
+  value = Wire.read();
+  return true;
+}
+
+static bool i2cReadDirect(uint8_t address, uint8_t &value)
+{
+  if (Wire.requestFrom(address, (uint8_t)1) != 1)
+  {
+    return false;
+  }
+  value = Wire.read();
+  return true;
+}
+
+static bool i2cWriteReg(uint8_t address, uint8_t reg, uint8_t value)
+{
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  Wire.write(value);
+  return Wire.endTransmission() == 0;
+}
+
+static bool expanderWriteCmd(uint8_t address, uint8_t cmd, uint8_t arg)
+{
+  return i2cWriteReg(address, cmd, arg);
+}
+
+static void i2cReplayInitSequence(uint8_t address)
+{
+  static bool replay_done = false;
+  if (replay_done)
+  {
+    return;
+  }
+  replay_done = true;
+
+  Serial.println("  Replay: init sequence 01 FE -> 01 FC -> 01 FE");
+  i2cWriteReg(address, 0x01, 0xFE);
+  delay(90);
+  i2cWriteReg(address, 0x01, 0xFC);
+  delay(90);
+  i2cWriteReg(address, 0x01, 0xFE);
+  delay(100);
+}
+
+static void i2cScan()
+{
+  uint8_t found = 0;
+  Serial.println("I2C scan on SDA=GPIO4, SCL=GPIO3");
+  for (uint8_t address = 1; address < 127; address++)
+  {
+    Wire.beginTransmission(address);
+    uint8_t error = Wire.endTransmission();
+    if (error == 0)
+    {
+      Serial.printf("I2C device found at 0x%02X\n", address);
+      found++;
+
+      uint8_t value = 0;
+      if (i2cReadReg(address, 0x00, value))
+      {
+        Serial.printf("  Reg 0x00 (Input): 0x%02X\n", value);
+      }
+      if (i2cReadReg(address, 0x01, value))
+      {
+        Serial.printf("  Reg 0x01 (Output): 0x%02X\n", value);
+      }
+      if (i2cReadReg(address, 0x02, value))
+      {
+        Serial.printf("  Reg 0x02 (Polarity): 0x%02X\n", value);
+      }
+      if (i2cReadReg(address, 0x03, value))
+      {
+        Serial.printf("  Reg 0x03 (Config): 0x%02X\n", value);
+      }
+      if (i2cReadDirect(address, value))
+      {
+        Serial.printf("  Direct read: 0x%02X\n", value);
+      }
+    }
+    // else 
+    // {
+    //   // print errors
+    //   if (error == 4)
+    //     Serial.printf("Unknown error at address 0x%02X\n", address);
+    //   else if (error == 2)
+    //     Serial.printf("NACK on transmit of address 0x%02X\n", address);
+    //   else if (error == 3)
+    //     Serial.printf("NACK on transmit of data at address 0x%02X\n", address);
+    //   else if (error == 1)
+    //     Serial.printf("Other error at address 0x%02X\n", address);
+    //     else
+    //     Serial.printf("Error %d at address 0x%02X\n", error, address);
+  
+    // }
+
+    delay(1);
+  }
+  if (found == 0)
+  {
+    Serial.println("No I2C devices found.");
+  }
+}
+#endif // HARDWARE_MARVELTUBESMINI_CLOCK
+
 //-----------------------------------------------------------------------
 // Setup
 //-----------------------------------------------------------------------
 void setup()
 {
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
   Serial.begin(115200);
-  delay(1500); // Wait for serial monitor to catch up
+  delay(500); // Wait for serial monitor to catch up
+#endif
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK2
+  Serial.begin(115200);
+  delay(2000); // Wait for serial monitor to catch up
+  Serial.println("\nSystem starting...\n");
+  delay(100); // Wait for serial monitor to catch up
+
+  Wire.begin(3,4);
+  Wire.setTimeOut(50);
+  i2cScan();
+
+  // Check for I/O expander presence by attempting to read a register (e.g., input reg 0x00)
+  Wire.beginTransmission(EXPANDER_ADDR);
+  expander_present = (Wire.endTransmission() == 0);
+  Serial.printf("Expander present at 0x%02X: %s\n", EXPANDER_ADDR, expander_present ? "yes" : "no");
+  
+  if (expander_present)
+  {
+    // Polarity register + init sequence from captured original firmware
+    // i2cReplayInitSequence writes reg 0x01=0xFE which likely enables TFT power!
+    expanderWriteCmd(EXPANDER_ADDR, 0x02, 0x99);
+    i2cReplayInitSequence(EXPANDER_ADDR);
+
+    // Init all displays once via TFT_eSPI (all I/O expander pins low = broadcast)
+    // INITR_GREENTAB160x80 = 0x06 → correct offsets colstart=26, rowstart=1 for 80x160 panel
+    Serial.println("TFT init (with all I/O expander pins low)...");
+    expanderWriteCmd(EXPANDER_ADDR, 0x00, 0x00);
+    delay(5);
+    test_tft.init(INITR_GREENTAB160x80);
+    // test_tft.writecommand(TFT_INVOFF); // Library sends INVON for this tab type, but panel needs INVOFF
+    test_tft.setRotation(0);
+    test_tft.fillScreen(TFT_BLACK);
+    expanderWriteCmd(EXPANDER_ADDR, 0x00, 0xFF); // all I/O expander outputs high
+    Serial.println("TFT init done.");
+  }
+
+#else // !HARDWARE_MARVELTUBESMINI_CLOCK
 
   Serial.println("\nSystem starting...\n");
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
@@ -207,13 +371,17 @@ void setup()
              mac_bytes[3], mac_bytes[4], mac_bytes[5]);
   }
 #endif // #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
-  // Prepare lowercase variant for MQTT topic usage
+  // Prepare lowercase variant for MQTT topic usage; replace any character that is
+  // not alphanumeric or '-' with '_' to keep the name safe for MQTT client IDs and topics.
   for (size_t i = 0; i < sizeof(UniqueDeviceName); ++i)
   {
     char c = UniqueDeviceName[i];
-    UniqueDeviceName[i] = (char)tolower((int)c);
     if (c == '\0')
       break;
+    c = (char)tolower((int)c);
+    if (!isalnum((unsigned char)c) && c != '-' && c != '_')
+      c = '_';
+    UniqueDeviceName[i] = c;
   }
   Serial.printf("Set device name: \"%s\".\n", UniqueDeviceName);
 
@@ -240,7 +408,11 @@ void setup()
   tfts.begin(); // ...and count number of clock faces available...
   tfts.fillScreen(TFT_BLACK);
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
+#else
   tfts.setCursor(0, 0, 2); // Font 2. 16 pixel high
+#endif
   tfts.println("Starting Setup...");
 
 #ifdef HARDWARE_NOVELLIFE_CLOCK
@@ -314,7 +486,7 @@ void setup()
     Serial.println("GeoLoc failed!");
     tfts.setTextColor(TFT_WHITE, TFT_BLACK);
   }
-#endif
+#endif // #ifdef GEOLOCATION_ENABLED
 
   if (uclock.getActiveGraphicIdx() > tfts.NumberOfClockFaces)
   {
@@ -344,6 +516,7 @@ void setup()
   uclock.loop();
   updateClockDisplay(TFTs::force); // Draw all the clock digits
   Serial.println("Starting main loop...");
+#endif // #ifdef HARDWARE_MARVELTUBESMINI_CLOCK
 }
 
 //-----------------------------------------------------------------------
@@ -351,6 +524,46 @@ void setup()
 //-----------------------------------------------------------------------
 void loop()
 {
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK2
+  static uint8_t digit_idx = 0;
+  static uint32_t last_tick = 0;
+
+  const uint8_t cs_masks[NUM_DIGITS] = {0xFE, 0xFD, 0xFB, 0xDF, 0xBF, 0x7F};
+  const uint16_t colors[NUM_DIGITS] = {TFT_RED, TFT_GREEN, TFT_BLUE, TFT_YELLOW, TFT_CYAN, TFT_MAGENTA};
+  const char* color_names[NUM_DIGITS] = {"RED", "GREEN", "BLUE", "YELLOW", "CYAN", "MAGENTA"};
+
+  if (!expander_present) { delay(100); return; }
+
+  uint32_t now = millis();
+
+  if ((now - last_tick) >= 500)
+  {
+    last_tick = now;
+    expanderWriteCmd(EXPANDER_ADDR, 0x00, cs_masks[digit_idx]);
+    delay(2);
+    test_tft.fillScreen(colors[digit_idx]);
+    // Draw color name in small font to verify orientation
+    test_tft.setTextColor(TFT_BLACK, colors[digit_idx]);
+    test_tft.setTextFont(2);  // Font 2 = 16px
+    test_tft.setTextSize(1);
+    test_tft.setTextDatum(MC_DATUM); // middle-center
+    test_tft.drawString(color_names[digit_idx], TFT_WIDTH / 2, TFT_HEIGHT / 2);
+    Serial.printf("Digit %d -> %s (0x%04X)\n", digit_idx, color_names[digit_idx], colors[digit_idx]);
+    expanderWriteCmd(EXPANDER_ADDR, 0x00, 0xFF);
+    if (digit_idx >= (NUM_DIGITS-1))
+    {
+      Serial.println("All digits done, restarting...");
+      // blank all digits before next loop to avoid ghosting effects
+      expanderWriteCmd(EXPANDER_ADDR, 0x00, 0x00);
+      test_tft.fillScreen(TFT_BLACK);
+    }
+    //reset digit index after one loop
+    digit_idx = (uint8_t)((digit_idx + 1) % NUM_DIGITS);
+  }
+
+  delay(5);
+
+#else // !HARDWARE_MARVELTUBESMINI_CLOCK
   uint32_t millis_at_top = millis();
 
   // Do all the maintenance work.
@@ -839,7 +1052,11 @@ void loop()
             tfts.clear();
             tfts.fillScreen(TFT_BLACK);
             tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+            tfts.setCursor(0, 0, 1); // Font 2. 16 pixel high
+#else
             tfts.setCursor(0, 0, 4); // Font 4. 26 pixel high
+#endif
             WiFiStartWps();
           }
         }
@@ -885,14 +1102,20 @@ void loop()
     Serial.println(time_in_loop);
   }
 #endif // DEBUG_OUTPUT
+#endif // !HARDWARE_MARVELTUBESMINI_CLOCK
 }
 
 void setupMenu()
 {                                  // Prepare drawing of the menu texts
-  tfts.chip_select.setHoursTens(); // use most left display
+  tfts.chip_select.setHoursTens();
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  tfts.fillRect(0, 60, 80, 60, TFT_BLACK); // use lower half of the display, fill with black
+  tfts.setCursor(0, 62, 1);
+#else
   tfts.fillRect(0, 120, 135, 120, TFT_BLACK); // use lower half of the display, fill with black
   tfts.setCursor(0, 124, 4);                  // use font 4 - 26 pixel high - for the menu text
+#endif
 }
 
 #ifdef DIMMING
@@ -932,7 +1155,7 @@ void checkDimmingNeeded()
       Serial.println("Set to day time mode (max brightness)!");
       tfts.dimming = 255; // 0..255
       tfts.ProcessUpdatedDimming();
-      backlights.setDimming(false);
+      //backlights.setDimming(false);
     }
     updateClockDisplay(TFTs::force); // Redraw everything; software dimming will be done here
     hour_old = current_hour;

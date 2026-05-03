@@ -92,6 +92,9 @@ jobs:
             echo "  ⚠️ Already present: '$DST'."
           fi
 
+      - name: Build filesystem image for ${{ matrix.env }}.
+        run: pio run --environment "${{ matrix.env }}" --target buildfs
+
       - name: Build ${{ matrix.env }} environment.
         env:
           PLATFORMIO_BUILD_FLAGS: "-D CREATE_FIRMWAREFILE"

@@ -22,14 +22,15 @@
 // ************* Type of the clock hardware  *************
 // Do not uncomment, set by platform.ini file.
 // Only usefull for local builds to see the active #ifdef code parts highlighted.
-// #define HARDWARE_ELEKSTUBE_CLOCK      // Original EleksTube IPS clocks with 4MB flash
-// #define HARDWARE_ELEKSTUBE_GEN2_CLOCK // Original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip)
-// #define HARDWARE_SI_HAI_CLOCK         // Si Hai copy of the clock
-// #define HARDWARE_XUNFENG_CLOCK       // Xunfeng copy of the clock (with ESP32-S2 Wroom)
-// #define HARDWARE_NOVELLIFE_CLOCK      // NovelLife clocks
-// #define HARDWARE_PUNKCYBER_CLOCK      // PunkCyber / RGB Glow tube / PCBway clocks
-// #define HARDWARE_IPSTUBE_CLOCK        // Clocks with 8MB flash on PCB (like the IPSTube model H401 and H402)
-// #define HARDWARE_MARVELTUBES_CLOCK // MarvelTubes clock with 16MB flash on PCB
+// #define HARDWARE_ELEKSTUBE_CLOCK         // Original EleksTube IPS clocks with 4MB flash
+// #define HARDWARE_ELEKSTUBE_GEN2_CLOCK    // Original EleksTube clock Gen2.1 (EleksTube IPS Classic Edition/Pro/PR1/PR2, ESP32 Pico D4 Chip)
+// #define HARDWARE_SI_HAI_CLOCK            // Si Hai copy of the clock
+// #define HARDWARE_XUNFENG_CLOCK           // Xunfeng copy of the clock (with ESP32-S2 Wroom)
+// #define HARDWARE_NOVELLIFE_CLOCK         // NovelLife clocks
+// #define HARDWARE_PUNKCYBER_CLOCK         // PunkCyber / RGB Glow tube / PCBway clocks
+// #define HARDWARE_IPSTUBE_CLOCK           // Clocks with 8MB flash on PCB (like the IPSTube model H401 and H402)
+// #define HARDWARE_MARVELTUBES_CLOCK       // MarvelTubes clock with 16MB flash on PCB
+// #define HARDWARE_MARVELTUBESMINI_CLOCK   // MarvelTubes Mini clock with 4MB flash on PCB and ESP C3 Mini
 
 #ifdef HARDWARE_PUNKCYBER_CLOCK
 // Everything else is the same, except digits are swapped from left to right.
@@ -307,6 +308,7 @@
 // Comment the next line out, to DISABLE hardware dimming with TFT_ENABLE_PIN.
 // For older IPStube devices (<06/2024) only
 #define DIM_WITH_ENABLE_PIN_PWM
+#define DIM_SKIP_SOFTWARE_ALPHA // Hardware handles dimming; skip software alpha blending in image loader
 #endif
 
 // NOTE: If NIGTHTIME_DIMMING is enabled:
@@ -621,6 +623,7 @@
 #define TFT_PWM_CHANNEL 0 // Use PWM channel 0 for TFT dimming
 
 #define DIM_WITH_ENABLE_PIN_PWM // Enable hardware dimming with TFT_ENABLE_PIN
+#define DIM_SKIP_SOFTWARE_ALPHA // Hardware handles dimming; skip software alpha blending in image loader
 
 // Configure library \TFT_eSPI\User_Setup.h: ST7789 135 x 240 display with no chip select line.
 #define ST7789_DRIVER // Configure all registers
@@ -660,5 +663,95 @@
 #define USER_SETUP_LOADED
 
 #endif // #ifdef HARDWARE_MARVELTUBES_CLOCK
+
+/*******************************
+ *    MarvelTubes Mini clone   *
+ *******************************/
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+#define DEVICE_NAME "MarvelTubes Mini"
+#define DEVICE_MANUFACTURER "MarvelTubes"
+#define DEVICE_MODEL "MarvelTubes Mini IPS Tube Clock"
+#define DEVICE_HW_VERSION "1.0"
+
+// WS2812 (or compatible) LEDs on the back of the display modules.
+#define BACKLIGHTS_PIN (6)    // controls the WS2812B LEDs on the LCDs breakout board
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
+
+// Buttons, active low, externally pulled up (with actual resistors!).
+#define BUTTON_LEFT_PIN (9)  // Style/Left button
+#define BUTTON_MODE_PIN (0)  // Menu/Mode button
+#define BUTTON_RIGHT_PIN (1) // Time/Right button
+#define BUTTON_POWER_PIN (2) // Alarm/Power button
+
+// Pin for the active buzzer. -> Not implemented! -> GPIO is used as fake for C3 workaround in TFT_eSPI library, to avoid that the library initializes the default FSPI stuff and takes other pins!
+// #define BUZZER_PIN (5) // Buzzer pin, active HIGH, use with PWM
+
+// Chip Select -> over IO Expander! No Shift Register! -> extra class defined!
+#define CSSR_DATA_PIN (-1)
+#define CSSR_CLOCK_PIN (-1)
+#define CSSR_LATCH_PIN (-1)
+
+// No RTC on MarvelTubes Mini!
+// Soldering pads for RTC are present on the PCB, but no RTC ot battery holder is included in the kit. 
+// It would be possible to solder and connect one via the I2C bus!
+// But not tested yet, so just set to -1 for now
+#define RTC_SCL_PIN (-1)
+#define RTC_SDA_PIN (-1)
+
+// instead we use the I2C bus for the IO expander, which controls the TFT power (and dimming?) and the CSs
+// so we need to define the I2C pins for it:
+#define I2C_SCL_PIN (4)
+#define I2C_SDA_PIN (3)
+
+// Power for TFT displays backlight (LEDA) through a MOSFET - so they can all be dimmed and turned on/off.
+// Controlled via the IO expander on the I2C bus! Dimming is also handled via the IO expander
+// so no direct PWM pin for dimming on the main board! -> extra class defined to control the TFT power and dimming via the IO expander!
+#define TFT_ENABLE_PIN (-1)
+
+// Dimming is handled via the IO expander on the I2C bus — not via PWM and not via software alpha blending.
+// DIM_SKIP_SOFTWARE_ALPHA tells the image loader to skip alpha blending, just like for IPSTube/MarvelTubes.
+// DIM_WITH_ENABLE_PIN_PWM is intentionally NOT defined here: the Mini has no PWM pin, so no ledc init is needed.
+#define DIM_SKIP_SOFTWARE_ALPHA
+
+// Configure library \TFT_eSPI\User_Setup.h: ST7735 80 x 160 display with no chip select line.
+#define ST7735_DRIVER // Configure all registers
+#define ST7735_GREENTAB160x80 // 80x160 panel → correct offsets (colstart=26, rowstart=1)
+#define TFT_WIDTH 80
+#define TFT_HEIGHT 160
+#define CGRAM_OFFSET // Library will add offsets required
+
+#define TFT_SKIP_REINIT // Not tested if needed!
+
+// C3 fix: TFT_SDA_READ must be DISABLED, otherwise TFT_eSPI.h forces TFT_MISO to -1
+// which blocks the SPI port on ESP32-C3 with Arduino Core >= 2.0.15
+// See: https://github.com/Bodmer/TFT_eSPI/issues/3384 and #3743
+// TFT_MISO must be set to a valid unused GPIO (not -1, not same as MOSI!)
+// #define TFT_SDA_READ
+#define TFT_MISO (5) // Dummy MISO pin (unused GPIO) - required for C3 SPI to work
+
+#define TFT_MOSI (8) // SPI Data
+#define TFT_SCLK (7) // SPI Clock
+#define TFT_CS (-1)   // Chip Select -> over IO Expander! -> extra class defined!
+#define TFT_DC (10)   // SPI Data Command, aka Register Select or RS
+#define TFT_RST (-1)  // SPI Reset -> over IO Expander! -> extra class defined!
+
+// Fonts to load for TFT.
+#define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
+#define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~353
+#define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
+// #define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm
+// #define LOAD_FONT7  // Font 7. 7-segment 48 pixel font, needs ~2438 bytes in FLASH, only characters 1234567890:.
+// #define LOAD_FONT8  // Font 8. Large 75 pixel font needs ~3256 bytes in FLASH, only characters 1234567890:-.
+// #define LOAD_FONT8N // Font 8. Alternative to Font 8 above, slightly narrower, so 3 digits fit a 160 pixel TFT
+// #define LOAD_GFXFF  // FreeFonts. Include access to the 48 Adafruit_GFX free fonts FF1 to FF48 and custom fonts
+#define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason....
+
+// 10MHz for ESP32-C3
+#define SPI_FREQUENCY 10000000
+
+// Force the TFT_eSPI library to not over-write all this
+#define USER_SETUP_LOADED
+
+#endif // #ifdef HARDWARE_MARVELTUBESMINI_CLOCK
 
 #endif /* GLOBAL_DEFINES_H_ */

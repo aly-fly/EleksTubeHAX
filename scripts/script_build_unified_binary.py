@@ -230,6 +230,12 @@ def normalize_extra_images(raw):
 # --- Build FS image (spiffs/littlefs) ----------------------------------------
 # IMPORTANT: Signature must match what SCons passes: (target, source, env)
 def pio_run_buildfs(target, source, env):
+    build_dir = env.subst("$BUILD_DIR")
+    # Skip if FS image already exists (e.g. pre-built in CI before the main build step)
+    existing = resolve_fs_image("littlefs", build_dir) or resolve_fs_image("spiffs", build_dir)
+    if existing and os.path.exists(existing):
+        print(f"[unified] FS image already exists, skipping buildfs: {existing}")
+        return
     print("[unified] Building filesystem image (buildfs) for current env…")
     env_name = env.subst("$PIOENV")
     if not env_name:

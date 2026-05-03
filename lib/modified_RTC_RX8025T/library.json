@@ -1,0 +1,26 @@
+{
+  "name": "RTC_RX8025T",
+  "version": "1.0.0-elekstubehax1",
+  "keywords": "i2c, rtc, time, clock",
+  "description": "Modified fork of marcinsaj/RTC_RX8025T for the EleksTubeHAX project. Original: https://github.com/marcinsaj/RTC_RX8025T",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/aly-fly/EleksTubeHAX",
+    "directory": "lib/modified_RTC_RX8025T"
+  },
+  "authors":
+  [
+    {
+        "name": "Marcin Saj",
+        "maintainer": false
+    },
+    {
+        "name": "Clemens Sutor",
+        "email": "clemenssutor@gmail.com",
+        "maintainer": true
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

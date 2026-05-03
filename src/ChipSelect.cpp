@@ -1,6 +1,92 @@
 #include "ChipSelect.h"
 #include <driver/gpio.h>
 
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+
+static bool i2cWriteReg(uint8_t address, uint8_t reg, uint8_t value)
+{
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  Wire.write(value);
+  return Wire.endTransmission() == 0;
+}
+
+void ChipSelect::i2cReplayInitSequence(uint8_t address)
+{
+  static bool replay_done = false;
+  if (replay_done) return;
+  replay_done = true;
+  Serial.println("ChipSelect: I2C expander init sequence 01 FE -> 01 FC -> 01 FE");
+  i2cWriteReg(address, 0x01, 0xFE);
+  delay(90);
+  i2cWriteReg(address, 0x01, 0xFC);
+  delay(90);
+  i2cWriteReg(address, 0x01, 0xFE);
+  delay(100);
+}
+
+void ChipSelect::begin()
+{
+  Serial.println("ChipSelect::begin (MarvelTubesMini / I2C expander)");
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.setTimeOut(50);
+
+  Wire.beginTransmission(EXPANDER_ADDR);
+  bool expander_present = (Wire.endTransmission() == 0);
+  Serial.printf("Expander present at 0x%02X: %s\n", EXPANDER_ADDR, expander_present ? "yes" : "no");
+
+  if (expander_present)
+  {
+    i2cReplayInitSequence(EXPANDER_ADDR);
+    setDim(150);
+    Serial.println("ChipSelect: I2C expander init done.");
+  }
+  else
+  {
+    Serial.println("ChipSelect: I2C expander not found! CHECK WIRING AND DO AN I2C SCAN!");
+  }
+}
+
+void ChipSelect::clear(bool update_)
+{
+  i2cWriteReg(EXPANDER_ADDR, EXPANDER_CMD_DIGIT, 0xFF); // all CS high = all deselected
+}
+
+void ChipSelect::setAll(bool update_)
+{
+  i2cWriteReg(EXPANDER_ADDR, EXPANDER_CMD_DIGIT, 0x00); // all CS low = all selected
+}
+
+void ChipSelect::setDigit(uint8_t digit, bool update_)
+{
+  i2cWriteReg(EXPANDER_ADDR, EXPANDER_CMD_DIGIT, cs_masks[digit]);
+}
+
+void ChipSelect::setDim(uint32_t duty)
+{
+  i2cWriteReg(EXPANDER_ADDR, EXPANDER_CMD_DIM, (uint8_t)(duty & 0xFF));
+}
+
+void ChipSelect::update() {} // no-op: I2C expander writes are immediate
+
+void ChipSelect::reclaimPins() {} // no-op for MarvelTubesMini
+
+bool ChipSelect::isSecondsOnes() { return true; }
+bool ChipSelect::isSecondsTens() { return true; }
+bool ChipSelect::isMinutesOnes() { return true; }
+bool ChipSelect::isMinutesTens() { return true; }
+bool ChipSelect::isHoursOnes()   { return true; }
+bool ChipSelect::isHoursTens()   { return true; }
+
+void ChipSelect::enableAllCSPins()  {}
+void ChipSelect::disableAllCSPins() {}
+void ChipSelect::enableDigitCSPins(uint8_t digit)  {}
+void ChipSelect::disableDigitCSPins(uint8_t digit) {}
+
+void ChipSelect::setEnabled(bool enabled) {}
+
+#else // !HARDWARE_MARVELTUBESMINI_CLOCK
+
 #ifdef HARDWARE_IPSTUBE_CLOCK
 // Define the pins for each LCD's enable wire
 // The order is from left to right, so the first pin is for the seconds ones, the last for the hours tens
@@ -222,3 +308,22 @@ void ChipSelect::disableDigitCSPins(uint8_t digit)
   digitalWrite(lcdEnablePins[digit], DIGIT_CS_INACTIVE_LEVEL);
 #endif
 }
+
+void ChipSelect::setEnabled(bool enabled)
+{
+#if defined(DIM_WITH_ENABLE_PIN_PWM)
+  // Handled via ProcessUpdatedDimming() / ledcWrite - nothing to do here directly
+  (void)enabled;
+#elif defined(TFT_ENABLE_PIN) && TFT_ENABLE_PIN >= 0
+  digitalWrite(TFT_ENABLE_PIN, enabled ? ACTIVATEDISPLAYS : DEACTIVATEDISPLAYS);
+#else
+  (void)enabled;
+#endif
+}
+
+void ChipSelect::setDim(uint32_t duty)
+{
+  (void)duty; // no-op: software alpha dimming is used for non-MarvelTubesMini variants. Applied in the image drawing function.
+}
+
+#endif // !HARDWARE_MARVELTUBESMINI_CLOCK
