@@ -3,6 +3,7 @@
 # from SCons.Script import Import
 
 # To have access to the PIO build environment variables, we need to import the env module from SCons.Script
+import os
 import shutil
 Import("env")
 
@@ -10,8 +11,12 @@ print("script_configure_tft_lib.py: Copying TFT config files...")
 
 # Get the environment name
 environmentname = env.subst("$PIOENV")
-# Define target directory with the name of the env in the path
-targetDir = ".pio/libdeps/" + environmentname + "/TFT_eSPI/"
+# Define target directory: prefer local modified lib, fall back to PIO libdeps
+localLibDir = "lib/modified_TFT_eSPI/"
+if os.path.exists(localLibDir):
+    targetDir = localLibDir
+else:
+    targetDir = ".pio/libdeps/" + environmentname + "/TFT_eSPI/"
 # Define target file
 targetFile = targetDir + "User_Setup.h"
 
