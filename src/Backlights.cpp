@@ -2,6 +2,7 @@
 
 void Backlights::begin(StoredConfig::Config::Backlights *config_)
 {
+  Adafruit_NeoPixel::begin(); // Initialize RMT and pin
   config = config_;
 
   if (config->is_valid != StoredConfig::valid)

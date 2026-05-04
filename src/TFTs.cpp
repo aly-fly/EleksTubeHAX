@@ -5,23 +5,24 @@
 void TFTs::begin()
 {
   chip_select.begin();
-  chip_select.setAll(); // Start with all displays selected
+  chip_select.setAll(); // Start with all displays selected for broadcast init
+  delay(5);              // settling time (needed for I2C expander, harmless for others)
 
 #ifdef DIM_WITH_ENABLE_PIN_PWM
   // If hardware dimming is used, init ledc, set the pin and channel for PWM and set frequency and resolution
   ledcSetup(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION);           // PWM, globally defined
   ledcWrite(TFT_PWM_CHANNEL, CALCDIMVALUE(0));                         // Set initial dimming value to 0 (off)
-#else
+#elif defined(TFT_ENABLE_PIN) && TFT_ENABLE_PIN >= 0
   pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
   InvalidateImageInBuffer(); // Signal, that the image in the buffer is invalid and needs to be reloaded and refilled
   init();                    // Initialize the super class.
 #if defined(HARDWARE_MARVELTUBES_CLOCK)
   chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
-  chip_select.setAll(); // After regain control, start with all displays selected again  
+  chip_select.setAll(); // After regain control, start with all displays selected again
 #endif
   fillScreen(TFT_BLACK);     // to avoid/reduce flickering patterns on the screens
-#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+#ifdef DIM_WITH_ENABLE_PIN_PWM
   delay(100); // give some time to avoid glitches on power up
   ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);                         // Attach the pin to the PWM channel -> this "enables" (backlight power on) the displays
   ledcChangeFrequency(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION); // need to set the frequency and resolution again to have the hardware dimming working properly
@@ -51,14 +52,14 @@ void TFTs::reinit()
 #ifdef DIM_WITH_ENABLE_PIN_PWM
     ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);
     ledcChangeFrequency(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION);
-#else
+#elif defined(TFT_ENABLE_PIN) && TFT_ENABLE_PIN >= 0
     pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
     InvalidateImageInBuffer(); // Signal, that the image in the buffer is invalid and needs to be reloaded and refilled
     init();                    // Initialize the super class (again).
 #if defined(HARDWARE_MARVELTUBES_CLOCK)
-  chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
-  chip_select.setAll(); // After regain control, start with all displays selected again
+    chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
+    chip_select.setAll(); // After regain control, start with all displays selected again
 #endif
     fillScreen(TFT_BLACK);     // to avoid/reduce flickering patterns on the screens
     enableAllDisplays();       // Signal, that the displays are enabled now
@@ -100,8 +101,13 @@ void TFTs::showNoWifiStatus()
 {
   chip_select.setSecondsOnes();
   setTextColor(TFT_RED, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  fillRect(0, TFT_HEIGHT - 14, TFT_WIDTH, 14, TFT_BLACK);
+  setCursor(5, TFT_HEIGHT - 14, 2);
+#else
   fillRect(0, TFT_HEIGHT - 27, TFT_WIDTH, 27, TFT_BLACK);
   setCursor(5, TFT_HEIGHT - 27, 4); // Font 4. 26 pixel high
+#endif
   print("NO WiFi!");
 }
 
@@ -109,32 +115,41 @@ void TFTs::showNoMqttStatus()
 {
   chip_select.setSecondsTens();
   setTextColor(TFT_RED, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  fillRect(0, TFT_HEIGHT - 14, TFT_WIDTH, 14, TFT_BLACK);
+  setCursor(5, TFT_HEIGHT - 14, 2);
+#else
   fillRect(0, TFT_HEIGHT - 27, TFT_WIDTH, 27, TFT_BLACK);
   setCursor(5, TFT_HEIGHT - 27, 4);
+#endif
   print("NO MQTT!");
 }
 
 void TFTs::enableAllDisplays()
 {
-  // Turn "power" on to displays.
   TFTsEnabled = true;
-#ifndef DIM_WITH_ENABLE_PIN_PWM
-  digitalWrite(TFT_ENABLE_PIN, ACTIVATEDISPLAYS);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  chip_select.setDim(CALCDIMVALUE(dimming)); // Reg 0x02: backlight on (VCC was never cut)
 #else
+  chip_select.setEnabled(true);
+#ifdef DIM_WITH_ENABLE_PIN_PWM
   // if hardware dimming is used, only activate with the current dimming value
   ProcessUpdatedDimming();
+#endif
 #endif
 }
 
 void TFTs::disableAllDisplays()
 {
-  // Turn "power" off to displays.
   TFTsEnabled = false;
-#ifndef DIM_WITH_ENABLE_PIN_PWM
-  digitalWrite(TFT_ENABLE_PIN, DEACTIVATEDISPLAYS);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  chip_select.setDim(CALCDIMVALUE(0)); // Reg 0x02 = 0: backlight off, VCC stays on
 #else
+  chip_select.setEnabled(false);
+#ifdef DIM_WITH_ENABLE_PIN_PWM
   // if hardware dimming is used, deactivate via the dimming value
   ProcessUpdatedDimming();
+#endif
 #endif
 }
 
@@ -227,7 +242,10 @@ void TFTs::InvalidateImageInBuffer()
 
 void TFTs::ProcessUpdatedDimming()
 {
-#ifdef DIM_WITH_ENABLE_PIN_PWM
+#if defined(HARDWARE_MARVELTUBESMINI_CLOCK)
+  // Dimming via Reg 0x02 (PWM backlight). Reg 0x01 (VCC) is never touched during normal on/off.
+  chip_select.setDim(TFTsEnabled ? CALCDIMVALUE(dimming) : CALCDIMVALUE(0));
+#elif defined(DIM_WITH_ENABLE_PIN_PWM)
   // hardware dimming is done via PWM on the pin defined by TFT_ENABLE_PIN
   // ONLY for IPSTUBE clocks in the moment! Other clocks may be damaged!
   if (TFTsEnabled)
@@ -426,7 +444,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
       }
 
       uint16_t color = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xFF) >> 3);
-#ifndef DIM_WITH_ENABLE_PIN_PWM // skip alpha blending for dimming if hardware dimming is used
+#ifndef DIM_SKIP_SOFTWARE_ALPHA // skip alpha blending for dimming if hardware dimming is used
       if (dimming < 255)
       { // only dim when needed
         color = alphaBlend(dimming, color, TFT_BLACK);
@@ -547,8 +565,7 @@ bool TFTs::LoadImageIntoBuffer(uint8_t file_index)
     // Colors are already in 16-bit R5, G6, B5 format
     for (col = 0; col < w; col++)
     {
-#ifdef DIM_WITH_ENABLE_PIN_PWM
-      // skip alpha blending for dimming if hardware dimming is used
+#ifdef DIM_SKIP_SOFTWARE_ALPHA // skip alpha blending for dimming if hardware dimming is used
       UnpackedImageBuffer[row + y][col + x] = (lineBuffer[col * 2 + 1] << 8) | (lineBuffer[col * 2]);
 #else
       if (dimming == 255)

@@ -1,9 +1,27 @@
 {
-  "name": "modified_NTPClient",
-  "version": "1.0.0",
-  "description": "Modified NTPClient library for EleksTubeHAX project with custom user defines support",
+  "name": "NTPClient",
+  "version": "3.2.1-elekstubehax1",
+  "description": "Modified fork of arduino-libraries/NTPClient v3.2.1 for the EleksTubeHAX project. Adds custom user defines support. Original: https://github.com/arduino-libraries/NTPClient",
   "keywords": "ntp, time, esp32, arduino",
   "license": "MIT",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/aly-fly/EleksTubeHAX",
+    "directory": "lib/modified_NTPClient"
+  },
+  "authors":
+  [
+    {
+        "name": "Arduino LLC",
+        "maintainer": false
+    },
+    {
+        "name": "Clemens Sutor",
+        "email": "clemenssutor@gmail.com",
+        "maintainer": true
+    }
+  ],
   "frameworks": "arduino",
   "platforms": "espressif32",
   "build": {

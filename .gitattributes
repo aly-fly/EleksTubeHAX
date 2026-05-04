@@ -47,3 +47,5 @@ scripts/**    text
 *.dproj       binary
 *.dpr         binary
 *.kicad_sch   binary
+*.xcf         binary
+*.clk         binary

@@ -1,0 +1,16 @@
+Unknown IO expander with 14 pins
+
+pin 1 - Out - to Q5 (Transistor) and then goes nowhere -> U4 missing (place for RTC chip)
+pin 2 - Out - to LED socket 6 on pin 9 = CS
+pin 3 - Out - to LED socket 5 on pin 9 = CS
+pin 4 - VCC
+pin 5 - Out - to LED socket 4 on pin 9 = CS
+pin 6 - In - Latch -> Data (I2C)
+pin 7 - In - Clock -> Reset (I2C)
+pin 8 - Out - to LED socket 3 on pin 9 = CS
+pin 9 - Out - to LED socket 2 on pin 9 = CS
+pin 10 - Out - to LED socket 1 on pin 9 = CS
+pin 11 - GND
+pin 12 - NC
+pin 13 - Out - to Q3 (Transistor) and then to all LED sockets on pin 2 + pin 3 (= VCC + LEDA on display breakout board)
+pin 14 - Out - to all LED sockets on pin 5 = Reset

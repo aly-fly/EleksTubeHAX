@@ -125,6 +125,18 @@ uint32_t RtcGet()
 #endif
   return returnvalue;
 }
+#elif defined(HARDWARE_MARVELTUBESMINI_CLOCK)
+void RtcBegin()
+{
+  Serial.println("No RTC!");
+}
+uint32_t RtcGet()
+{
+  return 0;
+}
+void RtcSet(uint32_t tt)
+{
+}
 #else // For EleksTube and all other clocks with DS3231 RTC chip or DS1307/PCF8523.
 #include <RTClib.h>
 

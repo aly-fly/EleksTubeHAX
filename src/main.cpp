@@ -9,6 +9,8 @@
 #include <nvs_flash.h>
 #include <stdint.h>
 #include <math.h>
+#include <Wire.h>
+#include <SPI.h>
 #include "GLOBAL_DEFINES.h"
 #include "Backlights.h"
 #include "Buttons.h"
@@ -181,8 +183,10 @@ void checkDimmingNeeded(void);
 //-----------------------------------------------------------------------
 void setup()
 {
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
   Serial.begin(115200);
-  delay(1500); // Wait for serial monitor to catch up
+  delay(500); // Wait for serial monitor to catch up
+#endif
 
   Serial.println("\nSystem starting...\n");
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
@@ -207,13 +211,17 @@ void setup()
              mac_bytes[3], mac_bytes[4], mac_bytes[5]);
   }
 #endif // #ifdef MQTT_CLIENT_ID_FOR_SMARTNEST
-  // Prepare lowercase variant for MQTT topic usage
+  // Prepare lowercase variant for MQTT topic usage; replace any character that is
+  // not alphanumeric or '-' with '_' to keep the name safe for MQTT client IDs and topics.
   for (size_t i = 0; i < sizeof(UniqueDeviceName); ++i)
   {
     char c = UniqueDeviceName[i];
-    UniqueDeviceName[i] = (char)tolower((int)c);
     if (c == '\0')
       break;
+    c = (char)tolower((int)c);
+    if (!isalnum((unsigned char)c) && c != '-' && c != '_')
+      c = '_';
+    UniqueDeviceName[i] = c;
   }
   Serial.printf("Set device name: \"%s\".\n", UniqueDeviceName);
 
@@ -240,7 +248,11 @@ void setup()
   tfts.begin(); // ...and count number of clock faces available...
   tfts.fillScreen(TFT_BLACK);
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
+#else
   tfts.setCursor(0, 0, 2); // Font 2. 16 pixel high
+#endif
   tfts.println("Starting Setup...");
 
 #ifdef HARDWARE_NOVELLIFE_CLOCK
@@ -314,7 +326,7 @@ void setup()
     Serial.println("GeoLoc failed!");
     tfts.setTextColor(TFT_WHITE, TFT_BLACK);
   }
-#endif
+#endif // #ifdef GEOLOCATION_ENABLED
 
   if (uclock.getActiveGraphicIdx() > tfts.NumberOfClockFaces)
   {
@@ -839,7 +851,11 @@ void loop()
             tfts.clear();
             tfts.fillScreen(TFT_BLACK);
             tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+            tfts.setCursor(0, 0, 1); // Font 2. 16 pixel high
+#else
             tfts.setCursor(0, 0, 4); // Font 4. 26 pixel high
+#endif
             WiFiStartWps();
           }
         }
@@ -889,10 +905,15 @@ void loop()
 
 void setupMenu()
 {                                  // Prepare drawing of the menu texts
-  tfts.chip_select.setHoursTens(); // use most left display
+  tfts.chip_select.setHoursTens();
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+  tfts.fillRect(0, 60, 80, 60, TFT_BLACK); // use lower half of the display, fill with black
+  tfts.setCursor(0, 62, 1);
+#else
   tfts.fillRect(0, 120, 135, 120, TFT_BLACK); // use lower half of the display, fill with black
   tfts.setCursor(0, 124, 4);                  // use font 4 - 26 pixel high - for the menu text
+#endif
 }
 
 #ifdef DIMMING
@@ -932,7 +953,7 @@ void checkDimmingNeeded()
       Serial.println("Set to day time mode (max brightness)!");
       tfts.dimming = 255; // 0..255
       tfts.ProcessUpdatedDimming();
-      backlights.setDimming(false);
+      //backlights.setDimming(false);
     }
     updateClockDisplay(TFTs::force); // Redraw everything; software dimming will be done here
     hour_old = current_hour;

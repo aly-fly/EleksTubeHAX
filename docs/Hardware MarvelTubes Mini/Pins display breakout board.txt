@@ -1,0 +1,12 @@
+Break-Out board with ST7735 display and RGB LED on top with 10 pins
+
+pin 01 - VCC for ? RGB LED?
+pin 02 - LEDA and VCC for displays
+pin 03 - connected together with pin 02
+pin 04 - GND
+pin 05 - Reset - Display
+pin 06 - RS - Display
+pin 07 - SDA - Display
+pin 08 - SCL - Display
+pin 09 - CS - Display
+pin 10 - RGB LED data lane
