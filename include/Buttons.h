@@ -83,19 +83,33 @@ private:
   uint32_t millis_at_last_loop;
   state button_state;
 
-  bool isButtonDown() { return digitalRead(bpin) == active_state; }
+  bool isValidPin() const { return bpin != 0xFF; }
+  bool isButtonDown()
+  {
+    if (!isValidPin())
+      return false;
+#ifdef CAPACITIVE_TOUCH_BUTTONS
+    return (touchRead(bpin) < TOUCH_THRESHOLD);
+#else
+    return (digitalRead(bpin) == active_state);
+#endif
+  }
 };
 
 /*
  * A simple helper class to call common functions on all buttons at once.
  */
 
+#ifndef BUTTON_ACTIVE_LEVEL
+#define BUTTON_ACTIVE_LEVEL LOW // default: active LOW for hardware buttons with pull-up
+#endif
+
 #ifndef ONE_BUTTON_ONLY_MENU
 // device has 4 buttons -> define all 4 buttons
 class Buttons
 {
 public:
-  Buttons() : left(BUTTON_LEFT_PIN), mode(BUTTON_MODE_PIN), right(BUTTON_RIGHT_PIN), power(BUTTON_POWER_PIN) {}
+  Buttons() : left(BUTTON_LEFT_PIN, BUTTON_ACTIVE_LEVEL), mode(BUTTON_MODE_PIN, BUTTON_ACTIVE_LEVEL), right(BUTTON_RIGHT_PIN, BUTTON_ACTIVE_LEVEL), power(BUTTON_POWER_PIN, BUTTON_ACTIVE_LEVEL) {}
 
   void begin();
   void loop();

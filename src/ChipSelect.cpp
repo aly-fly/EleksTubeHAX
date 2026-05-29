@@ -14,7 +14,8 @@ static bool i2cWriteReg(uint8_t address, uint8_t reg, uint8_t value)
 void ChipSelect::i2cReplayInitSequence(uint8_t address)
 {
   static bool replay_done = false;
-  if (replay_done) return;
+  if (replay_done)
+    return;
   replay_done = true;
   Serial.println("ChipSelect: I2C expander init sequence 01 FE -> 01 FC -> 01 FE");
   i2cWriteReg(address, 0x01, 0xFE);
@@ -75,12 +76,12 @@ bool ChipSelect::isSecondsOnes() { return true; }
 bool ChipSelect::isSecondsTens() { return true; }
 bool ChipSelect::isMinutesOnes() { return true; }
 bool ChipSelect::isMinutesTens() { return true; }
-bool ChipSelect::isHoursOnes()   { return true; }
-bool ChipSelect::isHoursTens()   { return true; }
+bool ChipSelect::isHoursOnes() { return true; }
+bool ChipSelect::isHoursTens() { return true; }
 
-void ChipSelect::enableAllCSPins()  {}
+void ChipSelect::enableAllCSPins() {}
 void ChipSelect::disableAllCSPins() {}
-void ChipSelect::enableDigitCSPins(uint8_t digit)  {}
+void ChipSelect::enableDigitCSPins(uint8_t digit) {}
 void ChipSelect::disableDigitCSPins(uint8_t digit) {}
 
 void ChipSelect::setEnabled(bool enabled) {}
@@ -106,9 +107,18 @@ const int lcdEnablePins[NUM_DIGITS] = {15, 33, 34, 35, 36, 37};
 const int numLCDs = NUM_DIGITS;
 #endif
 
+#ifdef HARDWARE_DESIGN_CLOCK
+// Direct CS GPIO lines (order: seconds ones, seconds tens, minutes ones, minutes tens, hours ones, hours tens)
+// GPIO 25 = Seconds Ones (rightmost)    GPIO 26 = Seconds Tens
+// GPIO 12 = Minutes Ones                GPIO 14 = Minutes Tens
+// GPIO 18 = Hours Ones                  GPIO 17 = Hours Tens (leftmost)
+const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_18, GPIO_NUM_17};
+const int numLCDs = NUM_DIGITS;
+#endif
+
 void ChipSelect::begin()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   pinMode(CSSR_LATCH_PIN, OUTPUT);
   pinMode(CSSR_DATA_PIN, OUTPUT);
   pinMode(CSSR_CLOCK_PIN, OUTPUT);
@@ -121,13 +131,13 @@ void ChipSelect::begin()
 
   digitalWrite(GPIO_NUM_14, LOW);  // Set this pin to LOW
   digitalWrite(GPIO_NUM_17, HIGH); // Set this latch pin to HIGH
-#endif                             // HARDWARE_XUNFENG_CLOCK
+#endif // HARDWARE_XUNFENG_CLOCK
 
   digitalWrite(CSSR_DATA_PIN, LOW);
   digitalWrite(CSSR_CLOCK_PIN, LOW);
   digitalWrite(CSSR_LATCH_PIN, LOW);
   update();
-#else // !HARDWARE_IPSTUBE_CLOCK && !HARDWARE_MARVELTUBES_CLOCK
+#else  // CS_DIRECT_GPIO
   // Initialize all six different pins for the CS of each LCD as OUTPUT and set it to HIGH (disabled)
   for (int i = 0; i < numLCDs; ++i)
   {
@@ -140,12 +150,12 @@ void ChipSelect::begin()
     pinMode(lcdEnablePins[i], OUTPUT);
     digitalWrite(lcdEnablePins[i], DIGIT_CS_INACTIVE_LEVEL);
   }
-#endif // !HARDWARE_IPSTUBE_CLOCK && !HARDWARE_MARVELTUBES_CLOCK
+#endif // CS_DIRECT_GPIO
 }
 
 void ChipSelect::clear(bool update_)
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   setDigitMap(all_off, update_);
 #else
   disableAllCSPins();
@@ -154,17 +164,16 @@ void ChipSelect::clear(bool update_)
 
 void ChipSelect::setAll(bool update_)
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   setDigitMap(all_on, update_);
 #else
   enableAllCSPins();
 #endif
 }
 
-
 void ChipSelect::reclaimPins()
 {
-#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+#ifdef CS_DIRECT_GPIO
   for (int i = 0; i < numLCDs; ++i)
   {
     gpio_reset_pin(static_cast<gpio_num_t>(lcdEnablePins[i]));
@@ -174,10 +183,9 @@ void ChipSelect::reclaimPins()
 #endif
 }
 
-
 void ChipSelect::setDigit(uint8_t digit, bool update_)
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   // Set the bit for the given digit in the digits_map
   setDigitMap(1 << digit, update_);
   if (update_)
@@ -197,7 +205,7 @@ void ChipSelect::setDigit(uint8_t digit, bool update_)
 
 void ChipSelect::update()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   // Documented in README.md.  Q7 and Q6 are unused. Q5 is Seconds Ones, Q0 is Hours Tens.
   // Q7 is the first bit written, Q0 is the last.  So we push two dummy bits, then start with
   // Seconds Ones and end with Hours Tens.
@@ -219,7 +227,7 @@ void ChipSelect::update()
 
 bool ChipSelect::isSecondsOnes()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   return ((digits_map & SECONDS_ONES_MAP) > 0);
 #else
   return true;
@@ -228,8 +236,8 @@ bool ChipSelect::isSecondsOnes()
 
 bool ChipSelect::isSecondsTens()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
-  return ((digits_map & SECONDS_TENS_MAP) > 0); 
+#ifndef CS_DIRECT_GPIO
+  return ((digits_map & SECONDS_TENS_MAP) > 0);
 #else
   return true;
 #endif
@@ -237,7 +245,7 @@ bool ChipSelect::isSecondsTens()
 
 bool ChipSelect::isMinutesOnes()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   return ((digits_map & MINUTES_ONES_MAP) > 0);
 #else
   return true;
@@ -246,7 +254,7 @@ bool ChipSelect::isMinutesOnes()
 
 bool ChipSelect::isMinutesTens()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   return ((digits_map & MINUTES_TENS_MAP) > 0);
 #else
   return true;
@@ -255,7 +263,7 @@ bool ChipSelect::isMinutesTens()
 
 bool ChipSelect::isHoursOnes()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   return ((digits_map & HOURS_ONES_MAP) > 0);
 #else
   return true;
@@ -264,7 +272,7 @@ bool ChipSelect::isHoursOnes()
 
 bool ChipSelect::isHoursTens()
 {
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifndef CS_DIRECT_GPIO
   return ((digits_map & HOURS_TENS_MAP) > 0);
 #else
   return true;
@@ -273,7 +281,7 @@ bool ChipSelect::isHoursTens()
 
 void ChipSelect::enableAllCSPins()
 {
-#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifdef CS_DIRECT_GPIO
   // enable each LCD
   for (int i = 0; i < numLCDs; ++i)
   {
@@ -284,7 +292,7 @@ void ChipSelect::enableAllCSPins()
 
 void ChipSelect::disableAllCSPins()
 {
-#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifdef CS_DIRECT_GPIO
   // disable each LCD
   for (int i = 0; i < numLCDs; ++i)
   {
@@ -295,7 +303,7 @@ void ChipSelect::disableAllCSPins()
 
 void ChipSelect::enableDigitCSPins(uint8_t digit)
 {
-#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifdef CS_DIRECT_GPIO
   // enable the LCD for the given digit
   digitalWrite(lcdEnablePins[digit], DIGIT_CS_ACTIVE_LEVEL);
 #endif
@@ -303,7 +311,7 @@ void ChipSelect::enableDigitCSPins(uint8_t digit)
 
 void ChipSelect::disableDigitCSPins(uint8_t digit)
 {
-#if (defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK))
+#ifdef CS_DIRECT_GPIO
   // disable the LCD for the given digit
   digitalWrite(lcdEnablePins[digit], DIGIT_CS_INACTIVE_LEVEL);
 #endif
@@ -312,11 +320,12 @@ void ChipSelect::disableDigitCSPins(uint8_t digit)
 void ChipSelect::setEnabled(bool enabled)
 {
 #if defined(DIM_WITH_ENABLE_PIN_PWM)
-  // Handled via ProcessUpdatedDimming() / ledcWrite - nothing to do here directly
+  // Handled via ProcessUpdatedDimming()/ledcWrite - nothing to do here directly
   (void)enabled;
 #elif defined(TFT_ENABLE_PIN) && TFT_ENABLE_PIN >= 0
   digitalWrite(TFT_ENABLE_PIN, enabled ? ACTIVATEDISPLAYS : DEACTIVATEDISPLAYS);
 #else
+  // Fallback, setEnabled is a no-op for hardware without a defined TFT_ENABLE_PIN, but we still want to be able to call it without #ifdefs in the main code.
   (void)enabled;
 #endif
 }

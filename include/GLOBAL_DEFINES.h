@@ -31,6 +31,7 @@
 // #define HARDWARE_IPSTUBE_CLOCK           // Clocks with 8MB flash on PCB (like the IPSTube model H401 and H402)
 // #define HARDWARE_MARVELTUBES_CLOCK       // MarvelTubes clock with 16MB flash on PCB
 // #define HARDWARE_MARVELTUBESMINI_CLOCK   // MarvelTubes Mini clock with 4MB flash on PCB and ESP C3 Mini
+// #define HARDWARE_DESIGN_CLOCK            // D-Esign clock with ESP32 WROOM-32, small ST7735 80x160 displays, direct GPIO CS lines
 
 #ifdef HARDWARE_PUNKCYBER_CLOCK
 // Everything else is the same, except digits are swapped from left to right.
@@ -88,8 +89,23 @@
 #define HOURS_ONES_MAP (0x01 << HOURS_ONES)
 #define HOURS_TENS_MAP (0x01 << HOURS_TENS)
 
+// ************* Chip Select method define *************
+// Set CS_DIRECT_GPIO for all hardware variants that control each display CS line directly via GPIO
+// (as opposed to using a 74HC595 shift register or I/O expander).
+// Must be defined BEFORE the ACTIVATEDISPLAYS / DIGIT_CS_ACTIVE_LEVEL blocks below that depend on it!
+#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK) || defined(HARDWARE_DESIGN_CLOCK)
+#define CS_DIRECT_GPIO
+#endif
+
+// ************* General display size define *************
+// Set DISPLAY_SMALL for all hardware variants that use the small 80x160 ST7735 displays.
+// Used in main.cpp to select appropriate font sizes and layout for the smaller screens.
+#if defined(HARDWARE_MARVELTUBESMINI_CLOCK) || defined(HARDWARE_DESIGN_CLOCK)
+#define DISPLAY_SMALL
+#endif
+
 // Define the activate and deactivate state for the display power transistor and how the dimming value is calculated.
-#if (!defined(HARDWARE_IPSTUBE_CLOCK) && !defined(HARDWARE_MARVELTUBES_CLOCK)) // for all clocks, except IPSTube and MarvelTubes
+#ifndef CS_DIRECT_GPIO // for all clocks, except IPSTube, MarvelTubes and D-Esign
 #define ACTIVATEDISPLAYS HIGH                                                  // Activate is HIGH
 #define DEACTIVATEDISPLAYS LOW                                                 // Deactivate is LOW
 #define CALCDIMVALUE(x) (x)                                                    // Dimming value is directly used for software dimming
@@ -99,7 +115,7 @@
 #define CALCDIMVALUE(x) (255 - x)                                              // Dimming value is "inverted" for hardware dimming for IPSTube
 #endif
 
-#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+#ifdef CS_DIRECT_GPIO
 #define DIGIT_CS_ACTIVE_LEVEL LOW
 #define DIGIT_CS_INACTIVE_LEVEL HIGH
 #else
@@ -753,5 +769,81 @@
 #define USER_SETUP_LOADED
 
 #endif // #ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+
+/**************************
+ *    D-Esign Clock       *
+ **************************/
+#ifdef HARDWARE_DESIGN_CLOCK
+#define DEVICE_NAME "D-Esign"
+#define DEVICE_MANUFACTURER "D-Esign"
+#define DEVICE_MODEL "D-Esign IPS Tube Clock"
+#define DEVICE_HW_VERSION "1.0"
+
+// WS2812B LED chain: GPIO19 -> R5 -> Gate of Q5, Source=GND, Drain -> R25 -> DIN LED1 -> ... -> LED6
+#define BACKLIGHTS_PIN (19)
+#define NUM_BACKLIGHT_LEDS (6)
+
+// Touch rings: metal rings connected to ESP32 capacitive touch inputs (TOUCH8/TOUCH9).
+// touchRead() returns a raw capacitance value; lower = touched, higher = idle.
+// CAPACITIVE_TOUCH_BUTTONS switches Button::isButtonDown() from digitalRead to touchRead.
+#define CAPACITIVE_TOUCH_BUTTONS // Use touchRead() instead of digitalRead() for buttons
+#define TOUCH_THRESHOLD (25)     // touchRead() below this = touched (idle RIGHT≈38, LEFT≈51, touched≈4-8)
+#define BUTTON_LEFT_PIN (32)     // GPIO32 = TOUCH9 = left  metal ring
+#define BUTTON_MODE_PIN (-1)     // No mode button
+#define BUTTON_RIGHT_PIN (33)    // GPIO33 = TOUCH8 = right metal ring
+#define BUTTON_POWER_PIN (-1)    // No power button
+
+// I2C to DS3231 RTC
+#define RTC_SCL_PIN (22)
+#define RTC_SDA_PIN (23)
+
+// Buzzer pin (identified by GPIO scan: GPIO21 causes speaker/buzzer to sound).
+#define BUZZER_PIN (21)
+
+// Chip Select lines are directly connected GPIOs (no shift register, no I2C expander).
+// Order: Seconds Ones, Seconds Tens, Minutes Ones, Minutes Tens, Hours Ones, Hours Tens
+// GPIO 25 = Seconds Ones (rightmost)    GPIO 26 = Seconds Tens
+// GPIO 12 = Minutes Ones                GPIO 14 = Minutes Tens
+// GPIO 18 = Hours Ones                  GPIO 17 = Hours Tens (leftmost)
+#define CSSR_DATA_PIN (-1)  // No shift register
+#define CSSR_CLOCK_PIN (-1) // No shift register
+#define CSSR_LATCH_PIN (-1) // No shift register
+
+// GPIO 15 controls display backlight (LEDA) via Q4 transistor.
+#define TFT_ENABLE_PIN (15) // GPIO 15 controls LEDA via Q4 transistor (LOW = ON)
+
+// Configure library \TFT_eSPI\User_Setup.h: ST7735S 80x160 display (panel: NF P096H-09B).
+#define ST7735_DRIVER       // ST7735S display controller
+#define ST7735_REDTAB160x80 // colstart=24, rowstart=0
+
+#define TFT_WIDTH 80
+#define TFT_HEIGHT 160
+#define CGRAM_OFFSET // Apply colstart/rowstart offsets
+
+// SPI to displays: 3-wire SPI (MOSI/SDA only, no MISO), no CS pin (manually controlled via GPIOs for each display).
+#define TFT_SDA_READ
+#define TFT_MOSI (13) // SPI MOSI
+#define TFT_SCLK (2)  // SPI Clock
+#define TFT_CS (-1)   // Chip Select: manually controlled via GPIO for each display (no library CS)
+#define TFT_DC (16)   // SPI Data/Command
+#define TFT_RST (4)   // Reset
+
+// Color order: ST7735S on this panel uses BGR internally.
+// CONFIRMED by SPI test: sending 0xF800 (RGB red) showed blue -> BGR=1 fix required.
+#define TFT_RGB_ORDER TFT_BGR
+
+// Fonts to load for TFT.
+// #define LOAD_GLCD  // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
+#define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~353 bytes in FLASH
+// #define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
+#define SMOOTH_FONT // MUST REMAIN ACTIVE OTHERWISE BUTTON CONFIG IS CORRUPTED for some reason on some boards....
+
+// 27MHz confirmed working in raw SPI test (ST7735S spec max ~15MHz, but 27MHz stable on ESP32 WROOM-32)
+#define SPI_FREQUENCY 27000000
+
+// Force the TFT_eSPI library to not over-write all this
+#define USER_SETUP_LOADED
+
+#endif // #ifdef HARDWARE_DESIGN_CLOCK
 
 #endif /* GLOBAL_DEFINES_H_ */

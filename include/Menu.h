@@ -56,6 +56,9 @@ public:
 
   String getStateStr() { return state_str[state]; }
   bool stateChanged() { return (state_changed); }
+#ifdef CAPACITIVE_TOUCH_BUTTONS
+  bool isPowerToggle() { return (power_toggle); }
+#endif
 
 private:
   const uint16_t idle_timeout_ms = 10000; // Timeout and return to idle after 10 seconds of inactivity.
@@ -66,6 +69,9 @@ private:
                  // For now, these are only +1 and -1. But we might enable acceleration or similar later.
   uint32_t millis_last_button_press;
   bool state_changed; // So we're not redrawing the screen every damn time, signal if the state has changed.
+#ifdef CAPACITIVE_TOUCH_BUTTONS
+  bool power_toggle = false; // Set for one loop when a display power-toggle gesture fires.
+#endif
 };
 
 #endif // MENU_H

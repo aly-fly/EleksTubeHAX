@@ -183,10 +183,8 @@ void checkDimmingNeeded(void);
 //-----------------------------------------------------------------------
 void setup()
 {
-#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
   Serial.begin(115200);
   delay(500); // Wait for serial monitor to catch up
-#endif
 
   Serial.println("\nSystem starting...\n");
   Serial.println("EleksTubeHAX https://github.com/aly-fly/EleksTubeHAX");
@@ -241,14 +239,16 @@ void setup()
   stored_config.load();
 
   backlights.begin(&stored_config.config.backlights);
+#ifndef NO_BUTTONS
   buttons.begin();
+#endif
   menu.begin();
 
   // Setup the displays (TFTs) initaly and show bootup message(s).
   tfts.begin(); // ...and count number of clock faces available...
   tfts.fillScreen(TFT_BLACK);
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
-#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+#ifdef DISPLAY_SMALL
   tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
 #else
   tfts.setCursor(0, 0, 2); // Font 2. 16 pixel high
@@ -589,7 +589,9 @@ void loop()
   }
 #endif
 
+#ifndef NO_BUTTONS
   buttons.loop();
+#endif
 
 #ifdef HARDWARE_NOVELLIFE_CLOCK
   HandleGestureInterupt();
@@ -621,6 +623,27 @@ void loop()
 #endif // ONE_BUTTON_ONLY_MENU
 
   menu.loop(buttons); // Must be called after buttons.loop()
+
+#ifdef CAPACITIVE_TOUCH_BUTTONS
+  // D-Esign: LEFT long press while idle -> toggle display and backlight power.
+  if (menu.isPowerToggle())
+  {
+    if (tfts.isEnabled())
+    {
+      tfts.chip_select.setAll();
+      tfts.fillScreen(TFT_BLACK); // Blank the screens before turning off
+      tfts.disableAllDisplays();
+      backlights.PowerOff();
+    }
+    else
+    {
+      tfts.enableAllDisplays();
+      updateClockDisplay(TFTs::force);
+      backlights.PowerOn();
+    }
+  }
+#endif // CAPACITIVE_TOUCH_BUTTONS
+
   backlights.loop();
   uclock.loop();
 
@@ -851,8 +874,8 @@ void loop()
             tfts.clear();
             tfts.fillScreen(TFT_BLACK);
             tfts.setTextColor(TFT_WHITE, TFT_BLACK);
-#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
-            tfts.setCursor(0, 0, 1); // Font 2. 16 pixel high
+#ifdef DISPLAY_SMALL
+            tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
 #else
             tfts.setCursor(0, 0, 4); // Font 4. 26 pixel high
 #endif

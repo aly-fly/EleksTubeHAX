@@ -1,0 +1,50 @@
+At least two Touch Buttons!
+
+GPIO 33 - right
+GPIO 32 - left
+
+CS Lines
+
+GPIO 25 - LED 6 - Seconds Oner (most right)
+GPIO 26 - LED 5 - Seconds Tener (second from right)
+GPIO 12 - LED 4 - Minutes Oner (third from right)
+GPIO 14 - LED 3 - Minutes Tener (third from left)
+GPIO 18 - LED 2 - Hours Oner (second from left)
+GPIO 17 - LED 1 - Hours Tener (most left)
+
+TFT Control
+
+GPIO 4 - RST
+GPIO 16 - RS
+GPIO 13 - MOSI/SDA
+GPIO 2 - SCLK
+
+Others
+
+GPIO 19 - WS2812B LEDs Data          
+GPIO 15 - Display TFT Backlight (LEDA)
+
+RTC
+
+GPIO 22 - SCL - I2C
+GPIO 23 - SDA - I2C
+
+Buzzer
+
+GPIO 21
+
+Microphone
+
+GPIO 36
+
+Available GPIOs:
+
+0, 2, 4, 5, 12, 13, 14, 15 , 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 39
+
+Unused/Unknown I/O:
+
+0, 5, 27
+
+Unused/Unknown Input only:
+
+34 (i), 35 (i), 39 (i)

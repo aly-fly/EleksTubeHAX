@@ -36,6 +36,8 @@
 
 * **MarvelTubes Mini Clock** f/k/a **Marvel Tribe Mini**
 
+* **D'Esign Clock**
+
 ##### Notes
 
 * **EleksTube IPS Clock** is the original model created by the inventor in 2021. There are now many similar designs and clones on the market with varying hardware modifications.
@@ -65,6 +67,7 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
 MarvelTubes ![MarvelTubes clock](/docs/ImagesMD/MarvelTubes_clock_PCB.jpg)
 MarvelTubes Mini ![MarvelTubes Mini clock](/docs/ImagesMD/MarvelTubesMini_clock_PCB.jpg)
+D'Esign Clock – ![D-Esign clock](/docs/ImagesMD/D-Esign_PCB.jpg)
 
 For detailed pictures for most of the clocks see the `docs` subdirectory.
 
@@ -196,6 +199,28 @@ Note: See "Known problems/Limitations" for more info.
 * Uses a modified version of the `TFT_eSPI` library (stored in `lib/modified_TFT_eSPI`) for ESP32-C3 processor support and correct ST7735 80×160 display offsets.
 
 * Requires `monitor_dtr = 0` and `monitor_rts = 0` in PlatformIO to prevent unintended clock resets when opening or closing the serial monitor (the ESP32-C3 USB-CDC reacts to DTR/RTS signals).
+
+#### 3.2.5 D'Esign Clock
+
+* Custom-designed ESP32-based tube clock with 6× **ST7735S 80×160 px** IPS TFT displays on individual PCBs.
+
+* Uses an **ESP32 WROOM-32** module with 4 MB flash and standard USB-UART via CH340.
+
+* **No physical buttons** — replaced by two capacitive metal touch rings. Touch detection uses the ESP32 hardware `touchRead()` peripheral.
+
+* Two-ring touch menu: short tap = value change, long press right = next menu item, long press left = exit menu.
+
+* Chip select lines are wired directly as individual GPIOs.
+
+* Hardware PWM dimming is available.
+
+* Onboard **LM386MX-1** microphone amplifier; ADC output on GPIO36 (VP).
+
+* Active buzzer on GPIO21.
+
+* Clock face images are automatically rescaled to 80×160 px during the build process by a pre-build script (`script_prepare_mini_clockfaces.py`).
+
+* Uses a dedicated PlatformIO environment (`DEsign`) with the `partition_4MB.csv` layout.
 
 ## 4\. Quick Start - Backup and Pre-Build firmware images
 
@@ -499,7 +524,7 @@ Most clocks will go into to the download mode automatically, when PlatformIO is 
 
 #### 5.4.1 Step 1 - Compile the code and upload the firmware file (to the app partition)
 
-Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes or MarvelTubesMini) and upload the code via the "Upload" command in the matching environment for your clock.
+Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes, MarvelTubesMini or DEsign) and upload the code via the "Upload" command in the matching environment for your clock.
 
 ![PlatformIO Build](/docs/ImagesMD/PlatformIOBuild.png)
 
@@ -569,13 +594,31 @@ E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and
 
 `esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.5.bin --erase-all`
 
-### 5.5.1 Helper script
+### 5.5.1 Helper scripts
+
+#### 5.5.1.1 Unified firmware binary builder (`script_build_unified_binary.py`)
 
 The legacy `script_build_fs_and_merge.py` has been replaced by `script_build_unified_binary.py`. This post-build helper registers two chained PlatformIO actions whenever `CREATE_FIRMWAREFILE` is defined.
 
 First, it launches PlatformIO with the `buildfs` target for the active environment (same result as choosing "Build Filesystem Image" in the GUI) so a fresh `littlefs.bin` lands in the environment's build directory.
 
 Second, it parses the currently selected partition CSV to discover the offsets, gathers the core images (bootloader, partitions, app) and the freshly built filesystem image, and then calls `python -m esptool merge-bin` (with a fallback to the legacy `merge_bin` syntax) to emit the unified firmware file.
+
+#### 5.5.1.2 Clock face image resizing (`script_prepare_mini_clockfaces.py`)
+
+This pre-build script is automatically executed by PlatformIO before compiling for clock environments that use 80×160 px displays (currently **MarvelTubes Mini** and **D'Esign**). It converts the clock face images in the `data` directory from the standard 135×240 px format used by full-size clocks to the 80×160 px target resolution of the smaller displays.
+
+**How it works:**
+
+1. It scans the `data` directory for all BMP and CLK clock face image files (matching the pattern `<digits>.<bmp|clk>`).
+2. Each source image is first centered on a virtual 135×240 px canvas (mirroring the runtime centering behavior of `DrawImage` in `TFTs.cpp`), then the canvas is scaled down to 80×160 px using nearest-neighbor resampling.
+3. The background color used to fill the virtual canvas (and any letterbox bars in `contain` mode) is not hardcoded black, but is automatically detected from the source image: the four corner pixels of the original image are sampled and the majority color among them is chosen as the background. This avoids visible seams when the clock face has a non-black border color.
+4. Two resize modes are supported (configured via the `RESIZE_MODE` variable at the top of the script):
+   * **`contain`** (default) — fits the image within the target dimensions, preserving the aspect ratio. Unused areas are filled with the detected background color.
+   * **`crop`** — fills the target completely by cropping equally from both sides of the longer axis (no bars, but edges are cut off).
+5. The resized images are written into a separate output directory used by the LittleFS filesystem image builder, so the original source files in `data` are never modified.
+
+Both BMP (including palettized variants) and CLK files are handled. The script requires Python 3 with no additional third-party packages beyond what PlatformIO already provides.
 
 ## 5.6 Miscellaneous stuff
 
@@ -987,6 +1030,28 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 ##### 6.6 Xunfeng clocks
 
 * The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
+
+##### 6.7 D'Esign clock: Two-ring touch menu operation
+
+The D'Esign clock has **no physical buttons**. Instead, two capacitive metal touch rings on the front act as left and right inputs using the ESP32 hardware `touchRead()` peripheral.
+
+Because there are only two inputs, the menu works differently from clocks with four buttons (Power, Mode, Left, Right):
+
+| Gesture | Action |
+| --- | --- |
+| Any short tap **release** (while clock is idle) | Opens the menu and jumps to the first menu item |
+| **LEFT** short tap | Decrements / changes the current value one step to the left |
+| **RIGHT** short tap | Increments / changes the current value one step to the right |
+| **RIGHT** long press (≥ 500 ms) | Advances to the next menu item |
+| **LEFT** long press (≥ 500 ms) while **in menu** | Exits the menu and returns to normal clock display |
+| **LEFT** long press (≥ 500 ms) while **idle** | Toggles displays and backlight on/off |
+| No interaction for a few seconds | Menu times out and closes automatically |
+
+**Tips**:
+
+* The menu opens on **release** of a short tap, not on press. This is intentional: it allows a LEFT long press (which fires after 500 ms, before any release event) to toggle display power without the menu ever opening. A long press releases via a distinct `up_long_edge` signal — not the `up_edge` that wakes the menu — so the two gestures never interfere.
+* Because there is no dedicated Power button, the display power is toggled via a **LEFT long press while idle** (same gesture as exiting the menu, but triggered when the menu is already closed).
+* If the touch rings react too sensitively or not at all, the threshold value `TOUCH_THRESHOLD` (default `25`) can be adjusted in `GLOBAL_DEFINES.h`. The idle reading is roughly 38–51 counts; a touched ring typically reads 4–8 counts.
 
 ## 7\. Development Process/History
 
