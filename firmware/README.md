@@ -1,4 +1,4 @@
-# EleksTubeHAX - An aftermarket custom firmware for the desk clock
+# EleksTubeHAX - An aftermarket custom firmware for the desk clock 
 
 ## 1. Pre-built firmware files
 

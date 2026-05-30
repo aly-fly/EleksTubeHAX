@@ -1,4 +1,4 @@
-name: Build & publish combined EleksTubeHAX firmware binaries.
+name: Build & publish combined EleksTubeHAX firmware binaries 
 
 on:
   pull_request:

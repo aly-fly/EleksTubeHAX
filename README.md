@@ -1,4 +1,4 @@
-# EleksTubeHAX - An aftermarket custom firmware for the desk clock
+# EleksTubeHAX - An aftermarket custom firmware for the desk clock 
 
 ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_IPS_Classic_Edition.jpg)
 
@@ -1015,7 +1015,7 @@ See also the code comments for more info in the `GLOBAL_DEFINES.h` for the IPSTu
 
 IPSTube clocks use slower Winbond flash chips that require conservative SPI settings (DIO mode at 40 MHz instead of QIO at 80 MHz). These slower flash chips provide only half the throughput of standard ESP32 flash memory, which results in slower loading times for the high-quality digit images and therefore slower display refresh rates compared to other clock models. Additionally, attempting to use QIO mode (quad I/O with four data lines which ARE connected on the PCB) or higher frequencies like 80 MHz (DIO or QIO) causes system instability with these chips.
 
-In normal operation this is barely noticeable, but becomes very apparent when multiple different digits need to be drawn simultaneously (cold load without prefetch).
+In normal operation this is barely noticeable, but becomes very apparent when multiple different digits need to be drawn simultaneously (cold load without prefetch) 
 
 ##### 6.5 LED strip on the bottom for some IPSTube clocks
 
