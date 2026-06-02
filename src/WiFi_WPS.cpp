@@ -210,7 +210,7 @@ void WifiReconnect()
   {
     if (!warnedNoCreds)
     {
-        Serial.println("WiFi reconnect skipped: no stored credentials (WPS not completed).");
+      Serial.println("WiFi reconnect skipped: no stored credentials (WPS not completed).");
       warnedNoCreds = true;
     }
     return;
@@ -240,8 +240,8 @@ void WifiReconnect()
 #ifdef WIFI_USE_WPS // WPS code
 void WiFiStartWps()
 {
-  const uint32_t WPS_RESTART_INTERVAL_MS = 30000; // Restart WPS every 30s to catch late router activation
-  const uint8_t WPS_HARD_RESET_EVERY = 3;         // Full WiFi reset every 3 restarts
+  const uint32_t WPS_RESTART_INTERVAL_MS = 30000;                           // Restart WPS every 30s to catch late router activation
+  const uint8_t WPS_HARD_RESET_EVERY = 3;                                   // Full WiFi reset every 3 restarts
   memset(&stored_config.config.wifi, 0, sizeof(stored_config.config.wifi)); // erase all settings
   stored_config.config.wifi.password[0] = '\0';                             // empty string as password
   stored_config.config.wifi.WPS_connected = 0x11;                           // invalid = different than 0x55

@@ -105,14 +105,14 @@
 #endif
 
 // Define the activate and deactivate state for the display power transistor and how the dimming value is calculated.
-#ifndef CS_DIRECT_GPIO // for all clocks, except IPSTube, MarvelTubes and D-Esign
-#define ACTIVATEDISPLAYS HIGH                                                  // Activate is HIGH
-#define DEACTIVATEDISPLAYS LOW                                                 // Deactivate is LOW
-#define CALCDIMVALUE(x) (x)                                                    // Dimming value is directly used for software dimming
-#else                                                                          // IPSTube keeps LOW active for display power
-#define ACTIVATEDISPLAYS LOW                                                   // Activate is LOW for the IPSTube
-#define DEACTIVATEDISPLAYS HIGH                                                // Deactivate is HIGH for the IPSTube
-#define CALCDIMVALUE(x) (255 - x)                                              // Dimming value is "inverted" for hardware dimming for IPSTube
+#ifndef CS_DIRECT_GPIO            // for all clocks, except IPSTube, MarvelTubes and D-Esign
+#define ACTIVATEDISPLAYS HIGH     // Activate is HIGH
+#define DEACTIVATEDISPLAYS LOW    // Deactivate is LOW
+#define CALCDIMVALUE(x) (x)       // Dimming value is directly used for software dimming
+#else                             // IPSTube keeps LOW active for display power
+#define ACTIVATEDISPLAYS LOW      // Activate is LOW for the IPSTube
+#define DEACTIVATEDISPLAYS HIGH   // Deactivate is HIGH for the IPSTube
+#define CALCDIMVALUE(x) (255 - x) // Dimming value is "inverted" for hardware dimming for IPSTube
 #endif
 
 #ifdef CS_DIRECT_GPIO
@@ -272,9 +272,9 @@
 // ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT!
 // Define HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE in platformio.ini if present!
 #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
-    #define NUM_BACKLIGHT_LEDS (34) // 6 LEDs on the bottom of every LCD + 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
+#define NUM_BACKLIGHT_LEDS (34) // 6 LEDs on the bottom of every LCD + 28 LEDs in a stripe on the bottom of the clock = 34 LEDs in total.
 #else
-    #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD. For IPSTube clock without LED stripe.
+#define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD. For IPSTube clock without LED stripe.
 #endif                         // #ifdef HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE
 
 // Only one Button on IPSTube clocks!
@@ -396,8 +396,8 @@
 
 // No Buttons on SE version!!!
 // Set to pins, which should always be HIGH!
-#define BUTTON_LEFT_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
-#define BUTTON_MODE_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
+#define BUTTON_LEFT_PIN (GPIO_NUM_3)  // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
+#define BUTTON_MODE_PIN (GPIO_NUM_3)  // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
 #define BUTTON_RIGHT_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
 #define BUTTON_POWER_PIN (GPIO_NUM_3) // pin 3 = VDD3P3 = 3.3V analog power supply = Always HIGH on this board
 
@@ -430,15 +430,15 @@
 
 // SPI to displays.
 #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
-#define TFT_MISO -1           // No MISO
+#define TFT_MISO -1  // No MISO
 
 #define TFT_MOSI (GPIO_NUM_23)
 #define TFT_SCLK (GPIO_NUM_18)
-#define TFT_CS -1              // Not connected -> via shift register
-#define TFT_DC (GPIO_NUM_25)   // Data Command, aka Register Select or RS
-#define TFT_RST (GPIO_NUM_26)  // Connect reset to ensure display initialises
+#define TFT_CS -1             // Not connected -> via shift register
+#define TFT_DC (GPIO_NUM_25)  // Data Command, aka Register Select or RS
+#define TFT_RST (GPIO_NUM_26) // Connect reset to ensure display initialises
 
-#define CGRAM_OFFSET           // Library will add offsets required
+#define CGRAM_OFFSET // Library will add offsets required
 
 // Fonts to load for TFT.
 // #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
@@ -690,7 +690,7 @@
 #define DEVICE_HW_VERSION "1.0"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
-#define BACKLIGHTS_PIN (6)    // controls the WS2812B LEDs on the LCDs breakout board
+#define BACKLIGHTS_PIN (6)     // controls the WS2812B LEDs on the LCDs breakout board
 #define NUM_BACKLIGHT_LEDS (6) // 6 LEDs, one each on the back of every LCD
 
 // Buttons, active low, externally pulled up (with actual resistors!).
@@ -708,7 +708,7 @@
 #define CSSR_LATCH_PIN (-1)
 
 // No RTC on MarvelTubes Mini!
-// Soldering pads for RTC are present on the PCB, but no RTC ot battery holder is included in the kit. 
+// Soldering pads for RTC are present on the PCB, but no RTC ot battery holder is included in the kit.
 // It would be possible to solder and connect one via the I2C bus!
 // But not tested yet, so just set to -1 for now
 #define RTC_SCL_PIN (-1)
@@ -730,7 +730,7 @@
 #define DIM_SKIP_SOFTWARE_ALPHA
 
 // Configure library \TFT_eSPI\User_Setup.h: ST7735 80 x 160 display with no chip select line.
-#define ST7735_DRIVER // Configure all registers
+#define ST7735_DRIVER         // Configure all registers
 #define ST7735_GREENTAB160x80 // 80x160 panel → correct offsets (colstart=26, rowstart=1)
 #define TFT_WIDTH 80
 #define TFT_HEIGHT 160
@@ -747,12 +747,12 @@
 
 #define TFT_MOSI (8) // SPI Data
 #define TFT_SCLK (7) // SPI Clock
-#define TFT_CS (-1)   // Chip Select -> over IO Expander! -> extra class defined!
-#define TFT_DC (10)   // SPI Data Command, aka Register Select or RS
-#define TFT_RST (-1)  // SPI Reset -> over IO Expander! -> extra class defined!
+#define TFT_CS (-1)  // Chip Select -> over IO Expander! -> extra class defined!
+#define TFT_DC (10)  // SPI Data Command, aka Register Select or RS
+#define TFT_RST (-1) // SPI Reset -> over IO Expander! -> extra class defined!
 
 // Fonts to load for TFT.
-#define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
+// #define LOAD_GLCD  // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
 #define LOAD_FONT2 // Font 2. Small 16 pixel high font, needs ~353
 #define LOAD_FONT4 // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
 // #define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm

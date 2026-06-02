@@ -140,7 +140,7 @@ void HandleGesture()
 }
 #endif // #ifdef HARDWARE_NOVELLIFE_CLOCK
 
-char UniqueDeviceName[32];      // Enough space for <DeviceName> + 6 hex chars + null
+char UniqueDeviceName[32]; // Enough space for <DeviceName> + 6 hex chars + null
 
 Backlights backlights;
 Buttons buttons;
@@ -247,6 +247,7 @@ void setup()
   // Setup the displays (TFTs) initaly and show bootup message(s).
   tfts.begin(); // ...and count number of clock faces available...
   tfts.fillScreen(TFT_BLACK);
+
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 #ifdef DISPLAY_SMALL
   tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
@@ -875,7 +876,7 @@ void loop()
             tfts.fillScreen(TFT_BLACK);
             tfts.setTextColor(TFT_WHITE, TFT_BLACK);
 #ifdef DISPLAY_SMALL
-            tfts.setCursor(0, 0, 1); // Font 1. 8 pixel high
+            tfts.setCursor(0, 0, 2); // Font 2. 16 pixel high
 #else
             tfts.setCursor(0, 0, 4); // Font 4. 26 pixel high
 #endif
@@ -927,12 +928,12 @@ void loop()
 }
 
 void setupMenu()
-{                                  // Prepare drawing of the menu texts
+{ // Prepare drawing of the menu texts
   tfts.chip_select.setHoursTens();
   tfts.setTextColor(TFT_WHITE, TFT_BLACK);
-#ifdef HARDWARE_MARVELTUBESMINI_CLOCK
+#ifdef DISPLAY_SMALL
   tfts.fillRect(0, 60, 80, 60, TFT_BLACK); // use lower half of the display, fill with black
-  tfts.setCursor(0, 62, 1);
+  tfts.setCursor(0, 62, 2);                // use font 2 - 16 pixel high - for the menu text
 #else
   tfts.fillRect(0, 120, 135, 120, TFT_BLACK); // use lower half of the display, fill with black
   tfts.setCursor(0, 124, 4);                  // use font 4 - 26 pixel high - for the menu text
@@ -976,7 +977,7 @@ void checkDimmingNeeded()
       Serial.println("Set to day time mode (max brightness)!");
       tfts.dimming = 255; // 0..255
       tfts.ProcessUpdatedDimming();
-      //backlights.setDimming(false);
+      // backlights.setDimming(false);
     }
     updateClockDisplay(TFTs::force); // Redraw everything; software dimming will be done here
     hour_old = current_hour;

@@ -1,4 +1,4 @@
-name: Build all PIO environments on multiple OSes 
+name: Build all PIO environments on multiple OSes
 
 on:
   push:

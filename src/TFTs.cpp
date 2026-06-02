@@ -6,28 +6,31 @@ void TFTs::begin()
 {
   chip_select.begin();
   chip_select.setAll(); // Start with all displays selected for broadcast init
-  delay(5);              // settling time (needed for I2C expander, harmless for others)
+  delay(5);             // settling time (needed for I2C expander, harmless for others)
 
 #ifdef DIM_WITH_ENABLE_PIN_PWM
   // If hardware dimming is used, init ledc, set the pin and channel for PWM and set frequency and resolution
-  ledcSetup(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION);           // PWM, globally defined
-  ledcWrite(TFT_PWM_CHANNEL, CALCDIMVALUE(0));                         // Set initial dimming value to 0 (off)
+  ledcSetup(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION); // PWM, globally defined
+  ledcWrite(TFT_PWM_CHANNEL, CALCDIMVALUE(0));                  // Set initial dimming value to 0 (off)
 #elif defined(TFT_ENABLE_PIN) && TFT_ENABLE_PIN >= 0
   pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
   InvalidateImageInBuffer(); // Signal, that the image in the buffer is invalid and needs to be reloaded and refilled
   init();                    // Initialize the super class.
 #if defined(HARDWARE_MARVELTUBES_CLOCK)
+  // After TFT_eSPI::init(), the VSPI hardware may have taken over GPIO5 (default VSPI SS pin).
+  // reclaimPins() uses gpio_reset_pin() to release it back to software GPIO control.
   chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
-  chip_select.setAll(); // After regain control, start with all displays selected again
+  chip_select.setAll();      // After regain control, start with all displays selected again
 #endif
-  fillScreen(TFT_BLACK);     // to avoid/reduce flickering patterns on the screens
+  fillScreen(TFT_BLACK); // to avoid/reduce flickering patterns on the screens
+
 #ifdef DIM_WITH_ENABLE_PIN_PWM
-  delay(100); // give some time to avoid glitches on power up
+  delay(100);                                                             // give some time to avoid glitches on power up
   ledcAttachPin(TFT_ENABLE_PIN, TFT_PWM_CHANNEL);                         // Attach the pin to the PWM channel -> this "enables" (backlight power on) the displays
   ledcChangeFrequency(TFT_PWM_CHANNEL, TFT_PWM_FREQ, TFT_PWM_RESOLUTION); // need to set the frequency and resolution again to have the hardware dimming working properly
 #endif
-  enableAllDisplays();       // Signal, that the displays are enabled now and do the hardware dimming, if available and enabled
+  enableAllDisplays(); // Signal, that the displays are enabled now and do the hardware dimming, if available and enabled
 
   if (!LittleFS.begin(false, "/littlefs", 5, "littlefs")) // Initialize LittleFS (partition label: littlefs)
   {
@@ -59,13 +62,13 @@ void TFTs::reinit()
     init();                    // Initialize the super class (again).
 #if defined(HARDWARE_MARVELTUBES_CLOCK)
     chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
-    chip_select.setAll(); // After regain control, start with all displays selected again
+    chip_select.setAll();      // After regain control, start with all displays selected again
 #endif
-    fillScreen(TFT_BLACK);     // to avoid/reduce flickering patterns on the screens
-    enableAllDisplays();       // Signal, that the displays are enabled now
-#else                          // TFT_SKIP_REINIT
+    fillScreen(TFT_BLACK); // to avoid/reduce flickering patterns on the screens
+    enableAllDisplays();   // Signal, that the displays are enabled now
+#else                      // TFT_SKIP_REINIT
     enableAllDisplays(); // skip full inintialization, just reenable displays by signaling to enable them
-#endif                         // TFT_SKIP_REINIT
+#endif                     // TFT_SKIP_REINIT
   }
 }
 

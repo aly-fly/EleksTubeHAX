@@ -76,9 +76,9 @@ private:
   //   Reg 0x01 = Power/enable register (controlled via init replay sequence)
   //   Reg 0x02 = Dimming/brightness register
   //   Reg 0x03 = Unknown — DO NOT WRITE
-  static constexpr uint8_t EXPANDER_ADDR      = 0x19;
+  static constexpr uint8_t EXPANDER_ADDR = 0x19;
   static constexpr uint8_t EXPANDER_CMD_DIGIT = 0x00;
-  static constexpr uint8_t EXPANDER_CMD_DIM   = 0x02;
+  static constexpr uint8_t EXPANDER_CMD_DIM = 0x02;
   const uint8_t cs_masks[NUM_DIGITS] = {0x7F, 0xBF, 0xDF, 0xFB, 0xFD, 0xFE};
   void i2cReplayInitSequence(uint8_t address);
 #endif

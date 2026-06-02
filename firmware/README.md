@@ -1,4 +1,4 @@
-# EleksTubeHAX - An aftermarket custom firmware for the desk clock 
+# EleksTubeHAX - An aftermarket custom firmware for the desk clock
 
 ## 1. Pre-built firmware files
 
@@ -47,20 +47,20 @@ They are updated from time to time in the repository, so version number may vary
 
 The newest pre-built firmware files are published as **GitHub Releases** and can be downloaded directly from the [Releases page](https://github.com/aly-fly/EleksTubeHAX/releases).
 
-Last Update: 2026-05-27 to Version 1.3.10
+Last Update: 2026-06-03 to Version 1.3.11
 
 | clock model | firmware image file |
 | -- | -- |
-| EleksTube IPS - Orginal Version | `FW_EleksTube_v1.3.10.bin` |
-| EleksTube IPS - Gen2 models | `FW_EleksTube_Gen2_v1.3.10.bin` |
-| SI HAI IPS | `FW_SI_HAI_v1.3.10.bin` |
-| Xunfeng IPS | `FW_Xunfeng_v1.3.10.bin` |
-| NovelLife SE version | `FW_NovelLife_v1.3.10.bin` |
-| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_v1.3.10.bin` |
-| IPSTUBE - Model H401 and H402| `FW_IPSTube_v1.3.10.bin` |
-| MarvelTubes | `FW_MarvelTubes_v1.3.10.bin` |
-| MarvelTubes Mini | `FW_MarvelTubesMini_v1.3.10.bin` |
-| D-Esign Clock | `FW_DEsign_v1.3.10.bin` |
+| EleksTube IPS - Orginal Version | `FW_EleksTube_v1.3.11.bin` |
+| EleksTube IPS - Gen2 models | `FW_EleksTube_Gen2_v1.3.11.bin` |
+| SI HAI IPS | `FW_SI_HAI_v1.3.11.bin` |
+| Xunfeng IPS | `FW_Xunfeng_v1.3.11.bin` |
+| NovelLife SE version | `FW_NovelLife_v1.3.11.bin` |
+| PunkCyber/RGB Glow Tube DIY | `FW_PunkCyber_v1.3.11.bin` |
+| IPSTUBE - Model H401 and H402| `FW_IPSTube_v1.3.11.bin` |
+| MarvelTubes | `FW_MarvelTubes_v1.3.11.bin` |
+| MarvelTubes Mini | `FW_MarvelTubesMini_v1.3.11.bin` |
+| D-Esign Clock | `FW_DEsign_v1.3.11.bin` |
 
 Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions. See [Note on EleksTube website](https://elekstube.com/blogs/news/instructions-on-elekstube-clock-for-gen2-systems). But always check the PCB version of your clock!
 
@@ -74,7 +74,7 @@ Note: All "Original" EleksTube clocks, sold after July 2022 are "Gen2" versions.
 
 The CMD file should look like this:
 
-`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_EleksTube_v1.3.10.bin`
+`esptool --port COM5 --baud 921600 write_flash --erase-all 0x0000 FW_EleksTube_v1.3.11.bin`
 
 Note: Most clocks will go into to the "download mode" automatically when esptool is trying to write to it.
 Some clocks needs a button pressed while the powering phase (plugging the USB cable) to enter this mode, like the IPSTUBE ones.
