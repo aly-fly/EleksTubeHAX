@@ -16,10 +16,12 @@ void TFTs::begin()
   pinMode(TFT_ENABLE_PIN, OUTPUT); // Set pin for turning display power on and off.
 #endif
   InvalidateImageInBuffer(); // Signal, that the image in the buffer is invalid and needs to be reloaded and refilled
-  init();                    // Initialize the super class.
-#if defined(HARDWARE_MARVELTUBES_CLOCK)
-  // After TFT_eSPI::init(), the VSPI hardware may have taken over GPIO5 (default VSPI SS pin).
-  // reclaimPins() uses gpio_reset_pin() to release it back to software GPIO control.
+  init(); // Initialize the super class.
+#ifdef CS_DIRECT_GPIO
+  // After TFT_eSPI::init(), the VSPI hardware may have reconfigured one of the CS GPIO pins
+  // as a default SPI signal (e.g. GPIO5 as VSPI SS, GPIO19 as VSPI MISO), leaving it as an
+  // input or in an unexpected state which holds the CS line active for that display.
+  // reclaimPins() uses gpio_reset_pin() to release all CS pins back to software GPIO control.
   chip_select.reclaimPins(); // regain control of per-digit CS pins after TFT_eSPI::init()
   chip_select.setAll();      // After regain control, start with all displays selected again
 #endif
@@ -220,7 +222,7 @@ void TFTs::showDigit(uint8_t digit)
         NextNumber = 0; // pre-load only seconds, because they are drawn first
       NextFileRequired = current_graphic * 10 + NextNumber;
     }
-#if defined(HARDWARE_IPSTUBE_CLOCK) || defined(HARDWARE_MARVELTUBES_CLOCK)
+#ifdef CS_DIRECT_GPIO
     chip_select.update();
 #endif
   }

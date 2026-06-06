@@ -124,8 +124,10 @@ uint32_t RtcGet()
   Serial.println(returnvalue);
 #endif
   return returnvalue;
-}
-#elif defined(HARDWARE_MARVELTUBESMINI_CLOCK)
+} // RX8025T RTC chip end
+#elif defined(HARDWARE_MARVELTUBESMINI_CLOCK) || defined(HARDWARE_MARVELTUBES_GEN2_CLOCK)
+// No RTC chip present on this hardware — stub out all RTC calls to prevent
+// Wire.begin() from reconfiguring GPIO21 (TFT_DC) and GPIO22 (LCD CS Hours Tens).
 void RtcBegin()
 {
   Serial.println("No RTC!");

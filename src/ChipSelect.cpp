@@ -107,6 +107,15 @@ const int lcdEnablePins[NUM_DIGITS] = {15, 33, 34, 35, 36, 37};
 const int numLCDs = NUM_DIGITS;
 #endif
 
+#ifdef HARDWARE_MARVELTUBES_GEN2_CLOCK
+// Direct CS GPIO lines for MarvelTubes Gen2 (order: seconds ones, seconds tens, minutes ones, minutes tens, hours ones, hours tens)
+// GPIO 14 = Seconds Ones (rightmost)    GPIO 27 = Seconds Tens
+// GPIO 17 = Minutes Ones                GPIO 5 = Minutes Tens
+// GPIO 19 = Hours Ones                  GPIO 22 = Hours Tens (leftmost)
+const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_14, GPIO_NUM_27, GPIO_NUM_17, GPIO_NUM_5, GPIO_NUM_19, GPIO_NUM_22};
+const int numLCDs = NUM_DIGITS;
+#endif
+
 #ifdef HARDWARE_DESIGN_CLOCK
 // Direct CS GPIO lines (order: seconds ones, seconds tens, minutes ones, minutes tens, hours ones, hours tens)
 // GPIO 25 = Seconds Ones (rightmost)    GPIO 26 = Seconds Tens

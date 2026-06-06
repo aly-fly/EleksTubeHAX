@@ -34,6 +34,8 @@
 
 * **MarvelTubes Clock**
 
+* **MarvelTubes Gen2 Clock**
+
 * **MarvelTubes Mini Clock** f/k/a **Marvel Tribe Mini**
 
 * **D'Esign Clock**
@@ -49,6 +51,8 @@
 * The "basic" version is now officially called "**EleksTube IPS Classic Edition**"
 
 * In 2024, the IPSTube clocks became the cheapest and most widely available "clone" variant of the EleksTube clocks on the market. They are offered by a wide range of sellers and under many different names, but they all have the "IPSTube" logo printed on the front. Most listings include words like Nixie, Tube, Clock, LED, Light, RGB, IPS, and Glow in the description.
+
+* Since 2025, the MarvelTubes Gen2 is a production-cost-reduced variant of the MarvelTubes clock (retail price unchanged) — the MCU was changed from the ESP32-S2 to a standard ESP32 (no PSRAM), and the RTC chip and backup battery were omitted; the time is kept exclusively via NTP.
 
 ### 1.3 Purchasing Information
 
@@ -66,8 +70,9 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 
 EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
 MarvelTubes ![MarvelTubes clock](/docs/ImagesMD/MarvelTubes_clock_PCB.jpg)
+MarvelTubes Gen2 ![MarvelTubes Gen2 clock](/docs/ImagesMD/MarvelTubes_Gen2_clock_PCB.jpg)
 MarvelTubes Mini ![MarvelTubes Mini clock](/docs/ImagesMD/MarvelTubesMini_clock_PCB.jpg)
-D'Esign Clock – ![D-Esign clock](/docs/ImagesMD/D-Esign_PCB.jpg)
+D'Esign Clock ![D-Esign clock](/docs/ImagesMD/D-Esign_PCB.jpg)
 
 For detailed pictures for most of the clocks see the `docs` subdirectory.
 
@@ -178,17 +183,29 @@ Note: See "Known problems/Limitations" for more info.
 
 * Ships with 16MB of flash, allocating a 2MB application slot and a large LittleFS partition so high-resolution or alternate clock faces rarely need recompression.
 
+* Uses an **ESP32-S2-WROVER** module with 16 MB flash and 2 MB PSRAM.
+
+* Hardware PWM dimming for the displays.
+
 * Uses a dedicated PlatformIO environment (`MarvelTubes`) with the `partition_16MB.csv` layout and custom board definition found in `boards/`.
+
+#### 3.2.3b MarvelTubes Gen2 Clock
+
+* Second-generation MarvelTubes clock with a standard **ESP32-WROOM-32E** module (not S2), 16 MB flash, no PSRAM, no RTC.
+
+* Hardware PWM dimming for the displays.
+
+* Uses a dedicated PlatformIO environment (`MarvelTubes_Gen2`) with the `partition_16MB.csv` layout and the custom board definition `esp32devmarveltubesgen2` found in `boards/`.
 
 #### 3.2.4 MarvelTubes Mini Clock
 
-* Compact version of the MarvelTubes clock with 6× ST7735 80×160 px IPS TFT displays on individual breakout boards.
+* Compact version of the MarvelTubes clock with 6× **ST7735 80×160 px** IPS TFT displays on individual breakout boards.
 
 * Uses an **ESP32-C3-Mini-1** module with built-in USB Serial/JTAG — no external USB-UART chip (e.g. CH340).
 
 * Chip select lines, display reset and backlight power/dimming are all controlled via an **I2C IO expander** (address `0x19`) — no shift register, no direct GPIO CS.
 
-* Brightness dimming is done through the IO expander register, not via PWM or software alpha blending.
+* Hardware brightness dimming is done through the IO expander register, not via PWM or software alpha blending.
 
 * No RTC or battery is included in the standard kit. Soldering pads for an I2C RTC are present on the PCB but unpopulated — time is kept exclusively via NTP.
 
@@ -204,19 +221,13 @@ Note: See "Known problems/Limitations" for more info.
 
 * Custom-designed ESP32-based tube clock with 6× **ST7735S 80×160 px** IPS TFT displays on individual PCBs.
 
-* Uses an **ESP32 WROOM-32** module with 4 MB flash and standard USB-UART via CH340.
-
 * **No physical buttons** — replaced by two capacitive metal touch rings. Touch detection uses the ESP32 hardware `touchRead()` peripheral.
 
 * Two-ring touch menu: short tap = value change, long press right = next menu item, long press left = exit menu.
 
-* Chip select lines are wired directly as individual GPIOs.
+* Hardware PWM dimming for the displays.
 
-* Hardware PWM dimming is available.
-
-* Onboard **LM386MX-1** microphone amplifier; ADC output on GPIO36 (VP).
-
-* Active buzzer on GPIO21.
+* Active buzzer on GPIO21 (not used).
 
 * Clock face images are automatically rescaled to 80×160 px during the build process by a pre-build script (`script_prepare_mini_clockfaces.py`).
 
@@ -266,7 +277,7 @@ To read from (or write to) the clock, it needs to be in the "download mode". Mos
 
 * Open Device Manager and find out which virtual COM port represents your clock.
 
-* Modify the backup script that matches your flash size (e.g. `_ESP32 save flash 4MB.cmd`, `_ESP32 save flash 8MB.cmd` for IPSTubes or `_ESP32 save flash 16MB.cmd` for MarvelTubes) with your COM port number.
+* Modify the backup script that matches your flash size (e.g. `_ESP32 save flash 4MB.cmd`, `_ESP32 save flash 8MB.cmd` for IPSTubes or `_ESP32 save flash 16MB.cmd` for MarvelTubes and MarvelTubes Gen2) with your COM port number.
 
 * Run the CMD file.
 
@@ -372,14 +383,17 @@ It is possible that the project also works with ESP32 platform modules from othe
 
 #### 5.3.2 PIO build environment
 
-The PIO build environments for this project are named after each clock (e.g.,"EleksTube") using the board definition of the original "Espressif ESP32 Dev Module" named "esp32dev".
+The PIO build environments for this project are named after each clock (e.g. `EleksTube`) using the board definition of the original "Espressif ESP32 Dev Module" named `esp32dev`.
 
 ##### Custom boards
 
-The IPSTube needs to use the "IPSTube" environment with a custom board definition ("Espressif ESP32 Dev Module 8MB") named "esp32dev8MB" in the `boards` folder.
-The MarvelTubes environment uses the `esp32devs2marveltubes` board file from the same folder to match its 16MB ESP32-S2 hardware.
-The MarvelTubes Mini uses the `MarvelTubesMini` environment with the custom board definition `esp32devc3minimarveltubesmini` for its ESP32-C3-based hardware.
-The Xunfeng clock needs also its own board definition `esp32devS2` in the `boards` folder.
+The IPSTube clocks need to use the `IPSTube` environment with a custom board definition named `esp32dev8MB` in the `boards` folder for its 8MB flash hardware and the slower flash chips.
+The MarvelTubes clock uses the `MarvelTubes` environment with the custom board definition `esp32devs2marveltubes` for its 16MB flash and ESP32-S2 hardware.
+The MarvelTubes Gen2 clock uses the `MarvelTubes_Gen2` environment with the custom board definition `esp32devmarveltubesgen2` for its 16MB flash and standard ESP32-based hardware.
+The MarvelTubes Mini clock uses the `MarvelTubesMini` environment with the custom board definition `esp32devc3minimarveltubesmini` for its ESP32-C3-based hardware.
+The Xunfeng clock uses the `Xunfeng` environment with the custom board definition `esp32devS2` for its ESP32-S2 hardware.
+
+#### Partition sizes
 
 Flash partition size settings are already configured in the following files.
 
@@ -387,15 +401,15 @@ Flash partition size settings are already configured in the following files.
 | --- | --- | --- | --- | --- |
 | `partition_4MB.csv` | All clocks with 4MB flash | 4.0 MB | 1.2 MB | 2.8 MB |
 | `partition_8MB.csv` | IPSTube | 8.0 MB | 1.2 MB | 6.8 MB |
-| `partition_16MB.csv` | MarvelTubes | 16.0 MB | 2.0 MB | 13.3 MB |
+| `partition_16MB.csv` | MarvelTubes, MarvelTubes Gen2 | 16.0 MB | 2.0 MB | 13.3 MB |
 
 No OTA partition, one app partition, one data partition as LittleFS to store the images of the clock faces.
 
-These files are used by PlatformIO to create the partitions on the flash of the ESP32 when uploading.
+These CSV files are used by PlatformIO to create the partitions on the flash of the ESP32 when uploading.
 
 Upload port is set to 921600 baud in the `platformio.ini` file.
 
-**Note**: Some clocks do not support such high speed, if you have issues, reduce this to 512000 baud or even lower.
+**Note**: Some clocks do not support such high speed, if you have issues, reduce this to 460800 baud or even lower.
 
 #### 5.3.3 Libraries in use
 
@@ -405,7 +419,7 @@ All external libraries in use (for details, see the `platformio.ini` file) are a
 
 * Standard libraries from the frameworks (espressif32 + arduino) are not explicitly listed.
 
-##### 5.3.3.1 Verified Working Versions (as of 2026-05-27)
+##### 5.3.3.1 Verified Working Versions (as of 2026-06-07)
 
 The project compiles and runs correctly with the library versions listed below. Newer (and possibly older) versions should also work.
 
@@ -533,7 +547,7 @@ Most clocks will go into to the download mode automatically, when PlatformIO is 
 
 #### 5.4.1 Step 1 - Compile the code and upload the firmware file (to the app partition)
 
-Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes, MarvelTubesMini or DEsign) and upload the code via the "Upload" command in the matching environment for your clock.
+Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes, MarvelTubes_Gen2, MarvelTubesMini or DEsign) and upload the code via the "Upload" command in the matching environment for your clock.
 
 ![PlatformIO Build](/docs/ImagesMD/PlatformIOBuild.png)
 
@@ -601,7 +615,7 @@ This file can be flashed with the `esptool.exe` with the `write_flash` option.
 
 E.g. assuming you are using the `esptool.exe` in the `firmware` subdirectory and the clock is connected to COM5:
 
-`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.5.bin --erase-all`
+`esptool.exe --chip esp32 --port COM5 --baud 921600 --before default_reset --after hard_reset write_flash 0x0000 ..\.pio\build\EleksTube\FW_EleksTube_v1.3.12.bin --erase-all`
 
 ### 5.5.1 Helper scripts
 
@@ -665,11 +679,31 @@ Before supporting palettized Bitmaps, there was a special format used to store i
 
 To convert existing image files to CLK format:
 
-* Run the tool `\tools\Prepare_images\Convert_BMP_to_CLK.exe` (Windows only)
+**Option A — Windows GUI tool** (`\tools\Prepare_images\Convert_BMP_to_CLK.exe`, Windows only):
 
-* You can select all BMP files to be converted at once. It will create CLK files from it.
+* Run the tool and select all BMP files to be converted at once. It will create CLK files from them.
 
-* For a 24 bit depth Bitmap, size reduction is approx 30%.
+**Option B — Python script** (`tools/conv-bmp-to-clk.py`, cross-platform):
+
+* Requires Python 3 with the `Pillow` library (`pip install pillow`).
+
+* Run from the project root, passing the folder that contains your BMP files:
+
+  ```
+  python tools/conv-bmp-to-clk.py data
+  ```
+
+* By default the converted CLK files are written to a subfolder named `clk` next to the input folder. Use `--out <folder>` to choose a different output location:
+
+  ```
+  python tools/conv-bmp-to-clk.py data --out data_clk
+  ```
+
+* The script converts all `.bmp` files in the given folder (non-recursive) to RGB565 CLK format and preserves the original filenames.
+
+For both options:
+
+* For a 24-bit depth Bitmap, size reduction is approx 30%.
 
 * If needed, rename the generated files and put them in the `data` subdirectory.
 
@@ -1038,7 +1072,7 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 
 ##### 6.6 Xunfeng clocks
 
-* The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
+The CyberPunk clocks identify themselves as "Xunfeng" when they start up with the original firmware. This suggests that the Xunfeng clock with the S2 chip and the CyberPunk clocks are made by the same company.
 
 ##### 6.7 MarvelTubes: Missing WiFi antenna (UE module variant)
 
