@@ -166,10 +166,6 @@ uint8_t yesterday = 0;
 #ifdef DIMMING
 bool isDimmingNeeded = false;
 uint8_t hour_old = 255;
-// Test aid for the night/day transition, default OFF. When defined, every real minute acts as one "hour"
-// (minute % 24) for the night-time check, so the full NIGHT_TIME/DAY_TIME cycle runs in 24 minutes.
-// Enable with: PLATFORMIO_BUILD_FLAGS="-D DEBUG_DIMMING_FAST_CYCLE" pio run -e <env>
-// #define DEBUG_DIMMING_FAST_CYCLE
 #endif
 
 uint32_t lastMQTTCommandExecuted = (uint32_t)-1;
@@ -959,11 +955,7 @@ bool isNightTime(uint8_t current_hour)
 
 void checkDimmingNeeded()
 {                                             // dim the display in the defined night time
-#ifdef DEBUG_DIMMING_FAST_CYCLE
-  uint8_t current_hour = uclock.getMinute() % 24; // test aid: one minute = one simulated hour
-#else
-  uint8_t current_hour = uclock.getHour24(); // for internal calcs we always use 24h format
-#endif
+  uint8_t current_hour = uclock.getHour24();  // for internal calcs we always use 24h format
   isDimmingNeeded = current_hour != hour_old; // check, if the hour has changed since last loop (from time passing by or from timezone change)
   if (isDimmingNeeded)
   {
