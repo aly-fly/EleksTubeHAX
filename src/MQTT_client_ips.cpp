@@ -471,11 +471,16 @@ bool MQTTStart(bool restart)
       MQTTclient.setCallback(MQTTCallback);
       MQTTclient.setBufferSize(2048);
 #ifdef MQTT_USE_TLS
+#ifdef MQTT_TLS_INSECURE
+      espClient.setInsecure();
+      Serial.println("MQTT TLS: insecure mode (encrypted, certificate NOT validated)");
+#else
       bool result = loadCARootCert();
       if (!result)
       {
         return false; // load certificate failed -> do not continue
       }
+#endif
 #endif
     }
     Serial.println("Connecting to MQTT...");
