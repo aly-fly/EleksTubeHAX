@@ -60,6 +60,11 @@ void Backlights::setIntensity(uint8_t intensity)
   pattern_needs_init = true;
 }
 
+uint8_t Backlights::getEffectiveIntensity()
+{
+  return dimming ? (uint8_t)BACKLIGHT_DIMMED_INTENSITY : config->intensity;
+}
+
 void Backlights::loop()
 {
   //   enum patterns { dark, test, constant, rainbow, pulse, breath, num_patterns };

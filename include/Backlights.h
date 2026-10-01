@@ -95,6 +95,7 @@ public:
     dimming = dim;
     pattern_needs_init = true;
   }
+  uint8_t getEffectiveIntensity(); // intensity actually driven to the LEDs: night-time dimmed level or configured intensity
 
   // Helper methods
   uint32_t phaseToColor(uint16_t phase);

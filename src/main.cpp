@@ -557,7 +557,7 @@ void loop()
   MQTTStatusState = (uclock.getActiveGraphicIdx() + 1) * 5; // 10
   MQTTStatusBrightness = backlights.getIntensity();
   MQTTStatusMainBrightness = tfts.dimming;
-  MQTTStatusBackBrightness = backlights.getIntensity();
+  MQTTStatusBackBrightness = backlights.getEffectiveIntensity(); // report what the LEDs really show (dimmed level at night)
   strcpy(MQTTStatusPattern, backlights.getPatternStr().c_str());
   strcpy(MQTTStatusBackPattern, backlights.getPatternStr().c_str());
   backlights.getPatternStr().toCharArray(MQTTStatusBackPattern, backlights.getPatternStr().length() + 1);
@@ -977,8 +977,10 @@ void checkDimmingNeeded()
       Serial.println("Set to day time mode (max brightness)!");
       tfts.dimming = 255; // 0..255
       tfts.ProcessUpdatedDimming();
-      // backlights.setDimming(false);
+      backlights.setDimming(false); // restore the configured backlight intensity
     }
+    Serial.print("Backlight intensity now: ");
+    Serial.println(backlights.getEffectiveIntensity());
     updateClockDisplay(TFTs::force); // Redraw everything; software dimming will be done here
     hour_old = current_hour;
   }
