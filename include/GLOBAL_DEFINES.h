@@ -25,6 +25,9 @@
 #ifndef MQTT_HOME_ASSISTANT
 #define MQTT_HOME_ASSISTANT
 #endif
+// Save changed settings 5 seconds after the last Home Assistant change (60 s in the other builds loses changes on a quick power cycle).
+#undef MQTT_SAVE_PREFERENCES_AFTER_SEC
+#define MQTT_SAVE_PREFERENCES_AFTER_SEC 5
 // Night dimming and automatic timezone are always compiled in, they can be switched on/off from Home Assistant.
 #ifndef DIMMING
 #define DIMMING
