@@ -997,6 +997,18 @@ You need to connect to the same MQTT broker like the clock and then will be able
 
 All MQTT messages from and to the clock are also traced out via the serial interface. So using a serial monitor while using the clock, gives also debug information. Make sure you enable the `DEBUG_OUTPUT_MQTT` before compilation and upload.
 
+### 5.6.6 IPSTube_S3_Portal: web setup build (revised ESP32-S3 IPSTube, Home Assistant only)
+
+PlatformIO environment `IPSTube_S3_Portal` builds a firmware that needs **no WiFi or MQTT details in the source code**:
+
+* **First start** (no WiFi saved): the clock shows "WEB SETUP" on its displays. Join the open WiFi network named after the clock (e.g. `ipstube-a1b2c3`) with a phone, open `http://192.168.4.1` (most phones open it automatically), choose *Configure WiFi* and enter your WiFi, the Home Assistant MQTT broker (host, port, user, password) and whether the front LED strip is fitted. The clock restarts and connects. The password box: empty = keep current, `-` = none.
+* **Later changes**: use the clock's button: short presses go through the menu to the last item *Web setup*, then hold the button. (The button is GPIO0 = BOOT pin, so holding it at power-up is not usable.) The setup network closes after 10 minutes.
+* **Home Assistant entities** (in addition to the normal ones): front LED strip fitted, automatic timezone, timezone offset (hours, quarter hour steps; setting it turns the automatic lookup off), night dimming on/off, night start hour, day start hour, night screen brightness, night backlight intensity. Values are stored in the clock (NVS namespace `hax_setup`).
+* Home Assistant (MQTT discovery) only. The SmartNest/generic MQTT mode and WPS stay available in the other environments. TLS stays a compile-time option, and the setup network is open (no password) while it is active.
+* The environment uses `partition_8MB_portal.csv` (larger application partition). Flash the full image with `--erase-all` the first time.
+* `CREATE_FIRMWAREFILE` needs the `esptool` module in PlatformIO's Python environment (`<user>/.platformio/penv/Scripts/python -m pip install esptool`).
+
+
 ## 6\. Known problems/limitations, Notes
 
 ##### 6.1 Precision of the gesture sensor (NovelLife SE)

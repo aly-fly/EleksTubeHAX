@@ -4,6 +4,7 @@
 #include "StoredConfig.h"
 #include "TFTs.h"
 #include "WiFi_WPS.h"
+#include "SetupPortal.h"
 
 extern StoredConfig stored_config;
 extern char UniqueDeviceName[32];
@@ -112,6 +113,65 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
   }
 }
 
+#ifdef WEB_SETUP_PORTAL
+// Web setup build: WiFi credentials come from the setup portal and are stored by the WiFi driver.
+void WifiBegin()
+{
+  WifiState = disconnected;
+
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+  WiFi.setAutoReconnect(false); // we do our own reconnection handling!
+  WiFi.setHostname(UniqueDeviceName);
+
+  if (!wifiHasSavedCredentials())
+  {
+    // First start (or WiFi erased): open the setup portal. Restarts the clock when configured.
+    Serial.println("No WiFi credentials stored.");
+    runSetupPortal(true);
+    // Only returns when the portal timed out without any result -> continue offline.
+    WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_STA);
+    tfts.println("No WiFi!");
+    tfts.println("Menu > Web setup");
+    return;
+  }
+
+  tfts.println("Joining WiFi");
+  Serial.print("Joining WiFi ");
+  Serial.println(WiFi.SSID());
+
+  WiFi.onEvent(WiFiEvent);
+  WiFi.begin(); // use the credentials saved by the WiFi driver
+
+  unsigned long StartTime = millis();
+  while ((WiFi.status() != WL_CONNECTED))
+  {
+    delay(500);
+    tfts.print(".");
+    Serial.print(".");
+    if ((millis() - StartTime) > (WIFI_CONNECT_TIMEOUT_SEC * 1000))
+    {
+      Serial.println("\r\nWiFi connection timeout!");
+      tfts.setTextColor(TFT_RED, TFT_BLACK);
+      tfts.println("\nTIMEOUT!");
+      tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+      WifiState = disconnected;
+      return; // continue clock startup; WifiReconnect() keeps trying in the background
+    }
+  }
+  // WL_CONNECTED can be seen slightly before the event handler ran
+  WifiState = connected;
+
+  tfts.println("\nConnected! IP:");
+  tfts.println(WiFi.localIP());
+  Serial.print("Connected to ");
+  Serial.println(WiFi.SSID());
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  delay(200);
+}
+#else
 void WifiBegin()
 {
   WifiState = disconnected;
@@ -197,9 +257,16 @@ void WifiBegin()
     Serial.println("Connecting to WiFi failed! No WiFi! Clock will not show actual time or last saved time!");
   }
 }
+#endif // WEB_SETUP_PORTAL
 
 void WifiReconnect()
 {
+#ifdef WEB_SETUP_PORTAL
+  if (WifiPortalActive)
+  {
+    return; // the setup portal owns the radio
+  }
+#endif
 #ifdef WIFI_USE_WPS
   static bool warnedNoCreds = false;
   if (WifiWpsActive)

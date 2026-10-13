@@ -16,6 +16,42 @@
 #include <stdint.h>
 #include "_USER_DEFINES.h"
 
+// ************* Web setup portal build (PlatformIO environment IPSTube_S3_Portal) *************
+// WiFi + MQTT broker are entered on a setup web page, the rest is controlled from Home Assistant.
+// So these settings of _USER_DEFINES.h are not used (or fixed) in this build:
+#ifdef WEB_SETUP_PORTAL
+#undef WIFI_USE_WPS       // WiFi is set up on the web page (no WPS, no hard coded WiFi credentials)
+#undef MQTT_PLAIN_ENABLED // This build is for Home Assistant only
+#ifndef MQTT_HOME_ASSISTANT
+#define MQTT_HOME_ASSISTANT
+#endif
+// Night dimming and automatic timezone are always compiled in, they can be switched on/off from Home Assistant.
+#ifndef DIMMING
+#define DIMMING
+#endif
+#ifndef NIGHT_TIME
+#define NIGHT_TIME 22 // default start of the night (hour), changeable in Home Assistant
+#endif
+#ifndef DAY_TIME
+#define DAY_TIME 7 // default end of the night (hour), changeable in Home Assistant
+#endif
+#ifndef BACKLIGHT_DIMMED_INTENSITY
+#define BACKLIGHT_DIMMED_INTENSITY 1 // 0..7
+#endif
+#ifndef TFT_DIMMED_INTENSITY
+#define TFT_DIMMED_INTENSITY 20 // 0..255
+#endif
+#ifndef GEOLOCATION_ENABLED
+#define GEOLOCATION_ENABLED
+#endif
+#if !defined(GEOLOCATION_PROVIDER_IPAPI) && !defined(GEOLOCATION_PROVIDER_ABSTRACTAPI) && !defined(GEOLOCATION_PROVIDER_IPGEOLOCATION)
+#define GEOLOCATION_PROVIDER_IPAPI
+#endif
+#ifndef GEOLOCATION_API_KEY
+#define GEOLOCATION_API_KEY "not_needed_for_ip-api.com"
+#endif
+#endif // WEB_SETUP_PORTAL
+
 #define VALUE(string) #string
 #define TO_LITERAL(string) VALUE(string)
 
