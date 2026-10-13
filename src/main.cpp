@@ -1231,6 +1231,12 @@ void processGeoLocUpdate()
   Serial.println("Querying GeoLocation API...");
   if (GetGeoLocationTimeZoneOffset())
   {
+    // The lookup only returns the offset: apply it to the clock (it was never applied by this code path).
+    uclock.setTimeZoneOffset((time_t)lround(GeoLocTZoffset * 4.0) * 900); // quarter hour grid
+    lastMQTTCommandExecuted = millis(); // stored config gets saved shortly afterwards
+#ifdef DIMMING
+    hour_old = 255; // the local hour may have changed -> re-evaluate night dimming
+#endif
     const int32_t GeoLocTOffsetNew = uclock.getTimeZoneOffset() / 3600;
     Serial.print("New TZ offset (hours): ");
     Serial.println(GeoLocTOffsetNew);
