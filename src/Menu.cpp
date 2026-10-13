@@ -258,7 +258,11 @@ const String Menu::state_str[Menu::num_states] = {
     "blank_hours_zero",
     "utc_offset_hour",
     "utc_offset_15m",
-    "selected_graphic"};
+    "selected_graphic",
+#ifdef WEB_SETUP_PORTAL
+    "start_setup",
+#endif
+};
 #else
 const String Menu::state_str[Menu::num_states] = {
     "idle",
