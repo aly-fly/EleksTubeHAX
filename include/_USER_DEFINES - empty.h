@@ -61,6 +61,10 @@
 // If you choose a local one, you will need to set up the broker on your local network and fill in the data below.
 
 #ifdef MQTT_PLAIN_ENABLED
+// Uncomment the following line to use TLS for MQTT connection.
+// #define MQTT_USE_TLS
+// Uncomment the following line to allow insecure TLS connections (e.g., self-signed certificates).
+// #define MQTT_TLS_INSECURE
 #define MQTT_BROKER "smartnest.cz"                        // Broker host
 #define MQTT_PORT 1883                                    // Broker port
 #define MQTT_USERNAME "__enter_your_mqtt_username_here__" // Username from Smartnest
