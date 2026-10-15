@@ -90,8 +90,8 @@ without a rewrite:
   first display init and the board boot-loops.
 - No RTC has been found on the S3 board; time comes from NTP.
 - Upstream's Q1 / `HARDWAREMOD_IPSTUBE_CLOCK_WITHOUT_DIMMING_TRANSISTOR` setting is for
-  the classic board. On the S3 the displays are dimmed by PWM on GPIO9. Whether
-  dimming works on this unit hasn't been checked yet.
+  the classic board and doesn't apply. On the S3 the displays are dimmed by PWM on
+  GPIO9, which works on this unit; leave that flag off.
 - Upstream says the IPSTube's SPI flash is slower than on other clocks this firmware
   supports. That isn't checked for the S3 revision, so still don't design for
   frequent flash writes.
