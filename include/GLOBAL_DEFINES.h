@@ -16,6 +16,45 @@
 #include <stdint.h>
 #include "_USER_DEFINES.h"
 
+// ************* Web setup portal build (PlatformIO environment IPSTube_S3_HA_Web) *************
+// WiFi + MQTT broker are entered on a setup web page, the rest is controlled from Home Assistant.
+// So these settings of _USER_DEFINES.h are not used (or fixed) in this build:
+#ifdef WEB_SETUP_PORTAL
+#undef WIFI_USE_WPS       // WiFi is set up on the web page (no WPS, no hard coded WiFi credentials)
+#undef MQTT_PLAIN_ENABLED // This build is for Home Assistant only
+#ifndef MQTT_HOME_ASSISTANT
+#define MQTT_HOME_ASSISTANT
+#endif
+// Save changed settings 5 seconds after the last Home Assistant change (60 s in the other builds loses changes on a quick power cycle).
+#undef MQTT_SAVE_PREFERENCES_AFTER_SEC
+#define MQTT_SAVE_PREFERENCES_AFTER_SEC 5
+// Night dimming and automatic timezone are always compiled in, they can be switched on/off from Home Assistant.
+#ifndef DIMMING
+#define DIMMING
+#endif
+#ifndef NIGHT_TIME
+#define NIGHT_TIME 22 // default start of the night (hour), changeable in Home Assistant
+#endif
+#ifndef DAY_TIME
+#define DAY_TIME 7 // default end of the night (hour), changeable in Home Assistant
+#endif
+#ifndef BACKLIGHT_DIMMED_INTENSITY
+#define BACKLIGHT_DIMMED_INTENSITY 1 // 0..7
+#endif
+#ifndef TFT_DIMMED_INTENSITY
+#define TFT_DIMMED_INTENSITY 20 // 0..255
+#endif
+#ifndef GEOLOCATION_ENABLED
+#define GEOLOCATION_ENABLED
+#endif
+#if !defined(GEOLOCATION_PROVIDER_IPAPI) && !defined(GEOLOCATION_PROVIDER_ABSTRACTAPI) && !defined(GEOLOCATION_PROVIDER_IPGEOLOCATION)
+#define GEOLOCATION_PROVIDER_IPAPI
+#endif
+#ifndef GEOLOCATION_API_KEY
+#define GEOLOCATION_API_KEY "not_needed_for_ip-api.com"
+#endif
+#endif // WEB_SETUP_PORTAL
+
 #define VALUE(string) #string
 #define TO_LITERAL(string) VALUE(string)
 
@@ -32,6 +71,16 @@
 // #define HARDWARE_MARVELTUBES_CLOCK       // MarvelTubes clock with 16MB flash on PCB
 // #define HARDWARE_MARVELTUBESMINI_CLOCK   // MarvelTubes Mini clock with 4MB flash on PCB and ESP C3 Mini
 // #define HARDWARE_DESIGN_CLOCK            // D-Esign clock with ESP32 WROOM-32, small ST7735 80x160 displays, direct GPIO CS lines
+
+// ************* ESP32-S3 IPSTube variant *************
+// The IPSTube_S3 PlatformIO environment passes -DIPSTUBE_S3. That board is an
+// ESP32-S3 with a different pinout than the classic-ESP32 IPSTube. When the flag
+// is set we still use the HARDWARE_IPSTUBE_CLOCK code paths but override the pins.
+#ifdef IPSTUBE_S3
+#ifndef HARDWARE_IPSTUBE_CLOCK
+#define HARDWARE_IPSTUBE_CLOCK
+#endif
+#endif // IPSTUBE_S3
 
 #ifdef HARDWARE_PUNKCYBER_CLOCK
 // Everything else is the same, except digits are swapped from left to right.
@@ -267,7 +316,11 @@
 #define DEVICE_HW_VERSION "H401/H402"
 
 // WS2812 (or compatible) LEDs on the back of the display modules.
+#ifdef IPSTUBE_S3
+#define BACKLIGHTS_PIN (GPIO_NUM_42) // S3: WS2812 data on GPIO42
+#else
 #define BACKLIGHTS_PIN (GPIO_NUM_5) // pin 35 is GPIO5
+#endif
 
 // ATTENTION: Some IPSTube clocks has a LED stripe on the bottom of the clock! SOME NOT!
 // Define HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE in platformio.ini if present!
@@ -292,14 +345,27 @@
 #endif
 
 // 3-wire to DS1302 RTC.
+#ifdef IPSTUBE_S3
+// The S3 IPSTube keeps time via NTP; the classic DS1302 pins (incl. GPIO22)
+// do not exist on the ESP32-S3. Point these at valid, safe S3 GPIOs so the
+// code compiles. If your S3 board actually has a DS1302, set the real pins here.
+#define DS1302_SCLK (GPIO_NUM_40)
+#define DS1302_IO   (GPIO_NUM_41)
+#define DS1302_CE   (GPIO_NUM_39)
+#else
 #define DS1302_SCLK (GPIO_NUM_22) // pin 39 is GPIO22
 #define DS1302_IO (GPIO_NUM_19)   // pin 38 is GPIO19
 #define DS1302_CE (GPIO_NUM_21)   // pin 42 is GPIO21
+#endif
 
 // All IPSTubes has the LCDs pins VCC power (LED Anode) and VDD (Power Supply for Analog) connected to the VCC (3.3V) and Ground to Ground (PCB), so the displays are Always-On!
 // EXCEPT: The Q1 transistor is present!
 // Then the GPIO4 pin is connected to the transistor and Ground of the LCDs is running through the transistor, so the LCDs can be turned on and off AND dimmed!
+#ifdef IPSTUBE_S3
+#define TFT_ENABLE_PIN (GPIO_NUM_9) // S3: display backlight/enable on GPIO9 (active low, PWM)
+#else
 #define TFT_ENABLE_PIN (GPIO_NUM_4) // pin 24 is GPIO4
+#endif
 // If transistor is present and we want hardware dimming, we need to choose a PWM channel for this, can always be defined, even if not used.
 #define TFT_PWM_CHANNEL 0 // Use PWM channel 0 for TFT dimming
 
@@ -342,16 +408,30 @@
 #define TFT_WIDTH 135
 #define TFT_HEIGHT 240
 
+// The 135x240 ST7789(VW) panels sit at an offset inside the controller's
+// 240x320 RAM, so the CGRAM offset is REQUIRED on the S3 or content lands
+// off-screen (looks blank).
+#ifdef IPSTUBE_S3
+#define CGRAM_OFFSET // Library will add offsets required
+#endif
 // #define CGRAM_OFFSET // Library will add offsets required
 #define TFT_SDA_READ // Read and write on the MOSI/SDA pin, no separate MISO pin
 
 #define TFT_MISO -1            // No MISO
+#ifdef IPSTUBE_S3
+#define TFT_MOSI (GPIO_NUM_6)  // S3: SDA / MOSI
+#define TFT_SCLK (GPIO_NUM_7)  // S3: SCL / SCLK
+#define TFT_CS (-1)            // CS handled per-digit in ChipSelect.cpp
+#define TFT_DC (GPIO_NUM_5)    // S3: DC / RS
+#define TFT_RST (GPIO_NUM_4)   // S3: shared reset
+#else
 #define TFT_MOSI (GPIO_NUM_32) // pin 12 is GPIO32
 #define TFT_SCLK (GPIO_NUM_33) // pin 13 is GPIO33
 
 #define TFT_CS (-1)           // MUST be -1 for IPSTube clocks -> chipselect class does the magic also without a shift register
 #define TFT_DC (GPIO_NUM_25)  // pin 14 is GPIO25 - Data Command, aka Register Select or RS
 #define TFT_RST (GPIO_NUM_26) // pin 15 is GPIO26 - Connect reset to ensure display initialises
+#endif
 
 #define TOUCH_CS -1 // No Touch
 

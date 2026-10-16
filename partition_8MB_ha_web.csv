@@ -1,0 +1,6 @@
+# Name,   Type, SubType,  Offset,   Size,     Flags
+# Like partition_8MB.csv, but with a larger app partition (the web setup page needs more code space).
+nvs,      data, nvs,      0x9000,   0x7000,
+app0,     app,  factory,  0x10000,  0x1F0000,
+littlefs, data, spiffs,   0x200000, 0x5F0000,
+coredump, data, coredump, 0x7f0000, 0x10000,

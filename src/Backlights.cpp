@@ -62,7 +62,7 @@ void Backlights::setIntensity(uint8_t intensity)
 
 uint8_t Backlights::getEffectiveIntensity()
 {
-  return dimming ? (uint8_t)BACKLIGHT_DIMMED_INTENSITY : config->intensity;
+  return dimming ? dimmed_intensity : config->intensity;
 }
 
 void Backlights::loop()
@@ -88,7 +88,7 @@ void Backlights::loop()
     }
     if (dimming)
     {
-      setBrightness(0xFF >> max_intensity - BACKLIGHT_DIMMED_INTENSITY - 1);
+      setBrightness(0xFF >> max_intensity - dimmed_intensity - 1);
     }
     else
     {
@@ -120,7 +120,7 @@ void Backlights::pulsePattern()
   float val = 1 + abs(sin(2 * M_PI * millis() / pulse_length_millis)) * 254;
   if (dimming)
   {
-    val = val * BACKLIGHT_DIMMED_INTENSITY / 7;
+    val = val * dimmed_intensity / 7;
   }
   else
   {
@@ -142,7 +142,7 @@ void Backlights::breathPattern()
 
   if (dimming)
   {
-    val = val * BACKLIGHT_DIMMED_INTENSITY / 7;
+    val = val * dimmed_intensity / 7;
   }
   else
   {
@@ -162,7 +162,7 @@ void Backlights::breathPattern()
 void Backlights::testPattern()
 {
   const uint8_t num_colors = 4; // or 3 if you don't want black
-  uint8_t num_states = NUM_BACKLIGHT_LEDS * num_colors;
+  uint8_t num_states = numPixels() * num_colors;
   uint8_t state = (millis() / test_ms_delay) % num_states;
 
   uint8_t digit = state / num_colors;
@@ -173,7 +173,7 @@ void Backlights::testPattern()
 
   if (dimming)
   {
-    setBrightness(0xFF >> max_intensity - (uint8_t)BACKLIGHT_DIMMED_INTENSITY - 1);
+    setBrightness(0xFF >> max_intensity - dimmed_intensity - 1);
   }
   else
   {
@@ -243,13 +243,13 @@ void Backlights::rainbowPattern()
 {
   // Divide by 3 to spread it out some, so the whole rainbow isn't displayed at once.
   // TODO Make this /3 a parameter
-  const uint16_t phase_per_digit = (max_phase / NUM_BACKLIGHT_LEDS) / 3;
+  const uint16_t phase_per_digit = (max_phase / numPixels()) / 3;
 
   // Rainbow roatation speed now configurable
   uint16_t duration = uint16_t(round(getRainbowDuration() * 1000));
   uint16_t phase = uint16_t(round(float(millis() % duration) / duration * max_phase));
 
-  for (uint8_t digit = 0; digit < NUM_BACKLIGHT_LEDS; digit++)
+  for (uint8_t digit = 0; digit < numPixels(); digit++)
   {
     // Shift the phase for this LED.
     uint16_t my_phase = (phase + digit * phase_per_digit) % max_phase;
@@ -257,11 +257,14 @@ void Backlights::rainbowPattern()
   }
   if (dimming)
   {
-#if BACKLIGHT_DIMMED_INTENSITY > 0
-    setBrightness(0xFF >> max_intensity - (uint8_t)BACKLIGHT_DIMMED_INTENSITY - 1);
-#else // turn off backlight if intensity is 0
-    setBrightness(0);
-#endif
+    if (dimmed_intensity > 0)
+    {
+      setBrightness(0xFF >> max_intensity - dimmed_intensity - 1);
+    }
+    else
+    { // turn off backlight if intensity is 0
+      setBrightness(0);
+    }
   }
   else
   {
