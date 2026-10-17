@@ -1,0 +1,36 @@
+# Context guard for AI coding agents and ripgrep-based tooling (file listing, search, @ mentions).
+# NOTE: This does NOT affect Git tracking. firmware/*.bin intentionally stays in the repository.
+
+# PlatformIO build state and library cache
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Vendored TFT_eSPI sample sketches (313 files, ~29 MB) - open only for example-related tasks
+lib/modified_TFT_eSPI/examples/
+
+# Graphic/animation source assets (~22 MB, binary)
+assets/
+
+# Large documentation media (docs/**/*.md, *.txt and *.url stay readable)
+docs/**/*.jpg
+docs/**/*.png
+docs/**/*.pdf
+docs/**/*.docx
+docs/**/*.xlsx
+docs/**/*.kicad_sch
+
+# Binary artifacts and media
+*.bin
+*.exe
+*.bmp
+*.clk
+*.jpg
+*.jpeg
+*.png
+*.pdf
+
+# Caches / generated editor state
+.vscode/c_cpp_properties.json
+__pycache__/
+*.pyc
