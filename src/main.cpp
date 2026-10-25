@@ -160,7 +160,8 @@ uint8_t GeoLocAttemptDay = 0;
 bool GeoLocNeedsUpdate = false;
 void processGeoLocUpdate(void);
 void checkUpdateGeoLocNeeded(void);
-uint8_t yesterday = 0;
+uint8_t GeoLocLastQueryDay = 0;    // day of month of the last geolocation query (dedupe per window slot)
+uint8_t GeoLocLastQueryHour = 255; // local hour of the last geolocation query (dedupe per window slot)
 #endif
 
 #ifdef DIMMING
@@ -1092,14 +1093,24 @@ bool GetGeoLocationTimeZoneOffset()
 #ifdef GEOLOCATION_ENABLED
 void checkUpdateGeoLocNeeded()
 {
-  uint8_t currentDay = uclock.getDay(); // Get current day of month
-  const uint8_t currentWeekday = weekday(uclock.loop_time);
-  const bool isSunday = (currentWeekday == 1); // TimeLib defines Sunday as weekday 1
+  const uint8_t currentDay = uclock.getDay();           // Get current day of month
+  const uint8_t currentHour = uclock.getHour24();       // local hour, based on the (maybe stale) stored offset
+  const uint8_t currentWeekday = weekday(uclock.loop_time + uclock.getTimeZoneOffset()); // local weekday (TimeLib defines Sunday as weekday 1)
+  const bool isSunday = (currentWeekday == 1);
 
-  // Only on Sundays, and only if the day has changed since last successful update
-  // `isGeoLocWindow` is set to true between 03:00:05 and 03:00:59, because daylight saving time changes usually happen at 03:00 local time.
+  // Only on Sundays. `isGeoLocTimeWindow` is set to true between :00:05 and :00:59 of the hours 02, 03 and 04
+  // (local time), because daylight saving time changes happen in that range.
+  // While the stored offset is still the old one, the displayed hour is off by one hour
+  // (ahead when switching to winter time, behind when switching to summer time). Three slots are used to
+  // catch the transition in both directions: switching to summer time becomes visible at 02:00 and
+  // switching to winter time at 03:00 (both in displayed local time).
+  // Every slot is queried only once (see GeoLocLastQueryDay/GeoLocLastQueryHour), so a successful query in an
+  // earlier slot does NOT prevent the decisive later slot from being queried - an early query can still return
+  // the valid old offset, because the transition has not happened yet.
   // GeoLoc update mechanism in the main 'loop free time slot' is then triggered, because `GeoLocNeedsUpdate` is set to true here.
-  const bool isGeoLocWindow = isSunday && (currentDay != yesterday) && (uclock.getHour24() == 3) && (uclock.getMinute() == 0) && (uclock.getSecond() > 5);
+  const bool isGeoLocTimeWindow = (currentHour >= 2) && (currentHour <= 4) && (uclock.getMinute() == 0) && (uclock.getSecond() > 5);
+  const bool slotAlreadyQueried = (GeoLocLastQueryDay == currentDay) && (GeoLocLastQueryHour == currentHour);
+  const bool isGeoLocWindow = isSunday && !slotAlreadyQueried && isGeoLocTimeWindow;
 
   if (!GeoLocNeedsUpdate && isGeoLocWindow)
   {
@@ -1149,6 +1160,11 @@ void processGeoLocUpdate()
 
   Serial.println("Daily update for geolocation timezone offset...");
 
+  // Remember this window slot, so it is not queried again (this also prevents repeated queries within the
+  // same minute). The later slots of the day stay available, because a DST transition may not be visible yet.
+  GeoLocLastQueryDay = today;
+  GeoLocLastQueryHour = uclock.getHour24();
+
   const int32_t GeoLocTZOffsetOld = uclock.getTimeZoneOffset() / 3600;
   Serial.print("Current TZ offset (hours): ");
   Serial.println(GeoLocTZOffsetOld);
@@ -1156,6 +1172,30 @@ void processGeoLocUpdate()
   Serial.println("Querying GeoLocation API...");
   if (GetGeoLocationTimeZoneOffset())
   {
+    // GetGeoLocationTimeZoneOffset() only fills GeoLocTZoffset (in hours), it does not touch the clock!
+    // So the fetched offset has to be applied and persisted here, otherwise the clock keeps running
+    // with the offset from the last boot and never follows a daylight saving time change.
+    const time_t newOffsetSeconds = static_cast<time_t>(lround(GeoLocTZoffset * 3600.0));
+    if (newOffsetSeconds != uclock.getTimeZoneOffset())
+    {
+      Serial.print("Applying new TZ offset (seconds): ");
+      Serial.println(static_cast<int32_t>(newOffsetSeconds));
+
+      uclock.setTimeZoneOffset(newOffsetSeconds); // apply the fetched offset to the running clock
+      uclock.loop();                              // recompute local_time with the new offset
+
+      if (tfts.isEnabled())
+      {
+        updateClockDisplay(TFTs::force); // redraw all digits with the new local time
+      }
+#ifdef DIMMING
+      checkDimmingNeeded(); // a timezone change can move the clock into or out of night time
+#endif
+
+      Serial.println("Saving config! Triggered by timezone change...");
+      stored_config.save(); // persist the new offset so it survives a reboot
+    }
+
     const int32_t GeoLocTOffsetNew = uclock.getTimeZoneOffset() / 3600;
     Serial.print("New TZ offset (hours): ");
     Serial.println(GeoLocTOffsetNew);
@@ -1163,8 +1203,7 @@ void processGeoLocUpdate()
     GeoLocNeedsUpdate = false;
     GeoLocFailedAttempts = 0;
     GeoLocNextRetryMillis = 0;
-    yesterday = today;
-    return; // success for today!
+    return; // success for this window slot!
   }
 
   GeoLocFailedAttempts++;
