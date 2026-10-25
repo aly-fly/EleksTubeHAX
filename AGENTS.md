@@ -18,6 +18,23 @@
 - **Never stash, pop, reset, or run any other git operation** without explicit permission.
 - **Any action that changes the branch or working tree (edit, commit, push, stash, pop, reset, checkout) requires the user's approval first.**
 - `include/_USER_DEFINES.h` contains WiFi/MQTT credentials. It may be read for build context, but **never print, quote, copy or commit its secret values**. Use `include/_USER_DEFINES - empty.h` when showing configuration examples.
+- **No machine-local or private values in tracked files.** COM ports, credentials, host names and
+  machine-specific paths never go into `platformio.ini`, `AGENTS.md`, `_USER_DEFINES - empty.h`,
+  docs, code or commit messages. Never add `upload_port` / `monitor_port` to the tracked
+  `platformio.ini`; pass the port on the command line instead
+  (`pio run -e <env> -t upload --upload-port <PORT>`).
+- **Local-only control files** are `.local/**` (machine-specific values such as the COM port map,
+  plus local procedures) and `include/_USER_DEFINES.h`. They may be read when a task needs their
+  content, but their values must never be printed, quoted, copied into tracked files or committed.
+  Editor- and agent-specific scratch files (rule folders, prompt/instruction files of any AI
+  coding tool) are git-ignored too and are not part of the project - see `.git/info/exclude`.
+- **Building is allowed, flashing is not.** `pio run -e <env>` may be run freely. `-t upload`,
+  `-t uploadfs`, `pio device monitor` and every `esptool` call happen only after an explicit user
+  request and only with the port the user names. The local procedure is
+  `.local/flash-and-monitor.md` (local only; if it is absent, ask the user for the port and the
+  download-mode procedure).
+- **Never use `--erase-all` or `write_flash` from offset `0x0`** without explicit confirmation; it
+  wipes the LittleFS clock faces and any backup stored on the clock.
 
 ## Guardrails
 
