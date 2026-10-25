@@ -28,6 +28,12 @@
   content, but their values must never be printed, quoted, copied into tracked files or committed.
   Editor- and agent-specific scratch files (rule folders, prompt/instruction files of any AI
   coding tool) are git-ignored too and are not part of the project - see `.git/info/exclude`.
+- **Local builds use the personal user config.** Firmware that is built for the user's own clocks
+  must be built with the git-ignored `include/_USER_DEFINES.h` holding the **personal** values -
+  never with the repository template. Only builds meant for publication (release, PR, CI
+  reproduction) use `include/_USER_DEFINES - empty.h` as-is. Local procedure and helper:
+  `.local/user-config.md`. When the template gains new switches/defines the personal file does
+  not know yet, point that out to the user before flashing.
 - **Building is allowed, flashing is not.** `pio run -e <env>` may be run freely. `-t upload`,
   `-t uploadfs`, `pio device monitor` and every `esptool` call happen only after an explicit user
   request and only with the port the user names. The local procedure is
