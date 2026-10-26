@@ -34,6 +34,7 @@
 #include "Backlights.h"
 #include "Clock.h"
 #include "TFTs.h"
+#include "SetupPortal.h"
 #ifdef MQTT_USE_TLS // For secure WiFi client
 #include <WiFiClientSecure.h>
 
@@ -79,6 +80,15 @@ bool loadCARootCert();
 
 // Variables
 char outbuf[64];
+
+#if defined(MQTT_HOME_ASSISTANT) && defined(WEB_SETUP_PORTAL)
+// Extra Home Assistant entities of the web setup build (timezone, night dimming).
+static void extraSubscribe();
+static bool extraReportDiscovery(JsonDocument &discovery, const char *deviceName);
+static bool extraHandleCommand(const char *topic, byte *payload, unsigned int length);
+static void extraReportState(bool force);
+extern uint32_t lastMQTTCommandExecuted;
+#endif
 
 uint32_t lastTimeSent = (uint32_t)(MQTT_REPORT_STATUS_EVERY_SEC * -1000);
 uint32_t LastTimeTriedToConnect = 0;
@@ -397,6 +407,9 @@ void MQTTReportState(bool forceUpdateEverything)
       LastSentRainbowSec = MQTTStatusRainbowSec;
     }
   }
+#ifdef WEB_SETUP_PORTAL
+  extraReportState(forceUpdateEverything);
+#endif
 #endif
 }
 
@@ -451,6 +464,12 @@ bool loadCARootCert()
 bool MQTTStart(bool restart)
 {
   MQTTConnected = false;
+#ifdef WEB_SETUP_PORTAL
+  if (hax.mqtt_host[0] == '\0')
+  {
+    return false; // no broker configured (yet): run the clock without MQTT
+  }
+#endif
   if (((millis() - LastTimeTriedToConnect) > (MQTT_RECONNECT_WAIT_SEC * 1000)) || (LastTimeTriedToConnect == 0))
   { // Try to connect to MQTT broker only if the time since last connection attempt is greater than the defined wait time (default 30 sec).
     if (restart)
@@ -467,7 +486,11 @@ bool MQTTStart(bool restart)
       Serial.print(":");
       Serial.println(MQTT_PORT);
 #endif
+#ifdef WEB_SETUP_PORTAL
+      MQTTclient.setServer(hax.mqtt_host, hax.mqtt_port);
+#else
       MQTTclient.setServer(MQTT_BROKER, MQTT_PORT);
+#endif
       MQTTclient.setCallback(MQTTCallback);
       MQTTclient.setBufferSize(2048);
 #ifdef MQTT_USE_TLS
@@ -486,8 +509,13 @@ bool MQTTStart(bool restart)
     Serial.println("Connecting to MQTT...");
     // Attempt to connect. Set the last will (LWT) message if the connection get lost.
     if (MQTTclient.connect(UniqueDeviceName, // MQTT client id
+#ifdef WEB_SETUP_PORTAL
+                           (hax.mqtt_user[0] != '\0') ? hax.mqtt_user : NULL, // MQTT username
+                           (hax.mqtt_user[0] != '\0') ? hax.mqtt_pass : NULL  // MQTT password
+#else
                            MQTT_USERNAME,    // MQTT username
                            MQTT_PASSWORD     // MQTT password
+#endif
 #ifndef MQTT_CLIENT_ID_FOR_SMARTNEST
                            ,
                            concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", ""), // Last will topic (rooted for HA/plain unified mode) because smartnest.cz broker does not interpret this
@@ -538,6 +566,9 @@ bool MQTTStart(bool restart)
     MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", TopicBreath, "/set", ""));
     MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", TopicPulse, "/set", ""));
     MQTTclient.subscribe(concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", TopicRainbow, "/set", ""));
+#ifdef WEB_SETUP_PORTAL
+    extraSubscribe();
+#endif
 #ifdef DEBUG_OUTPUT_MQTT
     Serial.println("DEBUG: subscribed to topics: ");
     Serial.printf("%s/%s/%s/set\n", MQTT_ROOT_TOPIC, UniqueDeviceName, TopicFront);
@@ -664,6 +695,12 @@ void MQTTCallback(char *topic, byte *payload, unsigned int length)
   }
   else // Process all other MQTT messages.
   {
+#ifdef WEB_SETUP_PORTAL
+    if (extraHandleCommand(topic, payload, length))
+    {
+      return; // one of the setup build's own entities
+    }
+#endif
     if (strcmp(topic, concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", TopicFront, "/set", "")) == 0) // Process "<root>/<device>/main/set"
     {                                                                                                                  // Process JSON for main set command
       JsonDocument doc;
@@ -1213,12 +1250,242 @@ bool MQTTReportDiscovery()
   if (!MQTTPublish(concat7_into(outbuf, "homeassistant/number/", UniqueDeviceName, "/", TopicRainbow, "/config", "", ""), &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
     return false;
 
+#ifdef WEB_SETUP_PORTAL
+  if (!extraReportDiscovery(discovery, DeviceNameForHA))
+    return false;
+#endif
+
   discovery.clear();
   delay(120);
   MQTTReportAvailability(MQTT_ALIVE_MSG_ONLINE); // Publish online status
 
   return true;
 }
+
+#ifdef WEB_SETUP_PORTAL
+//----------------------------------------------------------------------------
+// Extra entities: timezone, night dimming (the LED strip is set on the setup page).
+// Table driven: one row per entity. State and command messages use the same JSON format as the
+// other entities: {"state": ...}
+//----------------------------------------------------------------------------
+namespace
+{
+enum ExtraKind
+{
+  XSwitch,
+  XNumber
+};
+
+struct ExtraEntity
+{
+  const char *key; // topic name; keep short
+  const char *name;
+  const char *icon;
+  ExtraKind kind;
+  float min, max, step;
+  const char *unit;
+  const char *mode; // number entities: "slider" or "box"
+};
+
+const ExtraEntity extras[] = {
+    {"tz_auto", "Automatic timezone", "mdi:earth", XSwitch, 0, 1, 1, NULL, NULL},
+    {"tz_offset", "Timezone offset", "mdi:map-clock", XNumber, -12, 14, 0.25f, "h", "box"},
+    {"night_dimming", "Night dimming", "mdi:weather-night", XSwitch, 0, 1, 1, NULL, NULL},
+    {"night_start", "Night starts at hour", "mdi:weather-sunset-down", XNumber, 0, 23, 1, "h", "box"},
+    {"day_start", "Day starts at hour", "mdi:weather-sunset-up", XNumber, 0, 23, 1, "h", "box"},
+    {"night_screen", "Night screen brightness", "mdi:brightness-6", XNumber, 0, 255, 1, NULL, "slider"},
+    {"night_backlight", "Night backlight intensity", "mdi:brightness-4", XNumber, 0, 7, 1, NULL, "slider"},
+};
+const uint8_t NUM_EXTRAS = sizeof(extras) / sizeof(extras[0]);
+float extraLastSent[sizeof(extras) / sizeof(extras[0])];
+bool extraLastSentValid[sizeof(extras) / sizeof(extras[0])];
+char extraBuf[128]; // topic buffer (outbuf is too small for long topics)
+
+float extraGet(uint8_t i)
+{
+  switch (i)
+  {
+  case 0:
+    return hax.tz_auto ? 1 : 0;
+  case 1:
+    return (float)uclock.getTimeZoneOffset() / 3600.0f;
+  case 2:
+    return hax.night_enabled ? 1 : 0;
+  case 3:
+    return hax.night_start_hour;
+  case 4:
+    return hax.day_start_hour;
+  case 5:
+    return hax.night_screen_level;
+  case 6:
+    return hax.night_backlight_level;
+  }
+  return 0;
+}
+
+void extraSet(uint8_t i, float v)
+{
+  const ExtraEntity &e = extras[i];
+  if (v < e.min)
+    v = e.min;
+  if (v > e.max)
+    v = e.max;
+  switch (i)
+  {
+  case 0:
+    hax.tz_auto = (v >= 0.5f);
+    if (hax.tz_auto)
+      geolocRequestUpdateNow(); // look the timezone up again
+    break;
+  case 1:
+    hax.tz_auto = false; // setting the offset by hand switches the automatic lookup off
+    uclock.setTimeZoneOffset((time_t)lroundf(v * 4.0f) * 900); // quarter hour steps
+    lastMQTTCommandExecuted = millis(); // saves the clock's stored config shortly afterwards
+    dimmingSettingsChanged();           // hour changes with the timezone
+    break;
+  case 2:
+    hax.night_enabled = (v >= 0.5f);
+    dimmingSettingsChanged();
+    break;
+  case 3:
+    hax.night_start_hour = (uint8_t)v;
+    dimmingSettingsChanged();
+    break;
+  case 4:
+    hax.day_start_hour = (uint8_t)v;
+    dimmingSettingsChanged();
+    break;
+  case 5:
+    hax.night_screen_level = (uint8_t)v;
+    dimmingSettingsChanged();
+    break;
+  case 6:
+    hax.night_backlight_level = (uint8_t)v;
+    dimmingSettingsChanged();
+    break;
+  }
+  hax.markDirty(); // saved to flash a few seconds after the last change
+}
+
+const char *extraTopic(uint8_t i, const char *suffix)
+{
+  snprintf(extraBuf, sizeof(extraBuf), "%s/%s/%s%s", MQTT_ROOT_TOPIC, UniqueDeviceName, extras[i].key, suffix);
+  return extraBuf;
+}
+} // namespace
+
+static void extraSubscribe()
+{
+  for (uint8_t i = 0; i < NUM_EXTRAS; i++)
+  {
+    MQTTclient.subscribe(extraTopic(i, "/set"));
+    extraLastSentValid[i] = false;
+  }
+}
+
+static bool extraReportDiscovery(JsonDocument &discovery, const char *deviceName)
+{
+  for (uint8_t i = 0; i < NUM_EXTRAS; i++)
+  {
+    const ExtraEntity &e = extras[i];
+    discovery.clear();
+    discovery["device"]["identifiers"][0] = UniqueDeviceName;
+    discovery["device"]["manufacturer"] = DEVICE_MANUFACTURER;
+    discovery["device"]["model"] = DEVICE_MODEL;
+    discovery["device"]["name"] = deviceName;
+    discovery["device"]["sw_version"] = FIRMWARE_VERSION;
+    discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
+    discovery["device"]["connections"][0][0] = "mac";
+    discovery["device"]["connections"][0][1] = WiFi.macAddress();
+
+    snprintf(extraBuf, sizeof(extraBuf), "%s_%s", UniqueDeviceName, e.key);
+    discovery["unique_id"] = extraBuf;
+    discovery["object_id"] = extraBuf;
+    discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
+    discovery["entity_category"] = "config";
+    discovery["name"] = e.name;
+    discovery["icon"] = e.icon;
+    discovery["state_topic"] = extraTopic(i, "");
+    discovery["command_topic"] = extraTopic(i, "/set");
+    discovery["value_template"] = "{{ value_json.state }}";
+    if (e.kind == XSwitch)
+    {
+      discovery["state_on"] = "ON";
+      discovery["state_off"] = "OFF";
+      discovery["payload_on"] = "{\"state\":\"ON\"}";
+      discovery["payload_off"] = "{\"state\":\"OFF\"}";
+    }
+    else
+    {
+      discovery["command_template"] = "{\"state\":{{value}}}";
+      discovery["min"] = e.min;
+      discovery["max"] = e.max;
+      discovery["step"] = e.step;
+      discovery["mode"] = e.mode;
+      if (e.unit)
+        discovery["unit_of_measurement"] = e.unit;
+    }
+
+    delay(150);
+    snprintf(extraBuf, sizeof(extraBuf), "homeassistant/%s/%s/%s/config", e.kind == XSwitch ? "switch" : "number", UniqueDeviceName, e.key);
+    if (!MQTTPublish(extraBuf, &discovery, MQTT_HOME_ASSISTANT_RETAIN_DISCOVERY_MESSAGES))
+      return false;
+  }
+  return true;
+}
+
+static bool extraHandleCommand(const char *topic, byte *payload, unsigned int length)
+{
+  for (uint8_t i = 0; i < NUM_EXTRAS; i++)
+  {
+    if (strcmp(topic, extraTopic(i, "/set")) != 0)
+      continue;
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err)
+    {
+      Serial.printf("WARNING: JSON error in %s/set: %s\n", extras[i].key, err.c_str());
+      return true;
+    }
+    if (extras[i].kind == XSwitch)
+    {
+      if (doc["state"].is<const char *>())
+        extraSet(i, strcmp(doc["state"].as<const char *>(), MQTT_STATE_ON) == 0 ? 1 : 0);
+    }
+    else if (doc["state"].is<float>() || doc["state"].is<int>())
+    {
+      extraSet(i, doc["state"].as<float>());
+    }
+    // Report everything that changed (setting the timezone offset also switches "automatic timezone" off).
+    extraReportState(false);
+    return true;
+  }
+  return false;
+}
+
+static void extraReportState(bool force)
+{
+  for (uint8_t i = 0; i < NUM_EXTRAS; i++)
+  {
+    float v = extraGet(i);
+    if (!force && extraLastSentValid[i] && extraLastSent[i] == v)
+      continue;
+
+    JsonDocument state;
+    if (extras[i].kind == XSwitch)
+      state["state"] = (v >= 0.5f) ? MQTT_STATE_ON : MQTT_STATE_OFF;
+    else
+      state["state"] = v;
+
+    if (MQTTPublish(extraTopic(i, ""), &state, MQTT_RETAIN_STATE_MESSAGES))
+    {
+      extraLastSent[i] = v;
+      extraLastSentValid[i] = true;
+    }
+  }
+}
+#endif // WEB_SETUP_PORTAL
 #endif // MQTT_HOME_ASSISTANT
 
 bool MQTTReportAvailability(const char *status)
