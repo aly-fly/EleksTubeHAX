@@ -30,6 +30,12 @@ docs/**/*.kicad_sch
 *.png
 *.pdf
 
+# Machine-local values (COM port map, private paths) - keep them out of search results,
+# file listings and @ mentions. Read `.local/` explicitly only when a flash/monitor task needs it.
+# Agent rule/prompt files are deliberately NOT listed here: they are meant to be loaded by the
+# respective tool. Git-side protection for them lives in .git/info/exclude.
+.local/
+
 # Caches / generated editor state
 .vscode/c_cpp_properties.json
 __pycache__/
