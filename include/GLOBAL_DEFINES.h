@@ -307,9 +307,8 @@
 
 // 3-wire to DS1302 RTC.
 #ifdef IPSTUBE_S3
-// The S3 IPSTube keeps time via NTP; the classic DS1302 pins (incl. GPIO22)
-// do not exist on the ESP32-S3. Point these at valid, safe S3 GPIOs so the
-// code compiles. If your S3 board actually has a DS1302, set the real pins here.
+// The S3 IPSTube has no DS1302 and keeps time via NTP only: Clock.cpp uses the "no RTC" code path
+// for IPSTUBE_S3, so these pins are not used. They are only kept as valid placeholder S3 GPIOs.
 #define DS1302_SCLK (GPIO_NUM_40)
 #define DS1302_IO   (GPIO_NUM_41)
 #define DS1302_CE   (GPIO_NUM_39)
