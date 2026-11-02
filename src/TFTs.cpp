@@ -1,5 +1,6 @@
 #include "MQTT_client_ips.h"
 #include "TFTs.h"
+#include "SetupPortal.h"
 #include "WiFi_WPS.h"
 
 void TFTs::begin()
@@ -189,7 +190,11 @@ void TFTs::setDigit(uint8_t digit, uint8_t value, show_t show)
 
 #if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
       if (digit == SECONDS_TENS)
-        if (!MQTTConnected)
+        if (!MQTTConnected
+#ifdef WEB_SETUP_PORTAL
+            && hax.mqtt_host[0] != '\0' // no broker configured -> not an error
+#endif
+        )
         {
           showNoMqttStatus();
         }

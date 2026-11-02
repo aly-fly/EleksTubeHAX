@@ -28,6 +28,9 @@ public:
     utc_offset_hour,     // Change the UTC offset by an hour.
     utc_offset_15m,      // Change the UTC offset by 15 minutes.
     selected_graphic,    // Select clock "font" 0...9 -> first char in file name "00.bmp to 90.bmp".
+#ifdef WEB_SETUP_PORTAL
+    start_setup,         // open the WiFi / MQTT web setup page (long press)
+#endif
     // When there's more things to change in the menu, add them here.
     num_states
   };

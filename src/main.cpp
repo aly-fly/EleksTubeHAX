@@ -19,6 +19,7 @@
 #include "StoredConfig.h"
 #include "TFTs.h"
 #include "WiFi_WPS.h"
+#include "SetupPortal.h"
 
 #ifdef GEOLOCATION_ENABLED
 #include "IPGeolocation_AO.h"
@@ -171,6 +172,17 @@ uint8_t hour_old = 255;
 
 uint32_t lastMQTTCommandExecuted = (uint32_t)-1;
 
+#ifdef WEB_SETUP_PORTAL
+// Called from the Home Assistant entities (MQTT_client_ips.cpp) when a dimming setting changed.
+void dimmingSettingsChanged()
+{
+#ifdef DIMMING
+  backlights.setDimmedIntensity(hax.night_backlight_level);
+  hour_old = 255; // forces checkDimmingNeeded() to evaluate again
+#endif
+}
+#endif
+
 // Helper function, defined below.
 void updateClockDisplay(TFTs::show_t show = TFTs::yes);
 void setupMenu(void);
@@ -239,6 +251,13 @@ void setup()
   stored_config.begin();
   stored_config.load();
 
+#ifdef WEB_SETUP_PORTAL
+  hax.load(); // MQTT broker, strip, timezone mode, night dimming
+#ifdef HARDWARE_IPSTUBE_CLOCK
+  backlights.updateLength(hax.strip_fitted ? HAX_STRIP_LEDS : HAX_NO_STRIP_LEDS); // front LED strip set on the setup page
+#endif
+  backlights.setDimmedIntensity(hax.night_backlight_level);
+#endif
   backlights.begin(&stored_config.config.backlights);
 #ifndef NO_BUTTONS
   buttons.begin();
@@ -305,6 +324,10 @@ void setup()
 #endif
 
 #ifdef GEOLOCATION_ENABLED
+#ifdef WEB_SETUP_PORTAL
+  if (hax.tz_auto)
+#endif
+  {
   tfts.setTextColor(TFT_CYAN, TFT_BLACK);
   tfts.println("GeoLoc query...");
   if (GetGeoLocationTimeZoneOffset())
@@ -327,6 +350,7 @@ void setup()
     tfts.println("GeoLoc FAILED");
     Serial.println("GeoLoc failed!");
     tfts.setTextColor(TFT_WHITE, TFT_BLACK);
+  }
   }
 #endif // #ifdef GEOLOCATION_ENABLED
 
@@ -369,6 +393,9 @@ void loop()
 
   // Do all the maintenance work.
   WifiReconnect(); // If not connected to WiFi, attempt to reconnect
+#ifdef WEB_SETUP_PORTAL
+  hax.loop(); // delayed save of changed runtime settings
+#endif
 
 #if defined(MQTT_PLAIN_ENABLED) || defined(MQTT_HOME_ASSISTANT)
   MQTTLoopFrequently();
@@ -456,6 +483,14 @@ void loop()
     tfts.dimming = MQTTCommandMainBrightness;
     tfts.ProcessUpdatedDimming();
     updateClockDisplay(TFTs::force);
+#ifdef WEB_SETUP_PORTAL
+    // Remember it for the current period, so the hourly day/night check does not undo it (and it survives a restart).
+    if (isNightTime(uclock.getHour24()))
+      hax.night_screen_level = tfts.dimming;
+    else
+      hax.day_screen_level = tfts.dimming;
+    hax.markDirty();
+#endif
   }
 
   if (MQTTCommandBackBrightnessReceived)
@@ -889,6 +924,24 @@ void loop()
         tfts.println("Left=WPS");
       }
 #endif
+#ifdef WEB_SETUP_PORTAL
+      // WiFi + Home Assistant MQTT setup web page
+      else if (menu_state == Menu::start_setup)
+      {
+        if (menu_change != 0)
+        { // button was pressed (long press on a one-button clock)
+          Serial.println("Web setup request");
+          runSetupPortal(false); // restarts the clock when finished
+        }
+        setupMenu();
+        tfts.println("Web setup");
+#ifdef ONE_BUTTON_ONLY_MENU
+        tfts.println("Hold=start");
+#else
+        tfts.println("+/-=start");
+#endif
+      }
+#endif
     }
   } // if (menu.stateChanged())
 
@@ -942,15 +995,31 @@ void setupMenu()
 }
 
 #ifdef DIMMING
+#ifdef WEB_SETUP_PORTAL
+#define NIGHT_START_NOW (hax.night_start_hour)
+#define DAY_START_NOW (hax.day_start_hour)
+#define TFT_NIGHT_LEVEL_NOW (hax.night_screen_level)
+#define TFT_DAY_LEVEL_NOW (hax.day_screen_level)
+#else
+#define NIGHT_START_NOW (NIGHT_TIME)
+#define DAY_START_NOW (DAY_TIME)
+#define TFT_NIGHT_LEVEL_NOW (TFT_DIMMED_INTENSITY)
+#define TFT_DAY_LEVEL_NOW (255)
+#endif
+
 bool isNightTime(uint8_t current_hour)
 { // check the actual hour is in the defined "night time"
-  if (DAY_TIME < NIGHT_TIME)
+#ifdef WEB_SETUP_PORTAL
+  if (!hax.night_enabled || NIGHT_START_NOW == DAY_START_NOW)
+    return false;
+#endif
+  if (DAY_START_NOW < NIGHT_START_NOW)
   { // "Night" spans across midnight so it is split between two days
-    return (current_hour < DAY_TIME) || (current_hour >= NIGHT_TIME);
+    return (current_hour < DAY_START_NOW) || (current_hour >= NIGHT_START_NOW);
   }
   else
   { // "Night" starts after midnight, entirely contained within the current day
-    return (current_hour >= NIGHT_TIME) && (current_hour < DAY_TIME);
+    return (current_hour >= NIGHT_START_NOW) && (current_hour < DAY_START_NOW);
   }
 }
 
@@ -960,23 +1029,36 @@ void checkDimmingNeeded()
   isDimmingNeeded = current_hour != hour_old; // check, if the hour has changed since last loop (from time passing by or from timezone change)
   if (isDimmingNeeded)
   {
+#ifdef WEB_SETUP_PORTAL
+    // Only touch the brightness when switching between day and night (or when forced via hour_old = 255),
+    // not every hour - otherwise a brightness set from Home Assistant is undone at the start of each hour.
+    static int8_t lastNightMode = -1; // -1 = not applied yet
+    const int8_t nightMode = isNightTime(current_hour) ? 1 : 0;
+    const bool forced = (hour_old == 255);
+    hour_old = current_hour;
+    if (!forced && nightMode == lastNightMode)
+    {
+      return;
+    }
+    lastNightMode = nightMode;
+#endif
     Serial.print("Current hour = ");
     Serial.print(current_hour);
     Serial.print(", Night Time Start = ");
-    Serial.print(NIGHT_TIME);
+    Serial.print(NIGHT_START_NOW);
     Serial.print(", Day Time Start = ");
-    Serial.println(DAY_TIME);
+    Serial.println(DAY_START_NOW);
     if (isNightTime(current_hour))
     { // check if it is in the defined night time
       Serial.println("Set to night time mode (dimmed)!");
-      tfts.dimming = TFT_DIMMED_INTENSITY;
+      tfts.dimming = TFT_NIGHT_LEVEL_NOW;
       tfts.ProcessUpdatedDimming();
       backlights.setDimming(true);
     }
     else
     {
-      Serial.println("Set to day time mode (max brightness)!");
-      tfts.dimming = 255; // 0..255
+      Serial.println("Set to day time mode!");
+      tfts.dimming = TFT_DAY_LEVEL_NOW; // 0..255
       tfts.ProcessUpdatedDimming();
       backlights.setDimming(false); // restore the configured backlight intensity
     }
@@ -1093,6 +1175,10 @@ bool GetGeoLocationTimeZoneOffset()
 #ifdef GEOLOCATION_ENABLED
 void checkUpdateGeoLocNeeded()
 {
+#ifdef WEB_SETUP_PORTAL
+  if (!hax.tz_auto)
+    return; // timezone is set manually from Home Assistant
+#endif
   const uint8_t currentDay = uclock.getDay();           // Get current day of month
   const uint8_t currentHour = uclock.getHour24();       // local hour, based on the (maybe stale) stored offset
   const uint8_t currentWeekday = weekday(uclock.loop_time + uclock.getTimeZoneOffset()); // local weekday (TimeLib defines Sunday as weekday 1)
@@ -1129,8 +1215,26 @@ void checkUpdateGeoLocNeeded()
   }
 }
 
+#ifdef WEB_SETUP_PORTAL
+// Home Assistant switched "automatic timezone" on: look the timezone up again soon.
+void geolocRequestUpdateNow()
+{
+  GeoLocNeedsUpdate = true;
+  GeoLocFailedAttempts = 0;
+  GeoLocNextRetryMillis = 0;
+  GeoLocAttemptDay = uclock.getDay();
+}
+#endif
+
 void processGeoLocUpdate()
 {
+#ifdef WEB_SETUP_PORTAL
+  if (!hax.tz_auto)
+  {
+    GeoLocNeedsUpdate = false;
+    return;
+  }
+#endif
   if (!GeoLocNeedsUpdate)
   {
     return; // no update needed
