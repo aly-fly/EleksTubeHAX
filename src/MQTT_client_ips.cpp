@@ -1130,7 +1130,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["device_class"] = "speed";
+  discovery["unit_of_measurement"] = "bpm"; // No device_class: HA has none that accepts bpm
   discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicPulse, "", "", "", "");
   discovery["object_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicPulse, "", "", "", "");
   discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
@@ -1161,7 +1161,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["hw_version"] = DEVICE_HW_VERSION;
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
-  discovery["device_class"] = "frequency";
+  discovery["unit_of_measurement"] = "bpm"; // No device_class: HA has none that accepts bpm
   discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicBreath, "", "", "", "");
   discovery["object_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicBreath, "", "", "", "");
   discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
@@ -1193,6 +1193,7 @@ bool MQTTReportDiscovery()
   discovery["device"]["connections"][0][0] = "mac";
   discovery["device"]["connections"][0][1] = WiFi.macAddress();
   discovery["device_class"] = "duration";
+  discovery["unit_of_measurement"] = "s";
   discovery["unique_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicRainbow, "", "", "", "");
   discovery["object_id"] = concat7_into(outbuf, UniqueDeviceName, "_", TopicRainbow, "", "", "", "");
   discovery["availability_topic"] = concat7_into(outbuf, MQTT_ROOT_TOPIC, "/", UniqueDeviceName, "/", MQTT_ALIVE_TOPIC, "", "");
