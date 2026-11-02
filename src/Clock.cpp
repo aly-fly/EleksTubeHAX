@@ -5,7 +5,7 @@
 // begin RTC chip stuff
 //-----------------------------------------------------------------------------------------------
 
-#if defined(HARDWARE_SI_HAI_CLOCK) || defined(HARDWARE_IPSTUBE_CLOCK) // For Clocks with DS1302 chip (Si Hai or IPSTube)
+#if defined(HARDWARE_SI_HAI_CLOCK) || (defined(HARDWARE_IPSTUBE_CLOCK) && !defined(IPSTUBE_S3)) // For Clocks with DS1302 chip (Si Hai or classic IPSTube)
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 ThreeWire myWire(DS1302_IO, DS1302_SCLK, DS1302_CE); // IO, SCLK, CE
@@ -125,8 +125,9 @@ uint32_t RtcGet()
 #endif
   return returnvalue;
 } // RX8025T RTC chip end
-#elif defined(HARDWARE_MARVELTUBESMINI_CLOCK) || defined(HARDWARE_MARVELTUBES_GEN2_CLOCK)
-// No RTC chip present on this hardware — stub out all RTC calls to prevent
+#elif defined(HARDWARE_MARVELTUBESMINI_CLOCK) || defined(HARDWARE_MARVELTUBES_GEN2_CLOCK) || defined(IPSTUBE_S3)
+// No RTC chip present on this hardware (the ESP32-S3 IPSTube has no DS1302 either; reading the
+// unconnected pins would return a random time whenever NTP is not available) — stub out all RTC calls to prevent
 // Wire.begin() from reconfiguring GPIO21 (TFT_DC) and GPIO22 (LCD CS Hours Tens).
 void RtcBegin()
 {
