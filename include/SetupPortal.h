@@ -3,7 +3,7 @@
 
 /*
  * Runtime settings + web setup portal. Only compiled when WEB_SETUP_PORTAL is defined
- * (PlatformIO environment IPSTube_S3_HA_Web); other builds are not affected.
+ * (set for all clocks in platformio.ini [env]); builds without it are not affected.
  *
  * - WiFi credentials: entered on the setup web page; stored by the ESP32 WiFi driver itself.
  * - MQTT broker (Home Assistant): entered on the setup web page; stored in NVS namespace "hax_setup".

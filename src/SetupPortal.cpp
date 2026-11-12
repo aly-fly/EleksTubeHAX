@@ -49,6 +49,14 @@ static void copyTrimmed(char *dst, size_t dstSize, const char *src)
   dst[len] = '\0';
 }
 
+#ifdef MQTT_BROKER
+// True for a value really entered in _USER_DEFINES.h (not empty, not a "__enter_..." placeholder of the template).
+static bool isUserValue(const char *s)
+{
+  return s != nullptr && s[0] != '\0' && strncmp(s, "__", 2) != 0;
+}
+#endif
+
 //----------------------------------------------------------------------------
 // HaxSettings: persistent runtime settings
 //----------------------------------------------------------------------------
@@ -82,7 +90,8 @@ void HaxSettings::load()
     return;
   }
 
-  if (p.isKey("mq_host"))
+  const bool brokerStored = p.isKey("mq_host"); // false until the setup page (or a Home Assistant change) saved the settings once
+  if (brokerStored)
     p.getString("mq_host", mqtt_host, sizeof(mqtt_host));
   if (p.isKey("mq_user"))
     p.getString("mq_user", mqtt_user, sizeof(mqtt_user));
@@ -102,6 +111,20 @@ void HaxSettings::load()
   uint8_t bl = p.getUChar("ng_bl", night_backlight_level);
   night_backlight_level = (bl > 7) ? 7 : bl;
   p.end();
+
+#ifdef MQTT_BROKER
+  // Nothing saved yet: start with the broker from _USER_DEFINES.h, if real values were entered there
+  // (own builds). Builds from the template keep an empty broker. Only kept in RAM; it is written to
+  // NVS with the next save, and the setup page always overrides it.
+  if (!brokerStored && isUserValue(MQTT_BROKER))
+  {
+    copyTrimmed(mqtt_host, sizeof(mqtt_host), MQTT_BROKER);
+    mqtt_port = MQTT_PORT;
+    copyTrimmed(mqtt_user, sizeof(mqtt_user), isUserValue(MQTT_USERNAME) ? MQTT_USERNAME : "");
+    copyTrimmed(mqtt_pass, sizeof(mqtt_pass), isUserValue(MQTT_PASSWORD) ? MQTT_PASSWORD : "");
+    Serial.println("Setup: no saved MQTT broker, using the one from _USER_DEFINES.h.");
+  }
+#endif
 
   Serial.printf("Setup: loaded settings. MQTT broker: \"%s\":%u, strip: %s, auto timezone: %s, night dimming: %s (%02u:00-%02u:00)\n",
                 mqtt_host, mqtt_port, strip_fitted ? "yes" : "no", tz_auto ? "yes" : "no",

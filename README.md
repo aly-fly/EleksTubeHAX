@@ -997,16 +997,16 @@ You need to connect to the same MQTT broker like the clock and then will be able
 
 All MQTT messages from and to the clock are also traced out via the serial interface. So using a serial monitor while using the clock, gives also debug information. Make sure you enable the `DEBUG_OUTPUT_MQTT` before compilation and upload.
 
-### 5.6.6 IPSTube_S3_HA_Web: Home Assistant firmware with browser setup (ESP32-S3 IPSTube)
+### 5.6.6 Web setup: Home Assistant firmware with browser setup (all clocks)
 
-Firmware for the ESP32-S3 IPSTube clock and Home Assistant: flash it, then set up WiFi and the MQTT broker from a web page - no compiling needed for your own settings. PlatformIO environment `IPSTube_S3_HA_Web` (the web setup code is only compiled with `-DWEB_SETUP_PORTAL`, other clocks are not affected):
+Firmware for Home Assistant: flash it, then set up WiFi and the MQTT broker from a web page - no compiling needed for your own settings. The web setup is enabled for all clocks by `-D WEB_SETUP_PORTAL` in the `[env]` `build_flags` of `platformio.ini`. Comment that line out to get the classic build (WPS / hard coded WiFi, plain MQTT) back. The environment `IPSTube_S3_HA_Web` is kept for the ESP32-S3 IPSTube:
 
-* **First start** (no WiFi saved): the displays show "WEB SETUP". Join the open WiFi network named after the clock (e.g. `ipstube-a1b2c3`) with a phone and open `http://192.168.4.1` (most phones open it automatically). Enter the WiFi network, the Home Assistant MQTT broker (host, port, user, password) and whether the front LED strip is fitted, then press *Save and restart*. Password boxes: empty = keep the current one, `-` (MQTT) = no password.
+* **First start** (no WiFi saved): the displays show "WEB SETUP". Join the open WiFi network named after the clock (e.g. `ipstube-a1b2c3`) with a phone and open `http://192.168.4.1` (most phones open it automatically). Enter the WiFi network, the Home Assistant MQTT broker (host, port, user, password) and whether the front LED strip is fitted, then press *Save and restart*. Password boxes: empty = keep the current one, `-` (MQTT) = no password. Own builds: if `MQTT_HOME_ASSISTANT` and real broker values (not the `__enter_...` placeholders) are set in `_USER_DEFINES.h`, they are used as long as nothing was saved on the setup page yet.
 * **Later changes**: short presses through the clock menu to the last item *Web setup*, then hold the button. The setup network closes after 10 minutes. (The button is GPIO0 = BOOT, so holding it at power-up starts the download mode instead.)
 * **Home Assistant entities** in addition to the normal ones: automatic timezone, timezone offset (hours, quarter hour steps; setting it switches the automatic lookup off), night dimming on/off, night start hour, day start hour, night screen brightness, night backlight intensity. The main display brightness set from Home Assistant is kept (it is no longer reset to full brightness every hour). Settings are stored in the clock (NVS namespace `hax_setup`) 5 seconds after the last change.
 * The setup page is one gzip compressed page (~1 KB) served by the WebServer and DNSServer libraries of the ESP32 Arduino core. To change it, edit `tools/setup_page/setup_page.html` and run `python tools/setup_page/make_setup_page.py`.
-* Home Assistant (MQTT discovery) only; WPS, the generic/SmartNest MQTT mode and TLS stay options of the other environments.
-* Other clocks: the web setup is not tied to the IPSTube. Adding `-DWEB_SETUP_PORTAL` to the `build_flags` of another environment should give the same setup page and Home Assistant settings (the LED strip option only appears on the IPSTube; 80x160 displays use a smaller font). Only tested on the ESP32-S3 IPSTube so far - feedback for other clocks is welcome.
+* Home Assistant (MQTT discovery) only; WPS, the generic/SmartNest MQTT mode and TLS need the classic build (without `-D WEB_SETUP_PORTAL`).
+* All clocks: same setup page and Home Assistant settings (the LED strip option only appears on the IPSTube; 80x160 displays use a smaller font). Tested on the ESP32-S3 IPSTube; the other clocks are build tested only - feedback is welcome.
 
 
 ## 6\. Known problems/limitations, Notes

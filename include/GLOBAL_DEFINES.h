@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include "_USER_DEFINES.h"
 
-// ************* Web setup portal build (PlatformIO environment IPSTube_S3_HA_Web) *************
+// ************* Web setup portal build (-D WEB_SETUP_PORTAL, enabled for all clocks in platformio.ini [env]) *************
 // WiFi + MQTT broker are entered on a setup web page, the rest is controlled from Home Assistant.
 // So these settings of _USER_DEFINES.h are not used (or fixed) in this build:
 #ifdef WEB_SETUP_PORTAL
