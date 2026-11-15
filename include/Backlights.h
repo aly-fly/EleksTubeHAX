@@ -95,6 +95,12 @@ public:
     dimming = dim;
     pattern_needs_init = true;
   }
+  void setDimmedIntensity(uint8_t level)
+  {
+    dimmed_intensity = (level >= max_intensity) ? (max_intensity - 1) : level;
+    pattern_needs_init = true;
+  }
+  uint8_t getDimmedIntensity() { return dimmed_intensity; }
   uint8_t getEffectiveIntensity(); // intensity actually driven to the LEDs: night-time dimmed level or configured intensity
 
   // Helper methods
@@ -108,6 +114,11 @@ public:
 
 private:
   bool dimming = false;
+#ifdef BACKLIGHT_DIMMED_INTENSITY
+  uint8_t dimmed_intensity = BACKLIGHT_DIMMED_INTENSITY; // level used at night (runtime changeable)
+#else
+  uint8_t dimmed_intensity = 1;
+#endif
   bool pattern_needs_init;
   bool off;
 
