@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clock setup</title>
+<style>
+body{font-family:sans-serif;margin:0;background:#111;color:#eee}
+main{max-width:420px;margin:auto;padding:16px}
+h1{font-size:1.3em}h2{font-size:1em;margin:20px 0 4px;color:#9cf}
+label{display:block;margin-top:10px;font-size:.9em}
+input{width:100%;box-sizing:border-box;padding:9px;margin-top:3px;font-size:1em;border-radius:6px;border:1px solid #555;background:#222;color:#eee}
+input[type=checkbox]{width:auto;margin-right:8px}
+button{margin-top:18px;width:100%;padding:12px;font-size:1em;border:0;border-radius:6px;background:#2a7;color:#fff}
+small{color:#999}a{color:#9cf}
+#nets button{width:auto;margin:6px 6px 0 0;padding:7px 10px;background:#335;font-size:.9em}
+</style></head><body><main>
+<h1>Clock setup</h1>
+<form method="post" action="/save">
+<h2>WiFi</h2>
+<label>Network <small id="sc">(searching...)</small><input name="ssid" id="ssid" required></label>
+<div id="nets"></div>
+<label>Password <small>empty = keep current</small><input name="pass" type="password"></label>
+<h2>Home Assistant MQTT broker</h2>
+<label>Host (IP address or name) <small>empty = no MQTT</small><input name="host" id="host"></label>
+<label>Port<input name="port" id="port" type="number" min="1" max="65535" value="1883"></label>
+<label>User<input name="user" id="user"></label>
+<label>Password <small>empty = keep, - = none</small><input name="mpass" type="password"></label>
+<div id="so" hidden><h2>Clock</h2>
+<label><input name="strip" id="strip" type="checkbox" value="1">LED strip fitted along the front</label></div>
+<button>Save and restart</button>
+</form>
+<p><a href="/exit">Close without changes</a></p>
+</main><script>
+function $(i){return document.getElementById(i)}
+fetch('/cfg').then(r=>r.json()).then(c=>{$('ssid').value=c.ssid;$('host').value=c.host;$('port').value=c.port;$('user').value=c.user;$('strip').checked=c.strip;$('so').hidden=!c.stripopt});
+fetch('/scan').then(r=>r.json()).then(n=>{n.forEach(s=>{var b=document.createElement('button');b.type='button';b.textContent=s;b.onclick=()=>{$('ssid').value=s};$('nets').appendChild(b)});$('sc').textContent='('+n.length+' found, tap one)'}).catch(()=>{$('sc').textContent=''});
+</script></body></html>
