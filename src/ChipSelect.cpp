@@ -91,7 +91,7 @@ void ChipSelect::setEnabled(bool enabled) {}
 #ifdef HARDWARE_IPSTUBE_CLOCK
 // Define the pins for each LCD's enable wire
 // The order is from left to right, so the first pin is for the seconds ones, the last for the hours tens
-#ifdef IPSTUBE_S3
+#ifdef IPSTUBE_GEN3
 // ESP32-S3 IPSTube (IPSTubeA_III) direct-GPIO chip selects.
 const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_3, GPIO_NUM_8, GPIO_NUM_18, GPIO_NUM_17, GPIO_NUM_16, GPIO_NUM_15};
 #else
@@ -103,7 +103,7 @@ const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_3, GPIO_NUM_8, GPIO_NUM_18, GPIO
 // LCD6 is the fifth from the left  - hours one   - pin 18 as GPIO12
 // LCD7 is the rightmost one        - hours ten   - pin 20 as GPIO13
 const int lcdEnablePins[NUM_DIGITS] = {GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_12, GPIO_NUM_13};
-#endif // IPSTUBE_S3
+#endif // IPSTUBE_GEN3
 const int numLCDs = NUM_DIGITS;
 #endif
 

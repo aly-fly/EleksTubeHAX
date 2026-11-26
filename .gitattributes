@@ -49,3 +49,7 @@ scripts/**    text
 *.kicad_sch   binary
 *.xcf         binary
 *.clk         binary
+
+# PlatformIO regenerates this file on every start using OS-native line endings;
+# no fixed eol keeps it from showing up as modified
+.vscode/extensions.json text -eol

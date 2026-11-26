@@ -28,6 +28,8 @@
 
 * **IPSTube Clock - Model H401 and H402**
 
+  * With classic ESP32 chip and with ESP32-S3 chip (newer boards)
+
   * With and without bottom LED stripe
 
   * With and without hardware dimming
@@ -68,7 +70,7 @@ Ensure the seller has a good reputation and offers a kind of return guarantee to
 
 ## 2\. Mainboard/PCB views
 
-EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg)
+EleksTube IPS - original Version - with hardware modification ![EleksTube IPS clock](/docs/ImagesMD/EleksTube_original_PCB.jpg) EleksTube IPS - Gen2 (EleksTube IPS Classic Edition/Pro/PR1/PR2) ![EleksTube IPS clock - Gen2](/docs/ImagesMD/EleksTube_Gen2_PCB.jpg) SI HAI IPS ![SI HAI IPS clock](/docs/ImagesMD/SI_HAI_ips_clock.jpg) Xunfeng IPS Clock ![Xunfeng IPS Clock](/docs/ImagesMD/Xunfeng_IPS_clock_PCB.jpg) NovelLife SE ![NovelLife SE clock](/docs/ImagesMD/NovelLife_SE.jpg) PunkCyber IPS ![PunkCyber / RGB Glow tube](/docs/ImagesMD/PunkCyber_IPS_clock_PCB.jpg) IPSTube - H401 ![IPSTube clock - Model H401](/docs/ImagesMD/IPSTUBE_H401_PCB.jpg) IPSTube - H402 ![IPSTube clock - Model H402](/docs/ImagesMD/IPSTUBE_H402_PCB.jpg) IPSTube - H402 with ESP32-S3 ![IPSTube clock - Model H402 with ESP32-S3](/docs/ImagesMD/IPSTUBE_H402_S3_PCB.jpg)
 MarvelTubes ![MarvelTubes clock](/docs/ImagesMD/MarvelTubes_clock_PCB.jpg)
 MarvelTubes Gen2 ![MarvelTubes Gen2 clock](/docs/ImagesMD/MarvelTubes_Gen2_clock_PCB.jpg)
 MarvelTubes Mini ![MarvelTubes Mini clock](/docs/ImagesMD/MarvelTubesMini_clock_PCB.jpg)
@@ -88,7 +90,7 @@ For detailed pictures for most of the clocks see the `docs` subdirectory.
 
 * WiFi connectivity with NTP server synchronization
 
-* Supports either WPS connection or hardcoded WiFi credentials (from code)
+* WiFi and MQTT broker set up on a web page served by the clock (default, see "Web setup"); classic build: WPS connection or hardcoded WiFi credentials (from code)
 
 * Automatic time zone and Daylight Saving adjustment using IP-based geolocation APIs (supports multiple providers)
 
@@ -98,7 +100,7 @@ For detailed pictures for most of the clocks see the `docs` subdirectory.
 
 * RGB backlights (wall lights) for nice ambient light with multiple modes ("Off", "Test", "Constant", "Rainbow", "Pulse" and "Breath")
 
-* Dimming of the displays and backlights during the night time (start and end time configurable in code)
+* Dimming of the displays and backlights during the night time (start and end time changeable from Home Assistant; classic build: configurable in code)
 
 * Turning displays on and off (not supported on all clock versions)
 
@@ -126,7 +128,7 @@ For detailed pictures for most of the clocks see the `docs` subdirectory.
 
 ### 3.1 Home Assistant integration with extensive MQTT features
 
-If activated in the code, clock can be remote controlled via Home Assistant - one of the leading free home automation solutions (see [Home Assistant Homepage](https://www.home-assistant.io)).
+Enabled by default (web setup build), the clock can be remote controlled via Home Assistant - one of the leading free home automation solutions (see [Home Assistant Homepage](https://www.home-assistant.io)).
 
 Features:
 
@@ -148,6 +150,10 @@ Features:
 * **Clock settings**
   * Toggle 12/24-hour format
   * Enable/disable blank zeros
+* **Time zone and night mode** (web setup build only)
+  * Automatic time zone on/off and manual time zone offset (hours, quarter hour steps)
+  * Night dimming on/off, night start hour, day start hour
+  * Night screen brightness and night backlight intensity
 
 ### 3.2 Clock specific features
 
@@ -165,13 +171,19 @@ Some clock models have specific functionalities or hardware specials which are o
 
 * Uses a dedicated PlatformIO environment (`IPSTube`) with the `partition_8MB.csv` layout and custom board definition found in `boards/`.
 
+* Both models exist with two different chips, which look the same from the outside:
+  * **ESP32** boards with DS1302 RTC and backup battery. Environment: `IPSTube`.
+  * **ESP32-S3** boards (since 2026), different pinout, no RTC (time via NTP only). Environment: `IPSTube_Gen3` with the custom board definition `esp32s3_ipstube_8MB`.
+
+* esptool shows the chip when it connects (e.g. backup script): `ESP32-D0WD...` -> `IPSTube`, `ESP32-S3...` -> `IPSTube_Gen3`.
+
 ##### 3.2.2.1 One button menu
 
 * The clock has only one button, so there is a special menu mode active for this model.
 
 ##### 3.2.2.2 Color LED stripe
 
-* Some versions of this model have a LED stripe with 28 RGB LEDs installed on the bottom.
+* Some versions of this model have a LED stripe with 28 RGB LEDs installed on the bottom. With the web setup build it is switched on with the option *LED strip fitted* on the setup page.
 
 ##### 3.2.2.3 Dimmable displays
 
@@ -305,9 +317,49 @@ More info can be found in the `firmware` subdirectory in the [README.MD](firmwar
 
 * How to flash the firmware file
 
+After flashing, continue with the next section to connect the clock to your WiFi and Home Assistant.
+
 If you want more features and configure the firmware, continue reading and check section "How to build this firmware".
 
-### 4.4 Restore backup
+### 4.4 First start: Web setup
+
+The pre-built firmware images and all self-built firmware with the default settings contain the **web setup**: WiFi and the MQTT broker of your Home Assistant are set up from a web page served by the clock - no compiling needed for your own settings. It is enabled for all clocks by `-D WEB_SETUP_PORTAL` in the `[env]` `build_flags` of `platformio.ini`. Comment that line out to get the classic build (WPS / hard coded WiFi, plain MQTT) back.
+
+#### 4.4.1 First start
+
+When no WiFi is saved on the clock (first start after flashing; `write_flash --erase-all` clears the WiFi and setup data, so this also happens after every flash with the CMD files):
+
+* The displays show "WEB SETUP" and the name of an open WiFi network, named after the clock (e.g. `ipstube-a1b2c3`).
+* Join this network with a phone or PC and open `http://192.168.4.1` (most phones open it automatically).
+* Enter the WiFi network, the Home Assistant MQTT broker (host, port, user, password) and - IPSTube only - whether the front LED strip is fitted, then press *Save and restart*.
+* Password boxes: empty = keep the current one, `-` (MQTT) = no password.
+* If nothing is entered within 15 minutes, the clock closes the setup network and continues without WiFi (the displays show "No WiFi! Menu > Web setup").
+* Own builds: if `MQTT_HOME_ASSISTANT` and real broker values (not the `__enter_...` placeholders) are set in `_USER_DEFINES.h`, they are used as long as nothing was saved on the setup page yet.
+
+#### 4.4.2 Later changes
+
+Open the clock menu, go to the last menu item *Web setup* and start it:
+
+| Clock | Start the web setup |
+| --- | --- |
+| Clocks with four buttons | Go to *Web setup* with the Mode button, then press Left or Right (`+/-=start`) |
+| IPSTube (one button) | Short presses to *Web setup*, then hold the button (`Hold=start`) |
+| D'Esign (touch rings) | Long press right to *Web setup*, then tap left or right |
+| NovelLife SE (gesture sensor) | Gesture *up* or *far* (= Mode) to *Web setup*, then gesture *left* or *right* |
+
+The setup network started from the menu closes after 10 minutes. On the IPSTube the button is GPIO0 (BOOT): holding it while plugging in the power starts the download mode instead of the clock.
+
+#### 4.4.3 Home Assistant settings
+
+In addition to the normal entities (see "Home Assistant integration"), the web setup build offers: automatic timezone, timezone offset (hours, quarter hour steps; setting it switches the automatic lookup off), night dimming on/off, night start hour, day start hour, night screen brightness, night backlight intensity. The main display brightness set from Home Assistant is kept (it is no longer reset to full brightness every hour). Settings are stored in the clock (NVS namespace `hax_setup`) 5 seconds after the last change.
+
+#### 4.4.4 Notes
+
+* Home Assistant (MQTT discovery) only; WPS, the generic/SmartNest MQTT mode and TLS need the classic build (without `-D WEB_SETUP_PORTAL`).
+* All clocks: same setup page and Home Assistant settings (the LED strip option only appears on the IPSTube; 80x160 displays use a smaller font). Tested on the ESP32-S3 IPSTube; the other clocks are build tested only - feedback is welcome.
+* The setup page is one gzip compressed page (~1 KB) served by the WebServer and DNSServer libraries of the ESP32 Arduino core. To change it, edit `tools/setup_page/setup_page.html` and run `python tools/setup_page/make_setup_page.py`.
+
+### 4.5 Restore backup
 
 You can write back your original firmware by modyfing the file `_ESP32 write flash.cmd`.
 
@@ -319,7 +371,7 @@ You can write back your original firmware by modyfing the file `_ESP32 write fla
 
 * Check if clock is working
 
-### 4.5 Known backup problems
+### 4.6 Known backup problems
 
 #### COM port problems
 
@@ -333,7 +385,7 @@ There are a lot of possible issues known with so called "virtual COM ports". Som
 
 For more info ask your favorite search engine or AI Chatbot :)
 
-### 4.6 Lost firmware file
+### 4.7 Lost firmware file
 
 If you lost your original firmware file and wants to restore the original firmware you normally have a problem, because even if you get a backup file from another user, it is locked to the MAC address of the other ESP32 MAC. Under some conditions, it should be possible to change the encoded MAC address in the firmware. This worked for EleksTube Gen1 clocks. See [Issue 8](https://github.com/aly-fly/EleksTubeHAX/issues/8).
 
@@ -377,7 +429,7 @@ In short:
 
 The EspressIF 32 development platform for PlatformIO is required to support the ESP32 microcontroller. It will be installed automatically when this project is opened in VSCode/PlatformIO or if the first build is triggered. It will take a while - observe status messages in the bottom right corner.
 
-Tested on version 7.0.1 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
+Tested on version 7.1.3 from the [PlatformIO registry](https://registry.platformio.org/platforms/platformio/espressif32).
 
 It is possible that the project also works with ESP32 platform modules from other sources (like Tasmota or PIOArduino), but it is not recommended!
 
@@ -387,11 +439,16 @@ The PIO build environments for this project are named after each clock (e.g. `El
 
 ##### Custom boards
 
-The IPSTube clocks need to use the `IPSTube` environment with a custom board definition named `esp32dev8MB` in the `boards` folder for its 8MB flash hardware and the slower flash chips.
-The MarvelTubes clock uses the `MarvelTubes` environment with the custom board definition `esp32devs2marveltubes` for its 16MB flash and ESP32-S2 hardware.
-The MarvelTubes Gen2 clock uses the `MarvelTubes_Gen2` environment with the custom board definition `esp32devmarveltubesgen2` for its 16MB flash and standard ESP32-based hardware.
-The MarvelTubes Mini clock uses the `MarvelTubesMini` environment with the custom board definition `esp32devc3minimarveltubesmini` for its ESP32-C3-based hardware.
-The Xunfeng clock uses the `Xunfeng` environment with the custom board definition `esp32devS2` for its ESP32-S2 hardware.
+Some clocks use a custom board definition from the `boards` folder:
+
+| environment | board definition | reason |
+| --- | --- | --- |
+| `IPSTube` | `esp32devipstube` | 8MB flash, slower flash chips (DIO, 40 MHz) |
+| `IPSTube_Gen3` | `esp32s3_ipstube_8MB` | ESP32-S3, 8MB flash |
+| `Xunfeng` | `esp32devs2xunfeng` | ESP32-S2 |
+| `MarvelTubes` | `esp32devs2marveltubes` | ESP32-S2, 16MB flash |
+| `MarvelTubes_Gen2` | `esp32devmarveltubesgen2` | ESP32, 16MB flash |
+| `MarvelTubesMini` | `esp32devc3minimarveltubesmini` | ESP32-C3 |
 
 #### Partition sizes
 
@@ -399,8 +456,8 @@ Flash partition size settings are already configured in the following files.
 
 | filename | environment | flash size | app part size | data part size |
 | --- | --- | --- | --- | --- |
-| `partition_4MB.csv` | All clocks with 4MB flash | 4.0 MB | 1.2 MB | 2.8 MB |
-| `partition_8MB.csv` | IPSTube | 8.0 MB | 1.2 MB | 6.8 MB |
+| `partition_4MB.csv` | EleksTube, EleksTube_Gen2, SI_HAI, Xunfeng, NovelLife, PunkCyber, MarvelTubesMini, DEsign | 4.0 MB | 1.2 MB | 2.8 MB |
+| `partition_8MB.csv` | IPSTube, IPSTube_Gen3 | 8.0 MB | 1.2 MB | 6.8 MB |
 | `partition_16MB.csv` | MarvelTubes, MarvelTubes Gen2 | 16.0 MB | 2.0 MB | 13.3 MB |
 
 No OTA partition, one app partition, one data partition as LittleFS to store the images of the clock faces.
@@ -488,7 +545,9 @@ Make sure you configured everything for your clock in the `_USER_DEFINES.h` in t
 
 * Rename/Copy `_USER_DEFINES - empty.h` to `_USER_DEFINES.h`
 
-* Select if you prefer WPS or hardcoded credentials for WiFi (comment '#define WIFI\_USE\_WPS' line and enter your WiFi network credentials to the other lines and uncomment them).
+**Note on the web setup (default):** With `-D WEB_SETUP_PORTAL` in `platformio.ini` (default), WiFi and the MQTT broker are set up on the web page of the clock (see "First start: Web setup"), and night dimming and the automatic time zone are always built in and switched from Home Assistant. The WiFi (`WIFI_USE_WPS`, credentials), `MQTT_PLAIN_ENABLED`, `MQTT_USE_TLS` and the `DIMMING` / geolocation settings below only apply to the classic build (without `-D WEB_SETUP_PORTAL`). Real MQTT broker values in `_USER_DEFINES.h` are used as a fallback until a broker is saved on the setup page.
+
+* Classic build only: Select if you prefer WPS or hardcoded credentials for WiFi (comment '#define WIFI\_USE\_WPS' line and enter your WiFi network credentials to the other lines and uncomment them).
 
 * Select image type for the clock faces to store: Bitmap files (.BMP) or .CLK files (uncomment #define USE\_CLK\_FILES).
 
@@ -547,7 +606,7 @@ Most clocks will go into to the download mode automatically, when PlatformIO is 
 
 #### 5.4.1 Step 1 - Compile the code and upload the firmware file (to the app partition)
 
-Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, MarvelTubes, MarvelTubes_Gen2, MarvelTubesMini or DEsign) and upload the code via the "Upload" command in the matching environment for your clock.
+Compile the code via the "Build" command of PlatformIO extension for the clock environment you are using (e.g., EleksTube, EleksTube_Gen2, NovelLife, SI\_HAI, PunkCyber, IPSTube, IPSTube_Gen3, MarvelTubes, MarvelTubes_Gen2, MarvelTubesMini or DEsign) and upload the code via the "Upload" command in the matching environment for your clock.
 
 ![PlatformIO Build](/docs/ImagesMD/PlatformIOBuild.png)
 
@@ -561,7 +620,7 @@ Example output from a successful upload:
 
 ![PlatformIO Upload Output](/docs/ImagesMD/PlatformIOUploadOutput.png)
 
-**Note**: On auto-reset clocks, you'll see the clock boot up after upload. It will go into the setup routine and ask for WPS or connecting to the configured WiFi network. On some clocks, you need to to a manual reset (power off/on cycle).
+**Note**: On auto-reset clocks, you'll see the clock boot up after upload. It will go into the setup routine and open the web setup (see "First start: Web setup"); the classic build asks for WPS or connects to the configured WiFi network. On some clocks, you need to to a manual reset (power off/on cycle).
 
 **Note**: After the initially flash, your clock will **NOT SHOW ANYTHING** on the displays after the setup phase! This is, because it doesn't have any bitmaps to display on the flash memory yet!
 
@@ -603,7 +662,9 @@ Alternatively to build and uploading the app part and the data part in single st
 
 You still need to define all the settings/features you want to use in the `USER_DEFINES.h`, especially your clock type.
 
-Additionally, you need to uncomment the line `-D CREATE_FIRMWAREFILE` in the platformio.ini to enable a post-build step, to create the image for your clock.
+Additionally, you need to uncomment the line `-D CREATE_FIRMWAREFILE` in the platformio.ini to enable a post-build step, to create the image for your clock. Alternatively, set the flag only for one build without changing the file, like the CI does: `PLATFORMIO_BUILD_FLAGS="-D CREATE_FIRMWAREFILE" pio run` (PowerShell: `$env:PLATFORMIO_BUILD_FLAGS="-D CREATE_FIRMWAREFILE"; pio run`).
+
+The merge step runs `python -m esptool` with the Python of PlatformIO. If the build fails with `No module named esptool` or `No module named 'intelhex'`, install both into the PlatformIO Python environment (like the CI does): `pip install esptool intelhex` with the `pip` from `~/.platformio/penv` (Windows: `%USERPROFILE%\.platformio\penv\Scripts\pip.exe`).
 
 If you now build the project in PlatformIO via the "Build" command, the normal build will takes place and afterwards, a helper script will call the build for the LittleFS data partition and then merge the existing single files together to one file.
 
@@ -725,9 +786,11 @@ If you have your own clock face that'll work and want it listed here, please fil
 
 #### 5.6.4 Configure your WiFi network
 
-* For WPS: When prompted by the clock, press WPS button on your router (or in web-interface of your router). Clock will automatically connect to the WiFi and save data for future use. No need to input your credentials anywhere in the source code. The clock will remember WiFi connection details even if you unplug the clock.
+* Web setup (default): Enter your WiFi network on the setup page of the clock, see "First start: Web setup". Nothing has to be entered in the source code.
 
-* Without WPS: Add your WiFi credentials into `_USER_DEFINES.h` file before building the firmware.
+* Classic build (without `-D WEB_SETUP_PORTAL`), with WPS: When prompted by the clock, press WPS button on your router (or in web-interface of your router). Clock will automatically connect to the WiFi and save data for future use. No need to input your credentials anywhere in the source code. The clock will remember WiFi connection details even if you unplug the clock.
+
+* Classic build without WPS: Add your WiFi credentials into `_USER_DEFINES.h` file before building the firmware.
 
 Note: The `_USER_DEFINES.h` is included in the default `.gitignore` file, so that your personal credentials will not be pushed to a git repo by default, if you are using a forked git repo. But note, that the credentials can be found as strings in the firmware .BIN file.
 
@@ -745,7 +808,9 @@ Normally you will already have a MQTT broker running locally, which supports the
 
 You can also use an internet-based broker which supports "Home Assistant messages" (topics) for discovery and communication, like HiveMQ.
 
-Enable the `MQTT_HOME_ASSISTANT` define to have HA support and the belonging `MQTT_HOME_ASSISTANT_*` defines for auto discovery via the MQTT integration.
+**Web setup build (default):** Home Assistant support is always active. Enter the IP (or host name), port, username and password of the broker on the setup page of the clock (see "First start: Web setup"). The `MQTT_*` defines in your `_USER_DEFINES.h` are only used as a fallback as long as no broker was saved on the setup page.
+
+**Classic build:** Enable the `MQTT_HOME_ASSISTANT` define to have HA support and the belonging `MQTT_HOME_ASSISTANT_*` defines for auto discovery via the MQTT integration.
 
 After you set up the broker, you need to enter the used IP, port, username and password of it into the matching `MQTT_*` defines in your `_USER_DEFINES.h` (MQTT config section).
 
@@ -997,18 +1062,6 @@ You need to connect to the same MQTT broker like the clock and then will be able
 
 All MQTT messages from and to the clock are also traced out via the serial interface. So using a serial monitor while using the clock, gives also debug information. Make sure you enable the `DEBUG_OUTPUT_MQTT` before compilation and upload.
 
-### 5.6.6 Web setup: Home Assistant firmware with browser setup (all clocks)
-
-Firmware for Home Assistant: flash it, then set up WiFi and the MQTT broker from a web page - no compiling needed for your own settings. The web setup is enabled for all clocks by `-D WEB_SETUP_PORTAL` in the `[env]` `build_flags` of `platformio.ini`. Comment that line out to get the classic build (WPS / hard coded WiFi, plain MQTT) back. How it works:
-
-* **First start** (no WiFi saved): the displays show "WEB SETUP". Join the open WiFi network named after the clock (e.g. `ipstube-a1b2c3`) with a phone and open `http://192.168.4.1` (most phones open it automatically). Enter the WiFi network, the Home Assistant MQTT broker (host, port, user, password) and whether the front LED strip is fitted, then press *Save and restart*. Password boxes: empty = keep the current one, `-` (MQTT) = no password. Own builds: if `MQTT_HOME_ASSISTANT` and real broker values (not the `__enter_...` placeholders) are set in `_USER_DEFINES.h`, they are used as long as nothing was saved on the setup page yet.
-* **Later changes**: short presses through the clock menu to the last item *Web setup*, then hold the button. The setup network closes after 10 minutes. (The button is GPIO0 = BOOT, so holding it at power-up starts the download mode instead.)
-* **Home Assistant entities** in addition to the normal ones: automatic timezone, timezone offset (hours, quarter hour steps; setting it switches the automatic lookup off), night dimming on/off, night start hour, day start hour, night screen brightness, night backlight intensity. The main display brightness set from Home Assistant is kept (it is no longer reset to full brightness every hour). Settings are stored in the clock (NVS namespace `hax_setup`) 5 seconds after the last change.
-* The setup page is one gzip compressed page (~1 KB) served by the WebServer and DNSServer libraries of the ESP32 Arduino core. To change it, edit `tools/setup_page/setup_page.html` and run `python tools/setup_page/make_setup_page.py`.
-* Home Assistant (MQTT discovery) only; WPS, the generic/SmartNest MQTT mode and TLS need the classic build (without `-D WEB_SETUP_PORTAL`).
-* All clocks: same setup page and Home Assistant settings (the LED strip option only appears on the IPSTube; 80x160 displays use a smaller font). Tested on the ESP32-S3 IPSTube; the other clocks are build tested only - feedback is welcome.
-
-
 ## 6\. Known problems/limitations, Notes
 
 ##### 6.1 Precision of the gesture sensor (NovelLife SE)
@@ -1046,6 +1099,8 @@ The IPSTube clocks have only one button, so there are some limitations at the mo
 
 * Long pressing (at least 0.5 seconds) changes the value of the currently selected menu scope.
 
+* Web setup build: the last menu item is *Web setup* - hold the button there to open the setup network (see "First start: Web setup").
+
 This makes navigating through the menus a bit "unhandy." The values always change "to the right" because the long button press emulates a "right button" press in the menu. This limits the selection of values (e.g., for the absolute color values). The selection loops back to the first value after reaching the last value.
 
 ##### 6.3 No real display turn-off or dimming for some IPSTube clocks
@@ -1066,7 +1121,7 @@ See also the code comments for more info in the `GLOBAL_DEFINES.h` for the IPSTu
 
 ##### 6.4 Slow digit refresh times for IPSTube clocks
 
-IPSTube clocks use slower Winbond flash chips that require conservative SPI settings (DIO mode at 40 MHz instead of QIO at 80 MHz). These slower flash chips provide only half the throughput of standard ESP32 flash memory, which results in slower loading times for the high-quality digit images and therefore slower display refresh rates compared to other clock models. Additionally, attempting to use QIO mode (quad I/O with four data lines which ARE connected on the PCB) or higher frequencies like 80 MHz (DIO or QIO) causes system instability with these chips.
+IPSTube (Gen1) clocks use slower Winbond flash chips that require conservative SPI settings (DIO mode at 40 MHz instead of QIO at 80 MHz). These slower flash chips provide only half the throughput of standard ESP32 flash memory, which results in slower loading times for the high-quality digit images and therefore slower display refresh rates compared to other clock models. Additionally, attempting to use QIO mode (quad I/O with four data lines which ARE connected on the PCB) or higher frequencies like 80 MHz (DIO or QIO) causes system instability with these chips.
 
 In normal operation this is barely noticeable, but becomes very apparent when multiple different digits need to be drawn simultaneously (cold load without prefetch).
 
@@ -1080,7 +1135,11 @@ Some versions of the IPSTubes have a LED stripe with 28 RGB LEDs installed on th
 
 * All models have a 3-pin socket on the board, so theoretically, the strip can be retrofitted using any WS2812B-based LED strip with some modifications. However, the recess in the metal cover is missing, preventing the light from shining through.
 
-* By default, only six LEDs are set. To enable the full LED strip, uncomment `-D HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE` in `platformio.ini` and rebuild and upload the firmware.
+* By default, only six LEDs are set.
+
+* Web setup build (default, also the pre-built images): tick *LED strip fitted* on the setup page (see "First start: Web setup"). No rebuild needed.
+
+* Classic build (without `-D WEB_SETUP_PORTAL`): uncomment `-D HARDWAREMOD_IPSTUBE_CLOCK_WITH_LED_STRIPE` in `platformio.ini` (environment `IPSTube` or `IPSTube_Gen3`) and rebuild and upload the firmware.
 
 ##### 6.6 Xunfeng clocks
 
@@ -1250,6 +1309,10 @@ Note: This problem does not appear on Gen2 hardware from EleksTube! All clocks s
 * Home Assistant support by @victorvuelma and @gamba69
 
 * Help with MarvelTube Mini integration by @Hans99
+
+* Web setup (WiFi and MQTT setup from the browser) by @MrEcosse
+
+* Support for the IPSTube with ESP32-S3 by @Pauldy
 
 * in future (on to-do list) also from: @RedNax67, @wfdudley, @judge2005
 
