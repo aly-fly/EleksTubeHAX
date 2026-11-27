@@ -183,6 +183,10 @@ jobs:
 
           Use esptool or the PlatformIO upload command with the `FW_*.bin` (combined) file flashed to address `0x0`.
 
+          ### First start: Web setup
+
+          After flashing, join the WiFi named after the clock (e.g. `ipstube-a1b2c3`), open `http://192.168.4.1` and enter your WiFi and the MQTT broker of your Home Assistant. Later changes: clock menu, last item *Web setup*.
+
           ### Hardware variants
 
           | Variant | Description |
@@ -193,32 +197,30 @@ jobs:
           | `Xunfeng` | Xunfeng IPS clock (ESP32-S2) |
           | `NovelLife` | NovelLife SE version |
           | `PunkCyber` | PunkCyber version (aka "RGB Glow Tube DIY" from PCBWay marketplace) |
-          | `IPSTube` | IPSTube - Model H401/H402 (8MB) |
+          | `IPSTube` | IPSTube - Model H401/H402 with ESP32 (8MB) |
+          | `IPSTube_Gen3` | IPSTube - Model H401/H402 with ESP32-S3 (8MB) |
           | `MarvelTubes` | MarvelTubes (ESP32-S2, 16MB) |
+          | `MarvelTubes_Gen2` | MarvelTubes Gen2 (ESP32, 16MB) |
           | `MarvelTubesMini` | MarvelTubes Mini (ESP32-C3, small displays) |
           | `DEsign` | D'Esign clock (small displays) |
 
           ### ⚠️ Pre-built firmware limitations
-
-          These binaries may have limited functionality compared to a self-built firmware, because not all available features are enabled or can be configured.
 
           The image files (clock faces) are fixed and can't be changed without building your own firmware file with the development tools!
 
           #### Pre-configured functionality
 
           **Enabled:**
-          - WiFi connectivity via WPS (while clock is in boot phase, press WPS button on your router for WiFi setup)
-          - Night time dimming — from 22:00h (10 pm) to 07:00h (7 am)
-          - IP-based geolocation — time zone & DST from IP-API.com
+          - Web setup for WiFi and MQTT broker
+          - Home Assistant via MQTT auto discovery
+          - Night time dimming (default 22:00h-07:00h) and IP-based time zone, both changeable from Home Assistant
 
-          **Disabled:**
-          - MQTT — no remote control, no Home Assistant support
-          - Debug outputs via serial interface
-          - For IPSTube clock: LED stripe disabled, hardware dimming enabled
+          **Not included** (self-built firmware without `WEB_SETUP_PORTAL` needed):
+          - WPS / hard coded WiFi, plain MQTT (e.g. SmartNest), MQTT over TLS
 
           **General:**
-          - 6 different sets of clock faces present. See [data](https://github.com/${{ github.repository }}/tree/main/data)
-          - BMP mode active for the given clock faces
+          - 7 sets of clock faces, BMP mode, no debug output. See [data](https://github.com/${{ github.repository }}/tree/main/data)
+          - IPSTube: LED strip off by default, switch it on on the setup page
 
           ### 🔒 Backup first!
 
@@ -227,7 +229,7 @@ jobs:
           Save your original firmware using the script that matches your device:
           - `_ESP32 save flash 4MB.cmd` — most clocks
           - `_ESP32 save flash 8MB.cmd` — IPSTube
-          - `_ESP32 save flash 16MB.cmd` — MarvelTubes
+          - `_ESP32 save flash 16MB.cmd` — MarvelTubes, MarvelTubes Gen2
 
           Change the COM port number to match your clock, run the script, then rename and store `backup1.bin` safely.
 
